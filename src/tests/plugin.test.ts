@@ -20,16 +20,28 @@ describe('remarkDraMark plugin', () => {
     await expect(processor.run(tree, file)).rejects.toThrow('UNCLOSED_SONG_CONTAINER');
   });
 
-  it('applies inline marker transform in micromark mode', async () => {
+  it('tokenizes inline markers in micromark mode', async () => {
     const processor = unified().use(remarkParse).use(remarkDraMark, { parserMode: 'micromark' });
-    const file = new VFile({ value: '台词 $短唱$ 和 {动作}' });
+    const file = new VFile({ value: '台词 <<LX01 GO>> 与 $短唱$ 和 {动作}' });
     const tree = processor.parse(file) as { children: Array<{ type: string; children?: unknown[] }> };
 
     await processor.run(tree, file);
 
     const allTypes = flatten(tree).map((node) => node.type);
+    expect(allTypes).toContain('inline-tech-cue');
     expect(allTypes).toContain('inline-song');
     expect(allTypes).toContain('inline-action');
+  });
+
+  it('does not create inline-tech-cue when <<...>> spans lines', async () => {
+    const processor = unified().use(remarkParse).use(remarkDraMark, { parserMode: 'micromark' });
+    const file = new VFile({ value: '台词 <<LX01\nGO>> 不应闭合' });
+    const tree = processor.parse(file) as { children: Array<{ type: string; children?: unknown[] }> };
+
+    await processor.run(tree, file);
+
+    const allTypes = flatten(tree).map((node) => node.type);
+    expect(allTypes).not.toContain('inline-tech-cue');
   });
 
   it('does not overwrite tree.children in micromark mode', async () => {

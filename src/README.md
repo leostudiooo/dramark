@@ -114,7 +114,7 @@
 - 仍是行级解析器，不是 micromark 扩展
 - 虽已完成 mdast 模块增强并收敛插件边界断言，但自定义节点生态兼容性仍需在真实 remark 链路中持续验证
 - 容器隔离已增强为“仅 root-level 行触发 DraMark 指令”，但更完整的 CommonMark 容器语义（复杂列表/引用嵌套）仍有精化空间
-- inline 自定义标记（`{}` / `$...$` / `<<...>>`）目前通过 fromMarkdown 后处理注入，词法优先级与容器语义仍待在 micromark 扩展阶段根治
+- `legacy` 路径中的 inline 自定义标记（`{}` / `$...$` / `<<...>>`）仍通过 fromMarkdown 后处理注入；`micromark` 路径已改为 parse 阶段 tokenization
 
 ## 9. 下一步建议
 
@@ -123,5 +123,5 @@
 - 增加 AST 快照测试，稳定后续重构
 
 当前进度：
-- M2 已打通插件注入骨架（`src/m2-extensions.ts`）与 inline marker from-markdown transform 复用
+- M2 已打通插件注入骨架（`src/m2-extensions.ts`），并为 `<<...>>` / `$...$` / `{...}` 接入了 micromark inline tokenization + from-markdown bridge
 - block token（`@`, `=`, `$$`, `<<<`, `%`, `%%`）仍待后续以 micromark construct 逐步接入

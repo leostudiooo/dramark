@@ -1,7 +1,6 @@
 import type { Plugin } from 'unified';
 import type { Root } from 'mdast';
 import { warningToError } from './errors.js';
-import { transformInlineMarkersInTree } from './inline-markers.js';
 import { registerDraMarkParseExtensions } from './m2-extensions.js';
 import { parseDraMark } from './parser.js';
 import type { DraMarkOptions } from './types.js';
@@ -19,9 +18,7 @@ const remarkDraMark: Plugin<[RemarkDraMarkPluginOptions?], Root> = function rema
 
   if (parserMode === 'micromark') {
     registerDraMarkParseExtensions(this);
-    return (tree, file): void => {
-      // Transitional fallback while block-level micromark constructs are phased in.
-      transformInlineMarkersInTree(tree);
+    return (_tree, file): void => {
       file.data.dramark = {
         warnings: [],
         metadata: {
