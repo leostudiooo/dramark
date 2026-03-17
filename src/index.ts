@@ -22,7 +22,7 @@ const remarkDraMark: Plugin<[DraMarkOptions?], Root> = (options?: DraMarkOptions
       throw warningToError(result.warnings[0]);
     }
 
-    tree.children = result.tree.children as Root['children'];
+    tree.children = result.tree.children;
   };
 };
 

@@ -88,6 +88,9 @@
   - translation-pair 构建
   - song-container 构建
   - 百分号防误伤
+- edge-cases.test.ts
+  - 6 条 edge-case 裁决门禁（frontmatter 豁免、容器隔离、song 穿透、translation target block list、百分号词法、inline tech 不跨行）
+  - warning 行为覆盖（未闭合 comment/tech cue/song、translation 脱离 character）
 - plugin.test.ts
   - 非 strict 收集 warning
   - strict 抛错
@@ -101,13 +104,12 @@
 ## 8. 已知限制（v0）
 
 - 仍是行级解析器，不是 micromark 扩展
-- 自定义节点尚未通过 mdast 模块增强进行完整类型合并
-- 部分 CommonMark 容器场景（列表/引用内部根级判断）还未完全按 spec 精化
+- 虽已完成 mdast 模块增强并收敛插件边界断言，但自定义节点生态兼容性仍需在真实 remark 链路中持续验证
+- 容器隔离已增强为“仅 root-level 行触发 DraMark 指令”，但更完整的 CommonMark 容器语义（复杂列表/引用嵌套）仍有精化空间
 - translation target 目前以段落聚合为主，后续可增强为更精细 block 映射
 
 ## 9. 下一步建议
 
 - 引入 micromark 扩展与 from-markdown bridge
-- 把 6 条裁决逐条绑定成测试门禁
-- 完善容器隔离与 heading/split 的 root-level 判定
+- 增加复杂列表/引用嵌套场景的容器隔离测试与实现（进一步贴近 CommonMark）
 - 增加 AST 快照测试，稳定后续重构

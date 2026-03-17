@@ -1,4 +1,4 @@
-import type { Content, Paragraph, Text } from 'mdast';
+import type { Content, Paragraph } from 'mdast';
 import { defaultOptions } from './errors.js';
 import type {
   BlockTechCue,
@@ -50,6 +50,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
   while (index < lines.length) {
     const rawLine = lines[index];
     const trimmed = rawLine.trim();
+    const rootDirectiveLine = isRootDirectiveLine(rawLine);
     const lineNo = index + 1;
 
     if (trimmed.length === 0) {
@@ -57,7 +58,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       continue;
     }
 
-    if (trimmed === '$$') {
+    if (rootDirectiveLine && trimmed === '$$') {
       if (state.inSong) {
         state.inSong = false;
         state.currentSong = null;
@@ -99,7 +100,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       continue;
     }
 
-    if (trimmed === '%%') {
+    if (rootDirectiveLine && trimmed === '%%') {
       const block = consumeBlockComment(lines, index);
       if (opts.includeComments) {
         pushNode(root, state, block.node);
@@ -116,7 +117,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       continue;
     }
 
-    if (trimmed.startsWith('<<<')) {
+    if (rootDirectiveLine && trimmed.startsWith('<<<')) {
       const blockCue = consumeBlockTechCue(lines, index);
       pushNode(root, state, blockCue.node);
       if (!blockCue.closed) {
@@ -131,7 +132,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       continue;
     }
 
-    if (isLineComment(rawLine)) {
+    if (rootDirectiveLine && isLineComment(rawLine)) {
       if (opts.includeComments) {
         const comment: CommentLine = {
           type: 'comment-line',
@@ -143,7 +144,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       continue;
     }
 
-    const character = parseCharacterDeclaration(trimmed);
+    const character = rootDirectiveLine ? parseCharacterDeclaration(trimmed) : null;
     if (character !== null) {
       state.currentCharacter = character;
       currentContainer(root, state).push(character);
@@ -151,7 +152,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       continue;
     }
 
-    if (trimmed.startsWith('= ')) {
+    if (rootDirectiveLine && trimmed.startsWith('= ')) {
       if (!translationEnabled || state.currentCharacter === null) {
         warnings.push({
           code: 'TRANSLATION_OUTSIDE_CHARACTER',
@@ -309,14 +310,15 @@ function consumeTranslationPair(lines: string[], start: number): { node: Transla
   while (index < lines.length) {
     const candidate = lines[index];
     const trimmed = candidate.trim();
+    const rootDirectiveLine = isRootDirectiveLine(candidate);
 
-    if (trimmed.startsWith('= ')) {
+    if (rootDirectiveLine && trimmed.startsWith('= ')) {
       break;
     }
-    if (trimmed.startsWith('@')) {
+    if (rootDirectiveLine && trimmed.startsWith('@')) {
       break;
     }
-    if (trimmed === '$$') {
+    if (rootDirectiveLine && trimmed === '$$') {
       break;
     }
     if (isRootHeading(candidate)) {
@@ -381,11 +383,15 @@ function isLineComment(line: string): boolean {
   return /\s/u.test(line[idx - 1]);
 }
 
+function isRootDirectiveLine(line: string): boolean {
+  return line.trimStart() === line;
+}
+
 function paragraphFromLine(line: string): Paragraph {
   const cleanLine = stripInlineComment(line);
   return {
     type: 'paragraph',
-    children: parseInlineContent(cleanLine) as unknown as Paragraph['children'],
+    children: parseInlineContent(cleanLine),
   };
 }
 
@@ -400,8 +406,8 @@ function stripInlineComment(line: string): string {
   return /\s/u.test(line[idx - 1]) ? line.slice(0, idx).trimEnd() : line;
 }
 
-function parseInlineContent(line: string): Array<Text | InlineAction | InlineSongSegment | InlineTechCue> {
-  const nodes: Array<Text | InlineAction | InlineSongSegment | InlineTechCue> = [];
+function parseInlineContent(line: string): Paragraph['children'] {
+  const nodes: Paragraph['children'] = [];
   let cursor = 0;
 
   const pushText = (value: string): void => {

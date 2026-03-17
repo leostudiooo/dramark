@@ -99,3 +99,21 @@ export interface DraMarkOptions {
   strictMode?: boolean;
   allowNestedSongContainers?: boolean;
 }
+
+declare module 'mdast' {
+  interface RootContentMap {
+    'frontmatter': FrontmatterBlock;
+    'character-block': CharacterBlock;
+    'translation-pair': TranslationPair;
+    'song-container': SongContainer;
+    'block-tech-cue': BlockTechCue;
+    'comment-line': CommentLine;
+    'comment-block': CommentBlock;
+  }
+
+  interface PhrasingContentMap {
+    'inline-action': InlineAction;
+    'inline-song': InlineSongSegment;
+    'inline-tech-cue': InlineTechCue;
+  }
+}
