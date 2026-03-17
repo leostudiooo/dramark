@@ -1,6 +1,6 @@
 # DraMark Language Specification
 
-**Version**: 1.0  
+**Version**: 0.1.0 (pre-v1)  
 **Date**: 2026-03-17  
 **Status**: Official Release
 
