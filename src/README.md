@@ -40,6 +40,11 @@
 - 将 warnings 与 metadata 挂到 file.data.dramark
 - 在 strictMode 下，如果存在 warning，抛出首个错误
 
+新增（M2 起步）：
+- `parserMode: 'legacy' | 'micromark'`（默认 `legacy`）
+- `legacy`：保持 v0 行状态机路径，运行期覆盖 `tree.children`
+- `micromark`：改为在 parse 阶段向 `remark-parse` 注入 `micromarkExtensions` / `fromMarkdownExtensions`，不再覆盖 `tree.children`
+
 ## 4. 当前支持的语法能力
 
 - frontmatter 提取
@@ -116,3 +121,7 @@
 - 引入 micromark 扩展与 from-markdown bridge
 - 增加复杂列表/引用嵌套场景的容器隔离测试与实现（进一步贴近 CommonMark）
 - 增加 AST 快照测试，稳定后续重构
+
+当前进度：
+- M2 已打通插件注入骨架（`src/m2-extensions.ts`）与 inline marker from-markdown transform 复用
+- block token（`@`, `=`, `$$`, `<<<`, `%`, `%%`）仍待后续以 micromark construct 逐步接入
