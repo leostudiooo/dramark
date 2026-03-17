@@ -1,4 +1,5 @@
-import type { Content, Paragraph } from 'mdast';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import type { Content, Heading, PhrasingContent, ThematicBreak } from 'mdast';
 import { defaultOptions } from './errors.js';
 import type {
   BlockTechCue,
@@ -22,6 +23,7 @@ interface ParseState {
   inSong: boolean;
   currentSong: SongContainer | null;
   currentCharacter: CharacterBlock | null;
+  contentBuffer: string[];
 }
 
 export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkParseResult {
@@ -45,6 +47,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
     inSong: false,
     currentSong: null,
     currentCharacter: null,
+    contentBuffer: [],
   };
 
   while (index < lines.length) {
@@ -53,25 +56,13 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
     const rootDirectiveLine = isRootDirectiveLine(rawLine);
     const lineNo = index + 1;
 
-    if (trimmed.length === 0) {
-      index += 1;
-      continue;
-    }
-
     if (rootDirectiveLine && trimmed === '$$') {
+      flushContentBuffer(root, state);
       if (state.inSong) {
         state.inSong = false;
         state.currentSong = null;
         state.currentCharacter = null;
       } else {
-        if (!opts.allowNestedSongContainers && state.currentSong !== null) {
-          warnings.push({
-            code: 'NESTED_SONG_CONTAINER',
-            message: 'Nested song containers are disabled by default.',
-            line: lineNo,
-            column: 1,
-          });
-        }
         const song: SongContainer = { type: 'song-container', children: [] };
         root.children.push(song);
         state.inSong = true;
@@ -83,24 +74,27 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
     }
 
     if (isRootHeading(rawLine)) {
+      flushContentBuffer(root, state);
       state.currentCharacter = null;
       if (state.inSong) {
         state.inSong = false;
         state.currentSong = null;
       }
-      pushNode(root, state, asHeadingParagraph(trimmed));
+      pushNode(root, state, asHeading(rawLine));
       index += 1;
       continue;
     }
 
     if (isRootReset(rawLine)) {
+      flushContentBuffer(root, state);
       state.currentCharacter = null;
-      pushNode(root, state, asRuleParagraph(trimmed));
+      pushNode(root, state, asThematicBreak());
       index += 1;
       continue;
     }
 
     if (rootDirectiveLine && trimmed === '%%') {
+      flushContentBuffer(root, state);
       const block = consumeBlockComment(lines, index);
       if (opts.includeComments) {
         pushNode(root, state, block.node);
@@ -118,6 +112,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
     }
 
     if (rootDirectiveLine && trimmed.startsWith('<<<')) {
+      flushContentBuffer(root, state);
       const blockCue = consumeBlockTechCue(lines, index);
       pushNode(root, state, blockCue.node);
       if (!blockCue.closed) {
@@ -133,6 +128,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
     }
 
     if (rootDirectiveLine && isLineComment(rawLine)) {
+      flushContentBuffer(root, state);
       if (opts.includeComments) {
         const comment: CommentLine = {
           type: 'comment-line',
@@ -146,6 +142,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
 
     const character = rootDirectiveLine ? parseCharacterDeclaration(trimmed) : null;
     if (character !== null) {
+      flushContentBuffer(root, state);
       state.currentCharacter = character;
       currentContainer(root, state).push(character);
       index += 1;
@@ -153,6 +150,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
     }
 
     if (rootDirectiveLine && trimmed.startsWith('= ')) {
+      flushContentBuffer(root, state);
       if (!translationEnabled || state.currentCharacter === null) {
         warnings.push({
           code: 'TRANSLATION_OUTSIDE_CHARACTER',
@@ -160,7 +158,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
           line: lineNo,
           column: 1,
         });
-        pushNode(root, state, paragraphFromLine(rawLine));
+        state.contentBuffer.push(rawLine);
         index += 1;
         continue;
       }
@@ -170,9 +168,11 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       continue;
     }
 
-    pushNode(root, state, paragraphFromLine(rawLine));
+    state.contentBuffer.push(rawLine);
     index += 1;
   }
+
+  flushContentBuffer(root, state);
 
   if (state.inSong) {
     warnings.push({
@@ -332,7 +332,7 @@ function consumeTranslationPair(lines: string[], start: number): { node: Transla
     index += 1;
   }
 
-  const blocks = parseTargetBlocks(targetLines);
+  const blocks = parseMarkdownBlocks(targetLines.join('\n'));
   return {
     node: {
       type: 'translation-pair',
@@ -342,33 +342,6 @@ function consumeTranslationPair(lines: string[], start: number): { node: Transla
     },
     nextIndex: index,
   };
-}
-
-function parseTargetBlocks(lines: string[]): Content[] {
-  const blocks: Content[] = [];
-  const chunk: string[] = [];
-
-  const flush = (): void => {
-    if (chunk.length === 0) {
-      return;
-    }
-    const value = chunk.join('\n').trim();
-    if (value.length > 0) {
-      blocks.push(paragraphFromLine(value));
-    }
-    chunk.length = 0;
-  };
-
-  for (const line of lines) {
-    if (line.trim().length === 0) {
-      flush();
-      continue;
-    }
-    chunk.push(line);
-  }
-  flush();
-
-  return blocks;
 }
 
 function isLineComment(line: string): boolean {
@@ -387,27 +360,55 @@ function isRootDirectiveLine(line: string): boolean {
   return line.trimStart() === line;
 }
 
-function paragraphFromLine(line: string): Paragraph {
-  const cleanLine = stripInlineComment(line);
-  return {
-    type: 'paragraph',
-    children: parseInlineContent(cleanLine),
-  };
+function flushContentBuffer(root: DraMarkRoot, state: ParseState): void {
+  if (state.contentBuffer.length === 0) {
+    return;
+  }
+
+  const blocks = parseMarkdownBlocks(state.contentBuffer.join('\n'));
+  for (const block of blocks) {
+    pushNode(root, state, block);
+  }
+
+  state.contentBuffer.length = 0;
 }
 
-function stripInlineComment(line: string): string {
-  const idx = line.indexOf('%');
-  if (idx < 0) {
-    return line;
+function parseMarkdownBlocks(markdown: string): Content[] {
+  const tree = fromMarkdown(markdown);
+  const blocks = tree.children as Content[];
+  for (const block of blocks) {
+    transformInlineMarkers(block);
   }
-  if (idx === 0) {
-    return '';
-  }
-  return /\s/u.test(line[idx - 1]) ? line.slice(0, idx).trimEnd() : line;
+  return blocks;
 }
 
-function parseInlineContent(line: string): Paragraph['children'] {
-  const nodes: Paragraph['children'] = [];
+function transformInlineMarkers(node: unknown): void {
+  if (!hasChildren(node)) {
+    return;
+  }
+
+  for (let i = 0; i < node.children.length; i += 1) {
+    const child = node.children[i];
+    if (isTextNode(child)) {
+      const replacements = parseInlineContent(child.value);
+      node.children.splice(i, 1, ...replacements);
+      i += replacements.length - 1;
+      continue;
+    }
+    transformInlineMarkers(child);
+  }
+}
+
+function hasChildren(node: unknown): node is { children: unknown[] } {
+  return typeof node === 'object' && node !== null && Array.isArray((node as { children?: unknown[] }).children);
+}
+
+function isTextNode(node: unknown): node is { type: 'text'; value: string } {
+  return typeof node === 'object' && node !== null && (node as { type?: string }).type === 'text' && typeof (node as { value?: unknown }).value === 'string';
+}
+
+function parseInlineContent(line: string): PhrasingContent[] {
+  const nodes: PhrasingContent[] = [];
   let cursor = 0;
 
   const pushText = (value: string): void => {
@@ -455,8 +456,8 @@ function parseInlineContent(line: string): Paragraph['children'] {
 
     if (token === '<' && line[actionStart + 1] === '<') {
       const close = line.indexOf('>>', actionStart + 2);
-      if (close > actionStart + 1) {
-        const value = line.slice(actionStart + 2, close);
+      const value = close > actionStart + 1 ? line.slice(actionStart + 2, close) : '';
+      if (close > actionStart + 1 && !value.includes('\n')) {
         nodes.push({ type: 'inline-tech-cue', value } satisfies InlineTechCue);
         cursor = close + 2;
         continue;
@@ -509,16 +510,25 @@ function pushNode(root: DraMarkRoot, state: ParseState, node: DraMarkRootContent
   currentContainer(root, state).push(node);
 }
 
-function asHeadingParagraph(line: string): Paragraph {
+function asHeading(line: string): Heading {
+  const headingMatch = line.match(/^(#{1,6})\s+(.*)$/u);
+  if (headingMatch === null) {
+    return {
+      type: 'heading',
+      depth: 1,
+      children: [{ type: 'text', value: line }],
+    };
+  }
+
   return {
-    type: 'paragraph',
-    children: [{ type: 'text', value: line }],
+    type: 'heading',
+    depth: headingMatch[1].length as Heading['depth'],
+    children: parseInlineContent(headingMatch[2]),
   };
 }
 
-function asRuleParagraph(line: string): Paragraph {
+function asThematicBreak(): ThematicBreak {
   return {
-    type: 'paragraph',
-    children: [{ type: 'text', value: line }],
+    type: 'thematicBreak',
   };
 }

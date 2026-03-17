@@ -35,6 +35,16 @@ describe('parseDraMark', () => {
     expect(first.children.length).toBe(1);
   });
 
+  it('parses sequential song containers without nested warnings', () => {
+    const input = ['$$', '@A', '第一段唱词', '$$', '$$', '@B', '第二段唱词', '$$'].join('\n');
+
+    const result = parseDraMark(input);
+    const types = result.tree.children.map((node) => node.type);
+
+    expect(result.warnings).toHaveLength(0);
+    expect(types).toEqual(['song-container', 'song-container']);
+  });
+
   it('does not treat plain percentage values as comments', () => {
     const input = ['@财务', '利润下降了 20% 但我们仍在增长。'].join('\n');
 
@@ -56,5 +66,45 @@ describe('parseDraMark', () => {
     expect(first.name).toBe('哈姆雷特');
     expect(first.names).toEqual(['哈姆雷特', '奥菲莉娅']);
     expect(first.mood).toBe('压抑');
+  });
+
+  it('emits real heading and thematicBreak nodes at root level', () => {
+    const input = ['@哈姆雷特', '生存还是毁灭。', '---', '# 第二场'].join('\n');
+
+    const result = parseDraMark(input);
+    const rule = result.tree.children[1] as { type: string };
+    const heading = result.tree.children[2] as { type: string; depth: number; children: Array<{ value?: string }> };
+
+    expect(rule.type).toBe('thematicBreak');
+    expect(heading.type).toBe('heading');
+    expect(heading.depth).toBe(1);
+    expect(heading.children[0].value).toBe('第二场');
+  });
+
+  it('parses translation target as real CommonMark blocks', () => {
+    const input = ['@冉阿让', '= Source line', '- 第一项', '- 第二项', '', '> 引用段落'].join('\n');
+
+    const result = parseDraMark(input, { translationEnabled: true });
+    const character = result.tree.children[0] as { children: Array<{ type: string; target?: Array<{ type: string }> }> };
+    const pair = character.children[0] as { type: string; target: Array<{ type: string }> };
+
+    expect(pair.type).toBe('translation-pair');
+    expect(pair.target.map((node) => node.type)).toEqual(['list', 'blockquote']);
+  });
+
+  it('preserves CommonMark block structure in character dialogue', () => {
+    const input = ['@哈姆雷特', '- *生存*', '- 毁灭', '', '> 这是引用'].join('\n');
+
+    const result = parseDraMark(input);
+    const character = result.tree.children[0] as {
+      type: string;
+      children: Array<{ type: string; children?: Array<{ type: string; children?: Array<{ type: string }> }> }>;
+    };
+
+    expect(character.type).toBe('character-block');
+    expect(character.children.map((node) => node.type)).toEqual(['list', 'blockquote']);
+
+    const list = character.children[0] as unknown as { children: Array<{ children: Array<{ children: Array<{ type: string }> }> }> };
+    expect(list.children[0].children[0].children[0].type).toBe('emphasis');
   });
 });

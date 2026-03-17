@@ -78,7 +78,6 @@ export interface DraMarkWarning {
     | 'UNCLOSED_BLOCK_COMMENT'
     | 'UNCLOSED_BLOCK_TECH_CUE'
     | 'UNCLOSED_SONG_CONTAINER'
-    | 'NESTED_SONG_CONTAINER'
     | 'TRANSLATION_OUTSIDE_CHARACTER';
   message: string;
   line: number;
@@ -97,7 +96,6 @@ export interface DraMarkOptions {
   translationEnabled?: boolean;
   includeComments?: boolean;
   strictMode?: boolean;
-  allowNestedSongContainers?: boolean;
 }
 
 declare module 'mdast' {

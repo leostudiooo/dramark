@@ -19,7 +19,6 @@ export function defaultOptions(options?: DraMarkOptions): Required<DraMarkOption
     translationEnabled: options?.translationEnabled ?? false,
     includeComments: options?.includeComments ?? false,
     strictMode: options?.strictMode ?? false,
-    allowNestedSongContainers: options?.allowNestedSongContainers ?? false,
   };
 }
 

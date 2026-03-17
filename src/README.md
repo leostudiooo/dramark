@@ -73,12 +73,13 @@
 - UNCLOSED_BLOCK_COMMENT
 - UNCLOSED_BLOCK_TECH_CUE
 - UNCLOSED_SONG_CONTAINER
-- NESTED_SONG_CONTAINER
 - TRANSLATION_OUTSIDE_CHARACTER
 
 严格模式：
-- strictMode=false：保留 warning，不中断
-- strictMode=true：发现 warning 即抛错
+- `parseDraMark`：始终返回 `warnings`，不会抛错
+- `remarkDraMark` 插件：
+  - strictMode=false：保留 warning，不中断
+  - strictMode=true：发现 warning 即抛出首个错误
 
 ## 7. 测试
 
@@ -87,6 +88,8 @@
   - 角色块解析
   - translation-pair 构建
   - song-container 构建
+  - heading/thematicBreak 的 mdast 节点产出
+  - translation target 与角色对白的 CommonMark block 保留（list/blockquote）
   - 百分号防误伤
 - edge-cases.test.ts
   - 6 条 edge-case 裁决门禁（frontmatter 豁免、容器隔离、song 穿透、translation target block list、百分号词法、inline tech 不跨行）
@@ -106,7 +109,7 @@
 - 仍是行级解析器，不是 micromark 扩展
 - 虽已完成 mdast 模块增强并收敛插件边界断言，但自定义节点生态兼容性仍需在真实 remark 链路中持续验证
 - 容器隔离已增强为“仅 root-level 行触发 DraMark 指令”，但更完整的 CommonMark 容器语义（复杂列表/引用嵌套）仍有精化空间
-- translation target 目前以段落聚合为主，后续可增强为更精细 block 映射
+- inline 自定义标记（`{}` / `$...$` / `<<...>>`）目前通过 fromMarkdown 后处理注入，词法优先级与容器语义仍待在 micromark 扩展阶段根治
 
 ## 9. 下一步建议
 
