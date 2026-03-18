@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { parseDraMark } from '../parser.js';
 
 describe('parseDraMark', () => {
+  it('does not throw when strictMode is passed to parseDraMark', () => {
+    expect(() => parseDraMark('= orphan translation line', { strictMode: true })).not.toThrow();
+
+    const result = parseDraMark('= orphan translation line', { strictMode: true });
+    expect(result.warnings.map((warning) => warning.code)).toContain('TRANSLATION_OUTSIDE_CHARACTER');
+  });
+
   it('parses character declarations and dialogue blocks', () => {
     const input = ['@哈姆雷特', '生存还是毁灭，这是一个问题。', '---', '舞台恢复安静。'].join('\n');
 
@@ -56,6 +63,21 @@ describe('parseDraMark', () => {
     expect(paragraph.children[0].value).toContain('20%');
   });
 
+  it('parses line comments in character context without producing empty paragraphs', () => {
+    const input = ['@舞监', '台词前缀', '% 这是注释', '台词后缀'].join('\n');
+
+    const result = parseDraMark(input, { includeComments: true });
+    const character = result.tree.children[0] as {
+      type: string;
+      children: Array<{ type: string; value?: string; children?: Array<{ value?: string }> }>;
+    };
+
+    expect(character.type).toBe('character-block');
+    expect(character.children.map((node) => node.type)).toEqual(['paragraph', 'comment-line', 'paragraph']);
+    expect(character.children[1].value).toContain('这是注释');
+    expect(character.children.some((node) => node.type === 'paragraph' && (node.children?.[0]?.value ?? '') === '')).toBe(false);
+  });
+
   it('supports full-width mood annotation in character declarations', () => {
     const input = ['@哈姆雷特@奥菲莉娅【压抑】', '沉默。'].join('\n');
 
@@ -106,5 +128,19 @@ describe('parseDraMark', () => {
 
     const list = character.children[0] as unknown as { children: Array<{ children: Array<{ children: Array<{ type: string }> }> }> };
     expect(list.children[0].children[0].children[0].type).toBe('emphasis');
+  });
+
+  it('keeps nested translation-like directives as inert dialogue content', () => {
+    const input = ['@A', '- 容器内文本', '  = nested source', '  nested target', '容器外对白'].join('\n');
+
+    const result = parseDraMark(input, { translationEnabled: true });
+    const character = result.tree.children[0] as { type: string; children: Array<{ type: string; children?: Array<{ value?: string }> }> };
+
+    expect(character.type).toBe('character-block');
+    expect(character.children.some((node) => node.type === 'translation-pair')).toBe(false);
+
+    const serialized = JSON.stringify(character.children);
+    expect(serialized).toContain('= nested source');
+    expect(serialized).toContain('容器外对白');
   });
 });

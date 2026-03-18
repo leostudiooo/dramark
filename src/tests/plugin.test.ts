@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkStringify from 'remark-stringify';
 import { VFile } from 'vfile';
 import remarkDraMark from '../index.js';
 import { parseDraMark } from '../parser.js';
@@ -18,6 +19,14 @@ describe('remarkDraMark plugin', () => {
     const tree = processor.parse(file);
 
     await expect(processor.run(tree, file)).rejects.toThrow('UNCLOSED_SONG_CONTAINER');
+  });
+
+  it('throws the first warning in strict mode when multiple warnings exist', async () => {
+    const processor = unified().use(remarkParse).use(remarkDraMark, { strictMode: true });
+    const file = new VFile({ value: '$$\n= orphan translation line' });
+    const tree = processor.parse(file);
+
+    await expect(processor.run(tree, file)).rejects.toThrow('TRANSLATION_OUTSIDE_CHARACTER');
   });
 
   it('tokenizes inline markers in micromark mode', async () => {
@@ -55,6 +64,54 @@ describe('remarkDraMark plugin', () => {
 
     expect(tree.children[0].type).toBe('paragraph');
     expect((file.data.dramark as { parserMode: string }).parserMode).toBe('micromark');
+  });
+
+  it('stores dramark metadata on file.data in legacy mode', async () => {
+    const processor = unified().use(remarkParse).use(remarkDraMark, { parserMode: 'legacy' });
+    const file = new VFile({ value: '= orphan translation line' });
+    const tree = processor.parse(file);
+
+    await processor.run(tree, file);
+
+    const dramark = file.data.dramark as {
+      warnings: Array<{ code: string }>;
+      metadata: { translationEnabledFromFrontmatter: boolean };
+      parserMode: string;
+    };
+
+    expect(dramark.parserMode).toBe('legacy');
+    expect(dramark.metadata.translationEnabledFromFrontmatter).toBe(false);
+    expect(dramark.warnings.map((warning) => warning.code)).toContain('TRANSLATION_OUTSIDE_CHARACTER');
+  });
+
+  it('keeps tree intact in micromark mode while still collecting legacy parse metadata', async () => {
+    const processor = unified().use(remarkParse).use(remarkDraMark, { parserMode: 'micromark' });
+    const file = new VFile({ value: '= orphan translation line\n台词 <<LX01 GO>>' });
+    const tree = processor.parse(file) as { children: Array<{ type: string }> };
+
+    expect(tree.children[0].type).toBe('paragraph');
+    await processor.run(tree, file);
+
+    const dramark = file.data.dramark as {
+      warnings: Array<{ code: string }>;
+      metadata: { translationEnabledFromFrontmatter: boolean };
+      parserMode: string;
+    };
+    const allTypes = flatten(tree).map((node) => node.type);
+
+    expect(tree.children[0].type).toBe('paragraph');
+    expect(dramark.parserMode).toBe('micromark');
+    expect(dramark.metadata.translationEnabledFromFrontmatter).toBe(false);
+    expect(dramark.warnings.map((warning) => warning.code)).toContain('TRANSLATION_OUTSIDE_CHARACTER');
+    expect(allTypes).toContain('inline-tech-cue');
+  });
+
+  it('works in a parse-run-stringify pipeline', async () => {
+    const processor = unified().use(remarkParse).use(remarkDraMark, { parserMode: 'micromark' }).use(remarkStringify);
+    const output = await processor.process('@A\n普通 markdown 行');
+
+    expect(String(output.value)).toContain('@A');
+    expect(String(output.value)).toContain('普通 markdown 行');
   });
 });
 
