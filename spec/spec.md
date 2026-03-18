@@ -64,6 +64,8 @@ meta:
 casting:
   characters:
     - name: 冉阿让
+      actor: 张三
+      mic: HM1
       aliases: [24601]
   groups:
     principals:
@@ -117,10 +119,13 @@ tech:
 - `casting.characters[]` 的最小推荐字段为：
   - `name`（建议唯一；默认检索键）
   - `id?`（仅在重名或跨系统关联时建议提供）
+  - `actor?`（演员展示名）
+  - `mic?`（角色默认麦克风 ID，建议引用 `tech.mics[].id`）
   - `aliases?`
 - `casting.groups.<groupName>.members[]` 可写 `name` 或 `id`；默认按 `name` 匹配，若成员值命中某个 `id` 则按 `id` 优先。
 - 当出现重名且未提供 `id` 时，消费端应给 warning，但不阻断解析。
 - 兼容优先原则：非重名场景下，不要求提供 `id`；`@角色` 匹配与 group 成员匹配都可直接按 `name` 完成。
+- `actor` 与 `mic` 均为可选字段，缺省时不影响解析。
 
 ### 4.4 `tech` 最小可执行模型（推荐）
 
@@ -142,6 +147,21 @@ tech:
   - `token`（必填）
   - `label`（必填）
   - `color?`, `tags?`, `enabled?`
+
+### 4.5 换麦扩展配置（app/扩展层，推荐）
+
+为支持“演员麦克风分配/换麦”而不硬编码单一语言关键词，推荐在 `tech` 下增加可选配置：
+
+- `tech.micDirectives?`
+  - 用于声明换麦关键词与同义词（可中英混合、自定义）
+  - 示例字段：`switch[]`, `to[]`, `from[]`, `for[]`
+- `tech.defaultMicBehavior?`
+  - 用于定义默认目标解析行为（如省略目标角色时绑定当前角色）
+  - 推荐值：`current-character`
+
+说明：
+- 该配置由 app/扩展消费，用于“换麦指令识别层”。
+- parser 可继续透传 `frontmatterRaw` 与最小 metadata，不强制内建该语义。
 
 ## 5. 角色与台词
 
@@ -220,6 +240,22 @@ $$
 
 - **行内标记**：`<<LX01 GO>>`。行内标记具有超越 HTML 解析的**词法抢占权 (Lexical Preemption)**，一旦匹配，内部文本作为普通 CommonMark 处理。
 - **独立标记**：由 `<<<` 开始， `>>>` 结束的独占行或多行块。一旦匹配，内部文本作为普通 CommonMark 处理。
+
+### 8.1 麦克风分配与换麦扩展（实验性，app/扩展层）
+
+换麦能力当前定义为**应用层扩展**，不是 DraMark 核心语法强制项。推荐支持两种输入形态：
+
+- 基于行内技术提示的换麦指令（例如 `<<MIC SWITCH TO HM2>>`）
+- 基于 fenced code block 的技术指令块（例如 <code>```dramark-tech</code>）
+
+推荐默认行为：
+- 在角色上下文中，若换麦指令省略目标角色，则默认作用于当前 `@角色`。
+- 非角色上下文下省略目标角色，应产出 warning（不阻断正文解析）。
+- v1 不定义 `@group` 直接换麦语法；组级批量换麦留待后续以显式 member 映射引入。
+
+兼容性说明：
+- 关键词匹配由 `frontmatter.tech.micDirectives` 配置驱动，避免语言锁定。
+- 非重名场景默认按角色 `name` 匹配；重名时建议补 `id` 做消歧。
 
 ## 9. 注释
 
