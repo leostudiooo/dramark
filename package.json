@@ -25,6 +25,8 @@
   "homepage": "https://github.com/leostudiooo/dramark#readme",
   "scripts": {
     "build": "tsc",
+    "build:web": "pnpm --dir apps/web build",
+    "dev:web": "pnpm --dir apps/web dev",
     "test": "vitest",
     "test:run": "vitest run"
   },
