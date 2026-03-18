@@ -9,12 +9,14 @@
 - 可以作为 unified/remark 插件接入处理链
 - 支持 warning 与 strict mode 报错
 
-当前状态（2026-03-18）：
+当前状态（2026-03-19）：
 - 默认 `legacy` 路径已支持**所有** DraMark 语法（角色、唱段、译配、注释、技术提示、行内标记）
 - `micromark` 路径仅支持**行内 token**（`<<...>>`、`$...$`、`{...}`），块级构造（`@`、`=`、`$$`、`<<<`、`%`、`%%`）仍依赖 `legacy` 解析器
 - **推荐**：使用 `legacy` 模式获得完整功能；`micromark` 模式目前仅作为实验性特性
 - `micromark` 路径下插件不再覆盖 `tree.children`；`legacy` 路径仍保持覆盖行为以复用现有状态机
-- 已验证 `pnpm build` 与 `pnpm test:run` 全通过（4 个测试文件，25 个用例）
+- `legacy` 已修复 `<<...>>` 在 from-markdown 被拆分为 `text/html/text` 时的漏识别问题
+- 在 `$$` 唱段上下文中，`$...$` 会回退为普通文本，不再生成 `inline-song`
+- 已验证 `pnpm build`、`pnpm test:run` 与 `pnpm build:web` 全通过（5 个测试文件，42 个用例）
 
 ## 2. 目录结构
 
@@ -94,7 +96,7 @@ parserMode 选项：
 - 注释：% 行注释、%% 块注释
 - 技术提示：<<< >>> 块提示、<< >> 行内提示
 - 行内动作：{动作} 与全角｛动作｝
-- 行内短唱：$...$
+- 行内短唱：$...$（仅在 `spoken` 上下文；`sung` 上下文回退为普通文本）
 - 转义字符：\@ \$ \% \{ \} \< \= \>
 
 ### `micromark` 模式（实验性）
@@ -156,9 +158,9 @@ parserMode 选项：
 - pnpm test:run
 - pnpm build
 
-最近一次本地验证（2026-03-18）：
-- `pnpm build && pnpm test:run`
-- 结果：4 passed files / 34 passed tests
+最近一次本地验证（2026-03-19）：
+- `pnpm build && pnpm test:run && pnpm build:web`
+- 结果：5 passed files / 42 passed tests，Web 构建通过
 
 ## 8. 已知限制
 

@@ -28,14 +28,18 @@
 4. 缩进注释等场景存在信息丢失风险
 5. 选项与实现存在不一致（例如 `strictMode` 在 parse API 里不生效；`NESTED_SONG_CONTAINER` 基本不可达）
 
-### 执行状态快照（2026-03-18）
+### 执行状态快照（2026-03-19）
 
 - M0：已完成并在测试中覆盖（strict 行为归属、百分号注释词法、防不可达 nested song 警告分支）
 - M1：已完成核心目标（角色对白与 translation target 均可保留 CommonMark block 结构）
 - M2：已完成“插件注入 + inline token”阶段
   - 已完成：`parserMode: 'legacy' | 'micromark'`、`micromarkExtensions`/`fromMarkdownExtensions` 注入、`<<...>>`/`$...$`/`{...}` 行内 tokenization
   - 未完成：`@`, `=`, `$$`, `<<<`, `%`, `%%` 的 block construct 迁移
-- 本地回归基线：`pnpm build && pnpm test:run` 通过（4 files / 25 tests）
+- Web MVP：已启动 `apps/web`（编辑、预览、诊断、outline、config 面板）
+- 语义修复：
+  - legacy 路径修复 `<<...>>` 在 html-split 场景下的 `inline-tech-cue` 归一化
+  - `$$` 上下文禁用 `$...$` inline-song，回退普通文本
+- 本地回归基线：`pnpm build:web && pnpm test:run` 通过（5 files / 42 tests）
 
 ---
 

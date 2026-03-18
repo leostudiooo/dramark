@@ -34,6 +34,10 @@ Frontmatter is treated as a document config layer (not DraMark core grammar): pa
   - Warning panel with line/column jump.
   - Outline panel (scenes/headings/characters) derived from AST.
   - Config side-panel reads normalized `DocumentConfig` (角色分组、译配策略、技术字典仅展示/消费，不反向改写正文语法).
+  - 渲染器要求（2026-03-19 更新）：
+    - `song-container` 内部必须递归渲染真实 `character-block`，不得降级为占位符。
+    - 行内 `inline-tech-cue` 必须可视化展示（例如 cue chip），不可丢失为普通 HTML 片段。
+    - `$$` 上下文中 `$...$` 默认按普通文本渲染（与 parser 行为一致）。
 - VS Code extension shell:
   - Document change listener + debounced parse.
   - Diagnostics from warnings (`UNCLOSED_*`, `TRANSLATION_OUTSIDE_CHARACTER`).
@@ -57,6 +61,9 @@ Frontmatter is treated as a document config layer (not DraMark core grammar): pa
     - `tech` category id collisions produce warnings, not hard failures.
 - Integration tests:
   - Web: edit text → debounced parse → preview updates; warning jump targets correct lines.
+  - Web: `song-container` 内 `character-block` 正常渲染，且不会出现 `[character-block]` 占位符退化。
+  - Web: `<<...>>` 在 legacy 解析链路下稳定渲染为 cue（包含底层 html-split 场景）。
+  - Web: `$$` 内 `$...$` 不生成 `inline-song`，回退普通文本。
   - VS Code: document change emits diagnostics and updates preview model.
   - Frontmatter present/absent does not change body parse semantics; only config view/behavior updates.
   - `translation.enabled` from normalized config remains compatible with parser metadata behavior.
