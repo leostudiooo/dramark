@@ -10,8 +10,9 @@
 - 支持 warning 与 strict mode 报错
 
 当前状态（2026-03-18）：
-- 默认 `legacy` 路径已支持角色、唱段、译配、注释与技术提示等核心能力
-- `micromark` 路径已接入行内 token（`<<...>>`、`$...$`、`{...}`）并通过 from-markdown bridge 生成对应自定义节点
+- 默认 `legacy` 路径已支持**所有** DraMark 语法（角色、唱段、译配、注释、技术提示、行内标记）
+- `micromark` 路径仅支持**行内 token**（`<<...>>`、`$...$`、`{...}`），块级构造（`@`、`=`、`$$`、`<<<`、`%`、`%%`）仍依赖 `legacy` 解析器
+- **推荐**：使用 `legacy` 模式获得完整功能；`micromark` 模式目前仅作为实验性特性
 - `micromark` 路径下插件不再覆盖 `tree.children`；`legacy` 路径仍保持覆盖行为以复用现有状态机
 - 已验证 `pnpm build` 与 `pnpm test:run` 全通过（4 个测试文件，25 个用例）
 
@@ -46,13 +47,18 @@
 - 将 warnings 与 metadata 挂到 file.data.dramark
 - 在 strictMode 下，如果存在 warning，抛出首个错误
 
-新增（M2 起步）：
-- `parserMode: 'legacy' | 'micromark'`（默认 `legacy`）
-- `legacy`：保持 v0 行状态机路径，运行期覆盖 `tree.children`
-- `micromark`：改为在 parse 阶段向 `remark-parse` 注入 `micromarkExtensions` / `fromMarkdownExtensions`，不再覆盖 `tree.children`
+parserMode 选项：
+- `parserMode: 'legacy' | 'micromark'`（**默认 `legacy`**）
+- **`legacy`（推荐）**：完整支持所有 DraMark 语法，使用行状态机解析，运行期覆盖 `tree.children`
+- `micromark`（实验性）：仅支持行内标记（`<<...>>`、`$...$`、`{...}`）的原生 micromark tokenization；块级构造（`@`、`=`、`$$` 等）仍回退到 legacy 解析器处理，不再覆盖 `tree.children`
 
-## 4. 当前支持的语法能力
+使用建议：
+- 需要完整 DraMark 功能时，使用默认的 `legacy` 模式
+- 仅需行内标记增强的标准 Markdown 处理时，可尝试 `micromark` 模式
 
+## 4. 语法能力支持矩阵
+
+### `legacy` 模式（完整支持）
 - frontmatter 提取
 - 角色声明：@角色名，支持多角色行声明与情绪注释（[] / 【】）
 - 角色上下文台词吞噬
@@ -65,6 +71,14 @@
 - 行内动作：{动作} 与全角｛动作｝
 - 行内短唱：$...$
 - 转义字符：\@ \$ \% \{ \} \< \= \>
+
+### `micromark` 模式（实验性）
+- 行内标记（micromark 原生 tokenization）：
+  - `<<...>>` → `inline-tech-cue`
+  - `$...$` → `inline-song`
+  - `{...}` / `｛...｝` → `inline-action`
+- 块级构造暂不支持，仍由 legacy 解析器兜底处理
+- 块级构造包括：frontmatter、角色 `@`、翻译 `=`、唱段 `$$`、块注释 `%%`、块提示 `<<<`、行注释 `%`
 
 ## 5. 状态机模型
 
@@ -121,19 +135,40 @@
 - `pnpm build && pnpm test:run`
 - 结果：4 passed files / 25 passed tests
 
-## 8. 已知限制（v0）
+## 8. 已知限制
 
-- 仍是行级解析器，不是 micromark 扩展
-- 虽已完成 mdast 模块增强并收敛插件边界断言，但自定义节点生态兼容性仍需在真实 remark 链路中持续验证
+### v0 整体限制
+- 自定义节点生态兼容性仍需在真实 remark 链路中持续验证
 - 容器隔离已增强为“仅 root-level 行触发 DraMark 指令”，但更完整的 CommonMark 容器语义（复杂列表/引用嵌套）仍有精化空间
-- `legacy` 路径中的 inline 自定义标记（`{}` / `$...$` / `<<...>>`）仍通过 fromMarkdown 后处理注入；`micromark` 路径已改为 parse 阶段 tokenization
+
+### `micromark` 模式限制（实验性）
+- **仅支持行内标记的原生 tokenization**（`<<...>>`、`$...$`、`{...}`）
+- **块级构造暂未实现 micromark 扩展**，包括：
+  - 角色声明 `@...`
+  - 翻译对 `= ...`
+  - 唱段容器 `$$`
+  - 块注释 `%%`
+  - 块技术提示 `<<<`
+  - 行注释 `%`
+- 这些块级构造在 `micromark` 模式下仍由 legacy 解析器兜底处理
+- 实现块级 micromark 扩展需要更深入的 micromark flow 解析机制研究（line continuation、container state 等）
 
 ## 9. 下一步建议
 
-- 补齐 `micromark` block constructs（`@`, `=`, `$$`, `<<<`, `%`, `%%`）并逐步替代 `legacy` 的 block 语义入口
-- 增加复杂列表/引用嵌套场景的容器隔离回归（尤其 `@`/`=` 在容器内的误触发防护）
+### 当前推荐（稳定路径）
+- **继续使用 `legacy` 模式作为默认选项**，它提供完整的 DraMark 功能
+- 增加复杂列表/引用嵌套场景的容器隔离回归测试
 - 增加 AST 快照测试，稳定后续重构
 
-当前进度：
-- M2 已打通插件注入骨架（`src/m2-extensions.ts`），并为 `<<...>>` / `$...$` / `{...}` 接入了 micromark inline tokenization + from-markdown bridge
-- block token（`@`, `=`, `$$`, `<<<`, `%`, `%%`）仍待后续以 micromark construct 逐步接入
+### M2 micromark 扩展（未来探索）
+- 块级构造的 micromark flow 扩展实现复杂度较高，需要深入研究：
+  - Line continuation 机制（处理多行块注释、技术提示等）
+  - Container state 管理（确保块级指令只在 root level 触发）
+  - 与 CommonMark 块级构造的优先级协调
+- 短期优先级的替代方案：保持现有架构，`micromark` 模式仅用于行内标记增强
+
+### 当前实现状态
+- M2 已打通插件注入骨架（`src/m2-extensions.ts`）
+- 行内标记（`<<...>>` / `$...$` / `{...}`）已完成 micromark inline tokenization + from-markdown bridge
+- 块级构造（`@`, `=`, `$$`, `<<<`, `%`, `%%`）仅在 `legacy` 模式下完整支持
+- from-markdown 的 handlers 已预留接口，但对应的 micromark tokenizers 未实现

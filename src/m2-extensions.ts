@@ -26,6 +26,34 @@ const draMarkFromMarkdownExtension: FromMarkdownExtensionLike = {
     dramarkInlineTechCue(token): undefined {
       return this.enter({ type: 'inline-tech-cue', value: '' } satisfies InlineTechCue, token);
     },
+    dramarkBlockComment(token): undefined {
+      return this.enter({ type: 'comment-block', value: '' } satisfies { type: 'comment-block'; value: string }, token);
+    },
+    dramarkBlockTechCue(token): undefined {
+      return this.enter({ type: 'block-tech-cue', value: '' } satisfies { type: 'block-tech-cue'; value: string }, token);
+    },
+    dramarkLineComment(token): undefined {
+      return this.enter({ type: 'comment-line', value: '' } satisfies { type: 'comment-line'; value: string }, token);
+    },
+    dramarkCharacter(token): undefined {
+      return this.enter({ type: 'character-block', name: '', names: [], children: [] } satisfies {
+        type: 'character-block';
+        name: string;
+        names: string[];
+        children: unknown[];
+      }, token);
+    },
+    dramarkSongContainer(token): undefined {
+      return this.enter({ type: 'song-container', children: [] } satisfies { type: 'song-container'; children: unknown[] }, token);
+    },
+    dramarkTranslationPair(token): undefined {
+      return this.enter({ type: 'translation-pair', sourceText: '', target: [], children: [] } satisfies {
+        type: 'translation-pair';
+        sourceText: string;
+        target: unknown[];
+        children: unknown[];
+      }, token);
+    },
     dramarkInlineActionValue(): undefined {
       return this.buffer();
     },
@@ -33,6 +61,15 @@ const draMarkFromMarkdownExtension: FromMarkdownExtensionLike = {
       return this.buffer();
     },
     dramarkInlineTechCueValue(): undefined {
+      return this.buffer();
+    },
+    dramarkBlockCommentValue(): undefined {
+      return this.buffer();
+    },
+    dramarkBlockTechCueValue(): undefined {
+      return this.buffer();
+    },
+    dramarkLineCommentValue(): undefined {
       return this.buffer();
     },
   },
@@ -49,6 +86,18 @@ const draMarkFromMarkdownExtension: FromMarkdownExtensionLike = {
       topNodeWithValue(this.stack).value = this.resume();
       return undefined;
     },
+    dramarkBlockCommentValue(): undefined {
+      topNodeWithValue(this.stack).value = this.resume();
+      return undefined;
+    },
+    dramarkBlockTechCueValue(): undefined {
+      topNodeWithValue(this.stack).value = this.resume();
+      return undefined;
+    },
+    dramarkLineCommentValue(): undefined {
+      topNodeWithValue(this.stack).value = this.resume();
+      return undefined;
+    },
     dramarkInlineAction(token): undefined {
       return this.exit(token);
     },
@@ -56,6 +105,24 @@ const draMarkFromMarkdownExtension: FromMarkdownExtensionLike = {
       return this.exit(token);
     },
     dramarkInlineTechCue(token): undefined {
+      return this.exit(token);
+    },
+    dramarkBlockComment(token): undefined {
+      return this.exit(token);
+    },
+    dramarkBlockTechCue(token): undefined {
+      return this.exit(token);
+    },
+    dramarkLineComment(token): undefined {
+      return this.exit(token);
+    },
+    dramarkCharacter(token): undefined {
+      return this.exit(token);
+    },
+    dramarkSongContainer(token): undefined {
+      return this.exit(token);
+    },
+    dramarkTranslationPair(token): undefined {
       return this.exit(token);
     },
   },
@@ -191,6 +258,7 @@ const tokenizeInlineTechCue: Tokenizer = function tokenizeInlineTechCue(effects,
   }
 };
 
+
 const inlineSongConstruct: Construct = {
   name: 'dramarkInlineSong',
   tokenize: tokenizeInlineSong,
@@ -206,6 +274,8 @@ const inlineTechCueConstruct: Construct = {
   tokenize: tokenizeInlineTechCue,
 };
 
+// Flow constructs - added to the flow field for block-level parsing
+// Note: Block constructs require special handling of line boundaries in micromark
 const draMarkMicromarkExtension: MicromarkExtension = {
   text: {
     36: inlineSongConstruct,
@@ -246,5 +316,24 @@ declare module 'micromark-util-types' {
     dramarkInlineTechCue: 'dramarkInlineTechCue';
     dramarkInlineTechCueMarker: 'dramarkInlineTechCueMarker';
     dramarkInlineTechCueValue: 'dramarkInlineTechCueValue';
+    dramarkBlockComment: 'dramarkBlockComment';
+    dramarkBlockCommentMarker: 'dramarkBlockCommentMarker';
+    dramarkBlockCommentValue: 'dramarkBlockCommentValue';
+    dramarkBlockTechCue: 'dramarkBlockTechCue';
+    dramarkBlockTechCueMarker: 'dramarkBlockTechCueMarker';
+    dramarkBlockTechCueValue: 'dramarkBlockTechCueValue';
+    dramarkLineComment: 'dramarkLineComment';
+    dramarkLineCommentMarker: 'dramarkLineCommentMarker';
+    dramarkLineCommentValue: 'dramarkLineCommentValue';
+    dramarkCharacter: 'dramarkCharacter';
+    dramarkCharacterMarker: 'dramarkCharacterMarker';
+    dramarkCharacterName: 'dramarkCharacterName';
+    dramarkCharacterMood: 'dramarkCharacterMood';
+    dramarkSongContainer: 'dramarkSongContainer';
+    dramarkSongContainerMarker: 'dramarkSongContainerMarker';
+    dramarkTranslationPair: 'dramarkTranslationPair';
+    dramarkTranslationPairMarker: 'dramarkTranslationPairMarker';
+    dramarkTranslationPairSource: 'dramarkTranslationPairSource';
+    dramarkTranslationPairTarget: 'dramarkTranslationPairTarget';
   }
 }
