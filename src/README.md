@@ -45,6 +45,24 @@
 - 解析器仅做提取与最小可用判断（例如 `translation.enabled`）
 - 字段归一化与业务消费建议由前端/渲染器处理
 
+### core API（新增）
+
+为 Web 编辑器与 VS Code 扩展共享应用层逻辑，新增 `core` 子模块：
+
+- `normalizeFrontmatter(frontmatterRaw)`
+  - 归一化 `meta/casting/translation/tech`
+  - 保留未知字段到 `extras`
+  - 产出非致命 `config diagnostics`
+- `createParseViewModel(sourceText, options)` / `toParseViewModel(parseResult)`
+  - 输出统一的 `ParseViewModel`
+  - 合并 parser warnings 与 config diagnostics
+  - 生成基础 outline（heading/character/song/thematic-break）
+
+导入方式：
+
+- `import { normalizeFrontmatter } from 'remark-dramark/core'`
+- `import { createParseViewModel } from 'remark-dramark/core'`
+
 ### remark 插件
 
 默认导出为 remarkDraMark。

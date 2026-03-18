@@ -8,6 +8,7 @@ import type { DraMarkOptions } from './types.js';
 export type { DraMarkOptions, DraMarkParseResult, DraMarkWarning } from './types.js';
 export { DraMarkParseError } from './errors.js';
 export { parseDraMark } from './parser.js';
+export * from './core/index.js';
 
 export interface RemarkDraMarkPluginOptions extends DraMarkOptions {
   parserMode?: 'legacy' | 'micromark';
