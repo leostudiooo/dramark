@@ -210,6 +210,39 @@
 
 ---
 
+## 6.1 M3（app/扩展层）麦克风分配与换麦扩展
+
+> 核心思路：不把换麦关键词硬编码进 parser 语法；先在 app/扩展层做可配置识别，稳定后再评估是否下沉。
+
+### M3-1：配置模型落地（frontmatter `tech`）
+
+- 在 `tech` 下新增可选配置：
+  - `micDirectives`（关键词与同义词字典，支持本地化）
+  - `defaultMicBehavior`（默认行为，如 `current-character`）
+- 保持向后兼容：缺省配置时不影响现有解析与渲染
+
+### M3-2：识别层实现（前端/扩展）
+
+- 新增 `parseMicEvents(sourceText, documentConfig, dramarkAst)`：
+  - 支持从 `<<...>>` 与 ` ```dramark-tech ` 两种形式识别换麦事件
+  - 输出结构化事件与诊断（warning，不阻断）
+- 默认目标策略：
+  - 角色上下文省略 target 时绑定当前角色
+  - 非角色上下文省略 target 时发 warning
+
+### M3-3：约束与兼容
+
+- 默认按角色 `name` 匹配；重名时建议通过 `id` 消歧
+- v1 不做 `@group` 直接换麦语法，避免“组内逐人麦位”歧义
+
+### M3 验收标准
+
+- 不改 parser 核心语法也可在 app/扩展中稳定产出换麦事件
+- 中文/英文/自定义关键词均可通过 frontmatter 配置驱动识别
+- 无换麦指令的旧文档行为完全不变
+
+---
+
 ## 7. 运行与回归命令（Agent 必跑）
 
 - 单测：`pnpm test:run`
@@ -223,4 +256,3 @@
 - **指令优先级**：frontmatter phase-0、song breakout、translation 截断点必须持续满足 spec 的 6 条裁决
 - **性能与内存**：M1 大量调用 `fromMarkdown` 时要避免“按行解析”；必须以 chunk 为单位
 - **语义回归**：任何改动都要确保 `src/tests/edge-cases.test.ts` 的裁决门禁不被破坏
-
