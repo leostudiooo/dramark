@@ -1,17 +1,16 @@
 # DraMark Language Specification
 
-**Version:** 0.3.1.1  
+**Version:** 0.4.0  
 **Date:** 2026-03-19  
 **Status:** Draft
 
-**Changelog (0.3.1 → 0.3.1.1):**
+**Changelog (0.3.1.1 → 0.4.0):**
 
-- 明确 `>>>` 独占一行时**应当被解析为 TechCueBlock 闭合**，但出于 CommonMark 三级引用兼容性不建议使用
-- 确立 TechCueBlock 闭合优先级：`>>>`（含独占一行）高于对称闭合 `<<<`
-- 多行 TechCueBlock 开启行支持可选属性头：`<<< 属性`（类似 code block info string）
-- 明确 TechCueBlock 内允许注释语法（`%` 与 `%%...%%`）
-- 调整闭合顺序为：`CommentBlockState` → `TechCueBlock` → `TranslationBlock` → `CharacterBlock` → `SongBlock`
-- 补充 Tech Cue 与真实三级引用邻接场景的测试要求
+- 规范 Frontmatter 传递模型：解析器必须原样透传 YAML 文本，应用层使用 YAML parser 解析
+- 规定 Frontmatter 推荐字段集：`use_frontmatter_from`、`meta`、`casting`、`translation`、`tech`
+- 角色声明语句必须独占一行（允许行尾附着行内 Tech Cue 与注释）
+- `@姓名` 支持空格姓名解析：裁剪首尾空白，以下一个 `@`、情绪标识或换行作为终止点
+- 推荐对包含空格的姓名使用引号包裹，减少歧义
 
 ## 目录
 
@@ -152,25 +151,49 @@ CommentBlockState → TechCueBlock（块级）→ Translation → Character → 
 
 ## 4. 文档配置层 (Frontmatter)
 
-文档可由 YAML Frontmatter 块开头，用于提供剧本配置数据。该配置块在解析前优先提取，并交由上层系统消费。
+文档可由 YAML Frontmatter 块开头，用于提供剧本配置数据。该配置块在解析前优先提取，并交由应用层使用 YAML parser 解析。
+
+解析器必须将 frontmatter 原文按字节序原样透传（例如写入 `metadata.frontmatterRaw`），不得在语法层改写键名、值、缩进或注释。
+
+若应用层执行 YAML 解析，必须能够解析以下字段（字段均为可选；未知字段应保留）：
+
+| 字段 | 类型/结构 | 说明 |
+| --- | --- | --- |
+| `use_frontmatter_from` | string | 指向外部 YAML 文档的链接，用于拆分大体量配置 |
+| `meta.title` | string | 作品标题 |
+| `meta.author` | string | 作者/改编者 |
+| `meta.locale` | string | 默认语言区域（如 `zh-CN`） |
+| `meta.version` | string | 文档版本 |
+| `casting.characters` | array | 角色列表 |
+| `casting.groups` | array | 角色分组（合唱团、群演组等） |
+| `translation.enabled` | boolean | 是否开启译配模式 |
+| `translation.source_lang` | string | 原文语言 |
+| `translation.target_lang` | string | 目标语言 |
+| `translation.render_mode` | string | 译配渲染模式（如 `bilingual`） |
+| `tech.mics` | array | 麦克风及技术设备信息 |
 
 ```yaml
 ---
+use_frontmatter_from: https://example.com/show/frontmatter.yaml
 meta:
   title: 悲惨世界 (Les Misérables)
+  author: Claude-Michel Schonberg
   locale: zh-CN
-  version: 0.3.1.1
+  version: 0.4.0
 casting:
   characters:
-    - name: 冉阿让
+    - name: "冉 阿让"
       actor: 张三
       mic: HM1
       aliases: [24601]
+  groups:
+    - name: 学生群像
+      members: [安灼拉, 公白飞]
 translation:
   enabled: true
   source_lang: en
   target_lang: zh-CN
-  render: bilingual
+  render_mode: bilingual
 tech:
   mics:
     - id: HM1
@@ -181,8 +204,9 @@ tech:
 
 **解析器职责**：
 
-- 必须提取 frontmatter 原文供上层归一化
+- 必须提取并原样透传 frontmatter 原文供上层解析
 - 必须透传未知字段（forward-compatible）
+- 不应在语法层主动请求 `use_frontmatter_from` 指向的远程资源
 - 不负责严格业务 schema 校验或消费端呈现策略
 
 ## 5. 角色与台词 (CharacterBlock)
@@ -191,6 +215,13 @@ tech:
 
 **语法**：`@<角色名>[<情绪/状态提示>]` 或 `@<角色名>【<情绪/状态提示>】`
 
+**角色声明必须独占一行**。声明行允许附加以下行尾内容：
+
+- 行内 Tech Cue：`<<...>>`
+- 注释：`% ...` 或位于行尾的块注释边界
+
+除上述附着内容外，声明行不得包含普通对白正文。
+
 **触发操作**：
 
 ```python
@@ -198,7 +229,24 @@ close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
 open: CharacterBlock
 ```
 
-**多角色声明**：允许同一行多个角色标识（例如 `@peter @bobby [aside]`），按实现约定生成主角色与别名列表。
+**多角色声明（可选实现）**：允许同一声明行出现多个 `@` 角色标识（例如 `@Peter Pan @Wendy [aside]`），按实现约定生成主角色与别名列表。
+
+### 5.1.1 角色名解析（含空格）
+
+为支持包含空格的人名，`@` 后的角色名解析规则如下：
+
+- 读取角色名前，先裁剪 `@` 后的前导空白
+- 角色名默认读取到以下任一终止符：下一个 `@`、`[`、`【`、换行
+- 对未加引号的角色名，解析后必须裁剪首尾空白
+- 推荐对含空格角色名使用引号包裹（如 `@"冉 阿让"`），以避免与多角色声明混淆
+
+示例：
+
+```markdown
+@  冉 阿让   [压低声音]
+@"冉 阿让" <<MIC=HM2>> % 行尾允许附着技术标记和注释
+@Peter Pan @Wendy [aside]
+```
 
 ### 5.2 内容吞噬
 
@@ -376,7 +424,7 @@ close: TranslationBlock
 
 ## 9. 技术提示标记 (Tech Cue)
 
-Tech Cue 用于表达技术调度信息（灯光、音效、麦克风等）。v0.3.1.1 采用**分层设计**：
+Tech Cue 用于表达技术调度信息（灯光、音效、麦克风等）。v0.4.0 延续**分层设计**：
 
 ### 9.1 语法形态
 
@@ -683,13 +731,26 @@ something >>> else % 不合法的 >>> 闭合
 2. 在 TechCueBlock 外，`>>>` 应遵循 CommonMark 语义（通常为三级引用），不应被错误抢占为 DraMark 闭合。
 3. 对于输入 `<<<\n<<<\n>>>`，第二行 `<<<` 必须解析为 TechCueBlock 内容文本，第三行 `>>>` 才执行闭合。
 
+### 裁决十二：角色声明独占行
+
+1. 角色声明仅在根级别、且该行以 `@` 触发角色声明语义时生效。
+2. 角色声明行除角色声明本体外，仅允许附着 `<<...>>` 与注释语法；其余正文内容会使该行降级为普通文本。
+3. 对降级情况，解析器应产生可诊断 warning（例如 `CHARACTER_DECLARATION_NOT_STANDALONE`），但不应中断后续解析。
+
+### 裁决十三：角色名空白裁剪与终止符
+
+1. 解析器在识别 `@` 后，必须先跳过前导空白再开始角色名扫描。
+2. 未加引号角色名的终止符为：下一个 `@`、`[`、`【`、或换行。
+3. 未加引号角色名在落盘前必须做首尾空白裁剪。
+4. 对包含空格的人名，推荐使用引号包裹；引号内空白应按字面保留。
+
 ## 13. 语法分层与兼容矩阵
 
 ### 13.1 Token 与 Block 关闭关系
 
 | Token                  | 关闭的状态（按优先级）                                            | 打开的 Block                | 备注                                 |
 | ---------------------- | ----------------------------------------------------------------- | --------------------------- | ------------------------------------ |
-| `@角色`                | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | CharacterBlock              | 技术提示先于译配关闭                 |
+| `@角色`                | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | CharacterBlock              | 声明须独占一行；允许行尾 `<<...>>` / 注释 |
 | `$$`                   | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | SongBlock                   | -                                    |
 | `=␠原文`               | TranslationBlock                                                  | TranslationBlock            | -                                    |
 | `=`（单行）            | TranslationBlock                                                  | -                           | -                                    |
@@ -859,20 +920,32 @@ enum LexMode {
 | TC-CB-11 | `<<< LX\n内容\n<<<`                 | TechCueBlock(header="LX")                    | 多行开启支持可选属性头                            |
 | TC-CB-12 | `<<<\n灯光 % 注\n%%\n注释\n%%\n>>>` | TechCueBlock 内含注释节点/文本               | TechCueBlock 内注释语法可用                       |
 
+### 15.4 实现检查清单（角色声明与姓名解析）
+
+| 测试 ID | 输入 | 期望输出 | 说明 |
+| --- | --- | --- | --- |
+| CH-NM-01 | `@冉阿让` | CharacterBlock(character=`冉阿让`) | 基础角色声明 |
+| CH-NM-02 | `@  冉 阿让   [低声]` | CharacterBlock(character=`冉 阿让`, context=`低声`) | 未加引号姓名，首尾空白裁剪 |
+| CH-NM-03 | `@"冉 阿让"` | CharacterBlock(character=`冉 阿让`) | 引号包裹空格姓名 |
+| CH-NM-04 | `@Peter Pan @Wendy [aside]` | 主角色 + 别名（实现可选） | 下一 `@` 终止前一角色名 |
+| CH-NM-05 | `@冉阿让 我是谁` | 普通文本 + warning | 非独占行应降级 |
+| CH-NM-06 | `@  ` | 普通文本 + warning | 空角色名非法 |
+
 ## 附录 A：向后兼容性说明
 
-**v0.3.1 → v0.3.1.1 兼容性**：
+**v0.3.1.1 → v0.4.0 兼容性**：
 
-- 既有 `<<<`...`<<<` 写法保持兼容
-- `>>>` 独占一行从“歧义未定”收敛为“应解析，但不建议”
-- 新增 `<<< 属性` 语法为向后兼容扩展，不影响旧文档
+- `translation.render` 调整为 `translation.render_mode`；应用层可提供别名兼容
+- 旧写法 `@角色名 台词正文` 不再被视为合法角色声明，应降级为普通文本并给出 warning
+- 新增 `use_frontmatter_from` 为可选扩展字段；语法层不主动拉取外部文档
+- 空格姓名成为规范能力，推荐使用引号提升可读性与确定性
 
-**v0.3.1.1 解析器要求**：
+**v0.4.0 解析器要求**：
 
-- 必须实现代码保护区机制
-- 必须实现 Tech Cue 闭合优先级：`>>>`（含独占一行）高于 `<<<` 对称回退
-- 必须区分行内 Tech Cue（Attached）与块级 Tech Cue（Structural）
-- 必须支持 TechCueBlock 开启属性头与块内注释语法
+- 必须原样透传 frontmatter 原文，供应用层 YAML parser 消费
+- 必须实现角色声明独占行约束（允许行尾附着 `<<...>>` 与注释）
+- 必须实现空格姓名解析规则（前导跳过、终止符裁决、首尾裁剪）
+- 必须继续满足代码保护区与 Tech Cue 分层语义要求
 
 ## 附录 B：输入法与编辑器体验优化 (IME Tricks)
 
