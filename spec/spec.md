@@ -1,8 +1,14 @@
 # DraMark Language Specification
 
-**Version:** 0.4.0  
+**Version:** 0.4.1  
 **Date:** 2026-03-19  
 **Status:** Draft
+
+**Changelog (0.4.0 → 0.4.1):**
+
+- 唱段开启标记 `$$` 允许后跟空格与文本，作为歌曲标题/说明（如 `$$ My Shot`）
+- 新增念白标记 `!!`：在唱段中开启/关闭念白段落，`!!`关闭后自动回到唱段
+- 明确 GlobalBlock 语义：默认状态即为"念白"，无需额外标记
 
 **Changelog (0.3.1.1 → 0.4.0):**
 
@@ -25,14 +31,15 @@
 5. 角色与台词 (CharacterBlock)
 6. 场景动作与结构分隔 (GlobalBlock)
 7. 唱段与音乐容器 (SongBlock)
-8. 译配与多语言模式 (TranslationBlock)
-9. 技术提示标记 (Tech Cue)
-10. 注释
-11. 转义字符
-12. 解析器实现指引与边缘情况裁决
-13. 语法分层与兼容矩阵
-14. AST 最小模型
-15. 解析器实现架构指引  
+8. 念白段落 (SpokenSegment)
+9. 译配与多语言模式 (TranslationBlock)
+10. 技术提示标记 (Tech Cue)
+11. 注释
+12. 转义字符
+13. 解析器实现指引与边缘情况裁决
+14. 语法分层与兼容矩阵
+15. AST 最小模型
+16. 解析器实现架构指引  
     附录 A：向后兼容性说明  
     附录 B：输入法与编辑器体验优化
 
@@ -70,9 +77,10 @@ DraMark 语法分为三个层级：
 
 **Structural Blocks（结构块）**：参与栈操作，具有开启/关闭语义和作用域控制
 
-- GlobalBlock（隐式根）
+- GlobalBlock（隐式根，= 念白模式）
 - CharacterBlock
-- SongBlock
+- SongBlock（= 唱段模式）
+- SpokenSegment（= 念白段落，v0.4.1 新增，在 SongBlock 内临时切换）
 - TranslationBlock
 - TechCueBlock（块级技术提示，v0.3.1 新增）
 
@@ -92,13 +100,16 @@ DraMark 语法分为三个层级：
 ### 3.2 Block 嵌套关系
 
 ```
-GlobalBlock（隐式根）
+GlobalBlock（隐式根，= 念白模式）
  ├─ CharacterBlock
  │   └─ TranslationBlock
  │   └─ TechCueBlock（块级）
- ├─ SongBlock
+ ├─ SongBlock（= 唱段模式）
  │   ├─ CharacterBlock
  │   │   └─ TranslationBlock
+ │   ├─ SpokenSegment（= 念白段落，临时切换）
+ │   │   └─ CharacterBlock
+ │   │   └─ TechCueBlock（块级）
  │   └─ TechCueBlock（块级）
  └─ TechCueBlock（块级，GlobalBlock 语境下的独立技术说明）
 ```
@@ -347,16 +358,32 @@ close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
 
 ### 7.1 进入唱段
 
-**语法**：独占一行的 `$$`
+**语法**：独占一行的 `$$` 或 `$$ 标题文本`
+
+`$$` 后可跟一个空格和任意文本，作为歌曲标题或说明信息。该文本存储在 `SongBlock.title` 字段中。
 
 **触发操作**：
 
 ```python
 close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
-open: SongBlock
+open: SongBlock(title=标题文本或undefined)
 ```
 
 `$$` 是一个宏观曲目容器。在其内部，DraMark 指令依然运作，但作用域被限制在音乐中。
+
+**示例**：
+
+```markdown
+$$ My Shot
+@Alexander Hamilton [Excited]
+I am not throwing away my shot
+$$
+
+$$
+@Ensemble
+This one has no title
+$$
+```
 
 ### 7.2 唱段内部规则
 
@@ -390,9 +417,127 @@ close: SongBlock
 
 在同行内使用 `$<唱词>$`，用于对白与短促唱词的无缝衔接。
 
-**实现裁决**：在 `$$` 唱段上下文（SongBlock）内，`$...$` 不解析为 inline-song，回退为普通文本，避免嵌套语义冲突。
+**语义切换**：`$...$` 的语义取决于上下文：
+- 在 GlobalBlock（念白模式）中：`$...$` 表示**行内唱段**（inline song）
+- 在 SongBlock（唱段模式）中：`$...$` 表示**行内念白**（inline spoken）
 
-## 8. 译配与多语言模式 (TranslationBlock)
+**实现裁决**：parser 根据当前是否处于 SongBlock 来决定 `$...$` 的节点类型：
+- GlobalBlock → `inline-song` 节点
+- SongBlock → `inline-spoken` 节点
+
+**示例**：
+
+```markdown
+@Hamilton
+I am not throwing away $my shot$
+
+$$ My Shot
+@Hamilton
+I am not throwing away $my shot$ % 这是行内念白
+$$
+
+$$ Farmer Refuted
+@Seabury
+Heed not the rabble who scream, $"Revolution!"$
+$$
+```
+
+## 8. 念白段落 (SpokenSegment)
+
+### 8.1 设计理念
+
+DraMark 中存在两种表演模式：
+
+- **念白（Spoken）**：普通对白，角色之间的对话
+- **唱段（Sung）**：音乐表演，包含唱词
+
+**GlobalBlock 默认即为念白模式**——处于 GlobalBlock 时，所有内容自然作为念白处理，无需额外标记。
+
+### 8.2 念白段落语法
+
+**语法**：独占一行的 `!!` 开启，独占一行的 `!!` 关闭。
+
+念白段落仅在 SongBlock 内有意义，用于在唱段中临时插入念白场景。
+
+**触发操作（开启）**：
+
+```python
+close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
+open: SpokenSegment
+```
+
+**触发操作（关闭）**：
+
+```python
+close: SpokenSegment
+```
+
+### 8.3 使用场景
+
+#### 8.3.1 唱段中插入短念白
+
+```markdown
+$$ Farmer Refuted
+@Samuel Seabury
+Heed not the rabble who scream
+
+!!
+@Alexander Hamilton
+What?!
+!!
+
+@Samuel Seabury  
+who scream, "Revolution!"
+$$
+```
+
+#### 8.3.2 唱段中插入长念白场景
+
+```markdown
+$$ The Room Where It Happens
+@Aaron Burr
+No one else was in the room where it happened
+
+!!
+@Thomas Jefferson
+We need a compromise
+
+@James Madison
+Something we can all agree on
+
+@Alexander Hamilton
+I have a proposal...
+!!
+
+@Aaron Burr
+The room where it happened
+$$
+```
+
+### 8.4 内部规则
+
+- 念白段落内支持完整的 CommonMark 语法
+- 支持所有 DraMark 指令（`@角色`、译配、Tech Cue 等）
+- 念白段落关闭后，自动回到之前的 SongBlock 上下文
+
+### 8.5 隐式闭合
+
+以下条件自动闭合当前 SpokenSegment：
+
+- `!!`（显式关闭）
+- `$$`（关闭整个 SongBlock）
+- `#` 根级标题（穿透关闭 SongBlock）
+- EOF
+
+### 8.6 念白与 GlobalBlock 的关系
+
+| 上下文 | 表演模式 | 说明 |
+|--------|----------|------|
+| GlobalBlock | 念白（Spoken） | 默认状态，无需标记 |
+| SongBlock | 唱段（Sung） | `$$` 进入 |
+| SongBlock → SpokenSegment | 念白（Spoken） | `!!` 临时切换 |
+
+## 9. 译配与多语言模式 (TranslationBlock)
 
 ### 8.1 进入译配
 
@@ -459,7 +604,7 @@ close: TranslationBlock
 - 在普通文本节点（Normal Text Node）中出现的 `=` 或 `=␠`，按字面文本保留
 - 其他形式的 `=` → 普通文本，不解析为 DraMark 指令
 
-## 9. 技术提示标记 (Tech Cue)
+## 10. 技术提示标记 (Tech Cue)
 
 Tech Cue 用于表达技术调度信息（灯光、音效、麦克风等）。v0.4.0 延续**分层设计**：
 
@@ -608,7 +753,7 @@ TechCueBlock 内允许完整注释语法：
 
 **歧义处理**：若角色名与麦 ID 存在歧义，优先匹配角色名。
 
-## 10. 注释 (Attached Node)
+## 11. 注释 (Attached Node)
 
 注释是 Attached Node，仅在源文件或特定工作版渲染目标中可见。该语法在 TechCueBlock 内同样有效。
 
@@ -638,7 +783,7 @@ TechCueBlock 内允许完整注释语法：
 %%
 ```
 
-## 11. 转义字符
+## 12. 转义字符
 
 支持使用反斜杠 `\` 转义 DraMark 功能字符，使其降级为普通文本。
 
@@ -651,7 +796,7 @@ TechCueBlock 内允许完整注释语法：
 C++ 模板：vector\<int\> % 显示为 <int>，不触发 Tech Cue
 ```
 
-## 12. 解析器实现指引与边缘情况裁决
+## 13. 解析器实现指引与边缘情况裁决
 
 ### 裁决一：Frontmatter 预处理豁免权
 
@@ -798,14 +943,16 @@ something >>> else % 不合法的 >>> 闭合
   - `EXTERNAL_FRONTMATTER_FETCH_FAILED`（warning）
   - `EXTERNAL_FRONTMATTER_PARSE_FAILED`（warning）
 
-## 13. 语法分层与兼容矩阵
+## 14. 语法分层与兼容矩阵
 
 ### 13.1 Token 与 Block 关闭关系
 
 | Token                  | 关闭的状态（按优先级）                                            | 打开的 Block                | 备注                                 |
 | ---------------------- | ----------------------------------------------------------------- | --------------------------- | ------------------------------------ |
 | `@角色`                | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | CharacterBlock              | 声明须独占一行；允许行尾 `<<...>>` / 注释 |
-| `$$`                   | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | SongBlock                   | -                                    |
+| `$$`                   | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | SongBlock                   | 可后跟标题文本                       |
+| `!!`（开启）           | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | SpokenSegment               | 仅在 SongBlock 内有意义              |
+| `!!`（关闭）           | SpokenSegment                                                     | -                           | 关闭念白段落，回到 SongBlock         |
 | `=␠原文`               | TranslationBlock                                                  | TranslationBlock            | -                                    |
 | `=`（单行）            | TranslationBlock                                                  | -                           | -                                    |
 | `@@`                   | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | -                           | 显式状态重置                         |
@@ -813,8 +960,8 @@ something >>> else % 不合法的 >>> 闭合
 | `<<<`（开启）          | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | TechCueBlock                | 支持 `<<< 属性`                      |
 | `>>>`（行尾/独占闭合） | TechCueBlock                                                      | -                           | 在 TechCueBlock 内应解析；独占不建议 |
 | `<<<`（对称回退闭合）  | TechCueBlock                                                      | -                           | 仅在未命中 `>>>` 主闭合时有效        |
-| `$$`（结束）           | SongBlock                                                         | -                           | -                                    |
-| `#`（在 SongBlock 内） | SongBlock                                                         | -                           | 标题穿透                             |
+| `$$`（结束）           | SongBlock, SpokenSegment                                          | -                           | -                                    |
+| `#`（在 SongBlock 内） | SongBlock, SpokenSegment                                          | -                           | 标题穿透                             |
 
 注：`=␠原文` 与 `=` 行未列出 `CommentBlockState`，因为注释块词法态仅由 `%%` 闭合，其他 token 在其内部均不触发 DraMark 语义。
 
@@ -824,6 +971,7 @@ something >>> else % 不合法的 >>> 闭合
 | ----------------- | ---------- | -------- | ------------- | ---------------------------------- |
 | CharacterBlock    | Structural | 是       | `@@`          | `@`, `$$`, `<<<`, `---`, `#`       |
 | SongBlock         | Structural | 是       | `$$`          | `#`（穿透）                        |
+| SpokenSegment     | Structural | 是       | `!!`          | `$$`（结束 SongBlock）, `#`        |
 | TranslationBlock  | Structural | 是       | `=`（单行）   | `@`, `$$`, `<<<`, `---`, `#`, `=␠` |
 | TechCueBlock      | Structural | 是       | `>>>` / `<<<` | `@`, `$$`, `---`, `#`              |
 | CommentBlockState | Lexical    | 否       | `%%`          | 仅由 `%%` 结束；内部屏蔽其他语法   |
@@ -842,7 +990,7 @@ something >>> else % 不合法的 >>> 闭合
 | Inline Action (`{}`)   | 失效（文本）   | 失效（文本） | `{}` 视为字面量      |
 | CommonMark 基础        | 正常生效       | 正常生效     | 代码标记本身生效     |
 
-## 14. AST 最小模型
+## 15. AST 最小模型
 
 ```typescript
 interface Document {
@@ -854,6 +1002,7 @@ type Block =
   | GlobalAction
   | CharacterBlock
   | SongBlock
+  | SpokenSegment // v0.4.1 新增
   | TranslationBlock
   | TechCueBlock // v0.3.1 新增
   | CommonMarkBlock; // 段落、列表、代码块、引用块等
@@ -868,7 +1017,13 @@ interface CharacterBlock {
 
 interface SongBlock {
   type: "SongBlock";
-  children: (CharacterBlock | GlobalAction | TechCueBlock | AttachedNode)[];
+  title?: string; // v0.4.1: $$ 后的标题文本
+  children: (CharacterBlock | SpokenSegment | GlobalAction | TechCueBlock | AttachedNode)[];
+}
+
+interface SpokenSegment {
+  type: "SpokenSegment";
+  children: (CharacterBlock | GlobalAction | TechCueBlock | AttachedNode)[]; // 念白内容，支持角色对白
 }
 
 interface TranslationBlock {
@@ -916,9 +1071,19 @@ interface InlineAction {
   type: "InlineAction";
   content: string; // 动作描述
 }
+
+interface InlineSongSegment {
+  type: "inline-song";
+  value: string; // 唱词内容（GlobalBlock 中的 $...$）
+}
+
+interface InlineSpokenSegment {
+  type: "inline-spoken";
+  value: string; // 念白内容（SongBlock 中的 $...$）
+}
 ```
 
-## 15. 解析器实现架构指引
+## 16. 解析器实现架构指引
 
 ### 15.1 推荐架构：两遍扫描（Two-Pass Parsing）
 
