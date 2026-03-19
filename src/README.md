@@ -6,13 +6,13 @@
 
 - 规范目标模型：Block Stack（见 `spec/spec.md`）
 - 当前实现模型：micromark-only 集成 + DraMark multipass 管线
-- 结论：当前实现已经覆盖大量语法能力，但尚未完整落地规范中的全部闭合与诊断规则
+- 结论：当前实现已完成“legacy 集成路径下线 + micromark 词法统一”，规范差距主要集中在应用层 frontmatter 外链执行
 
 ## 2. 当前状态（2026-03-20）
 
 - 插件已切换为 micromark-only 集成路径（不再提供 `legacy` 模式开关）
 - DraMark 采用**3-4 pass multipass** 架构（见下方“解析流水线”）
-- `pnpm build`、`pnpm test:run` 已通过（6 files / 77 tests）
+- `pnpm build`、`pnpm test:run` 已通过（6 files / 81 tests）
 
 ## 2.1 解析流水线（3-4 pass）
 
@@ -29,25 +29,15 @@
 
 ### 每一遍做什么
 
-1. Pass 1（micromark 标记）
-  - 输入：原始文本
-  - 输出：带有行内词法边界信息的 parse 上下文
-  - 作用：优先标记 `<<...>>`、`$...$`、`{...}` 这类容易被 CommonMark 抢占的符号
+| Pass | 输入 | 输出 | 作用 |
+| --- | --- | --- | --- |
+| Pass 0（frontmatter） | 原始文本 | frontmatter 元数据 + 正文起始行 | 透传 YAML 原文，计算 translation 最小开关 |
+| Pass 1（micromark 标记） | 正文文本 | 行内词法边界 | 先锁定 `<<...>>`、`$...$`、`{...}`，避免被 CommonMark 抢占 |
+| Pass 2（DraMark 结构解析） | 行流 + 词法边界 | Block Stack 结构段 | 处理根级触发、闭合顺序、角色声明规则、译配上下文 |
+| Pass 3（CommonMark 材料化） | 结构段 markdown | mdast 内容块 | 保留 list/blockquote/code 等标准结构 |
+| Pass 4（可选还原） | 带保护占位中间树 | 最终 AST | 还原保护块字面量，防止语义污染 |
 
-2. Pass 2（DraMark 标记/保护/结构解析）
-  - 输入：原始文本 + pass1 词法边界约束
-  - 输出：DraMark 结构段（song/character/translation/comment/tech-cue 等）与 Block Stack 操作结果
-  - 作用：执行 root-level 触发规则、闭合顺序、角色独占行校验、译配上下文规则
-
-3. Pass 3（micromark/CommonMark 解析）
-  - 输入：结构段内 markdown 内容
-  - 输出：标准 mdast 内容块
-  - 作用：保证 CommonMark 结构保真，而不是把内容都降级成 text/paragraph
-
-4. Pass 4（DraMark 还原保护块，可选）
-  - 输入：带占位符或受保护片段的中间树
-  - 输出：还原后的最终 AST
-  - 作用：恢复保护区字面量并保证语义节点不被保护机制污染
+实现说明：当前 parser 在 `parseMarkdownBlocks` 中直接复用 `m2-extensions.ts` 的 micromark/from-markdown 扩展，standalone 与 unified 插件共享同一套行内词法规则。
 
 ### 失败模式（为什么不能退化为单遍）
 
@@ -65,9 +55,9 @@
 - `parser.ts`
   - DraMark multipass 结构解析主流程（scan + block-stack assemble）
 - `inline-markers.ts`
-  - 行内 marker 变换（含 `inline-spoken`）
+  - 历史兼容工具（已不作为主解析路径）
 - `m2-extensions.ts`
-  - micromark 行内扩展与 from-markdown bridge
+  - micromark 行内扩展、from-markdown bridge、standalone 复用入口
 - `index.ts`
   - remark 插件入口
 - `core/`
@@ -126,14 +116,14 @@
 - 角色声明独占行校验（`strict`）与兼容模式（`compat`）
 - 引号角色名解析（`@"..."` / `@“...”`）
 
-### 5.2 部分支持
+### 5.2 架构决策（非缺失项）
 
-- block-level micromark constructs 仍在迁移中（当前块级语义由 DraMark 结构 pass 提供）
+- 块级语义由 DraMark pass2 的 Block Stack 明确驱动（不是 legacy 状态机回退）
+- 行内词法统一由 micromark 扩展负责（standalone 与插件同源）
 
 ### 5.3 尚未支持（规范条目）
 
-- 外部 frontmatter 拉取 warning（如 `EXTERNAL_FRONTMATTER_*`）
-- 完整 block-level micromark constructs（仍处于迁移阶段）
+- 外部 frontmatter 拉取执行链路（`use_frontmatter_from` 的 fetch/merge）
 
 ## 6. Warning 与诊断
 
@@ -172,4 +162,4 @@
 1. 将当前解析流程显式拆分为 pass 管线（pass1/2/3/4）并暴露可观测中间产物
 2. 补齐 Tech Cue 闭合优先级边界测试（尤其是 `<<<\n<<<\n>>>`）
 3. 在需要占位保护时实现显式 pass4 restore（保护块还原）
-4. 将 block-level 能力逐步迁移到 micromark flow constructs
+4. 补齐外部 frontmatter 拉取失败诊断与应用层对接样例

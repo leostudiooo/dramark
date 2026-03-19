@@ -1086,30 +1086,28 @@ interface InlineSpokenSegment {
 
 ## 16. 解析器实现架构指引
 
-### 15.1 推荐架构：两遍扫描（Two-Pass Parsing）
+### 16.1 推荐架构：3-4 遍解析（Multipass Parsing）
 
-**Pass 1: 结构识别与保护区标记（Structure & Sanctuary Pass）**
+| Pass | 输入 | 输出 | 必要性 |
+| --- | --- | --- | --- |
+| Pass 0（Frontmatter） | 原始文本 | `frontmatterRaw` + 正文切片 | 前置提取配置层，避免 `---` 被误判为 reset 指令 |
+| Pass 1（micromark 标记） | 正文文本 | 行内词法边界 | 先锁定 `<<...>>`、`$...$`、`{...}`，避免被 CommonMark 或 HTML 路径吞噬 |
+| Pass 2（DraMark 结构解析） | 行流 + 词法边界 | Block Stack 结构段 | 处理 `@/$$/!!/=/%/<<<` 根级触发与确定性闭合；执行容器隔离 |
+| Pass 3（CommonMark 材料化） | 结构段 markdown | 标准 mdast 内容块 | 保留 paragraph/list/blockquote/code 等 CommonMark 结构 |
+| Pass 4（可选还原） | 带占位保护的中间树 | 最终 AST | 还原保护区字面量，保证保护机制不污染最终节点语义 |
 
-- 输入：原始文本
-- 任务：
-  1. 提取 YAML Frontmatter（如果存在）
-  2. 识别所有 CommonMark 块级结构（段落、列表、围栏代码块等）
-  3. **关键**：标记所有围栏代码块和行内代码的位置（行号/偏移量），构建**保护区映射表**（Sanctuary Map）
-- 输出：带有保护区标记的块级结构树
+实现可将 Pass 1 与 Pass 3 复用同一 micromark 扩展，避免 standalone 与插件行为分叉。
 
-**Pass 2: DraMark 语义附着（Semantic Attachment Pass）**
+### 16.2 为什么不能退化为单遍
 
-- 输入：Pass 1 生成的块级结构树 + 保护区映射表
-- 任务：
-  1. 遍历块级结构树
-  2. 对于每个块：
-     - 若为围栏代码块：原样保留，内容不解析
-     - 若为普通块：应用 DraMark 语义解析（识别 `@`, `$$`, `<<<`, `<<...>>` 等），但**跳过**保护区内的 Tech Cue 识别
-     - 对 TechCueBlock 的对称回退闭合执行局部前瞻（lookahead），保证 `>>>` 主闭合优先于裸 `<<<`
-  3. 维护 Block Stack，处理嵌套关系
-- 输出：完整 AST
+若退化为单遍且无显式优先级层次，至少会出现以下错误模式：
 
-### 15.2 替代架构：状态感知单遍解析（State-Aware Single Pass）
+1. `<<...>>` 被 CommonMark 或 HTML 词法路径提前消费，Tech Cue 漏识别。
+2. 代码保护区内部符号被误识别为 DraMark 指令，污染 AST。
+3. `Translation -> Character -> Song` 闭合顺序被行内词法扰动，结构漂移。
+4. list/blockquote/code 等块结构退化为普通段落，内容语义丢失。
+
+### 16.3 替代架构：状态感知单遍解析（State-Aware Single Pass）
 
 对于性能敏感场景，Lexer 维护**模式栈（Mode Stack）**：
 
@@ -1123,7 +1121,9 @@ enum LexMode {
 }
 ```
 
-### 15.3 实现检查清单（Tech Cue 与代码块）
+注意：状态感知单遍必须语义等价于上述 multipass 合同，即先有保护区边界，再有结构闭合，再有内容材料化。
+
+### 16.4 实现检查清单（Tech Cue 与代码块）
 
 | 测试 ID  | 输入                                | 期望输出                                     | 说明                                              |
 | -------- | ----------------------------------- | -------------------------------------------- | ------------------------------------------------- |
@@ -1140,7 +1140,7 @@ enum LexMode {
 | TC-CB-11 | `<<< LX\n内容\n<<<`                 | TechCueBlock(header="LX")                    | 多行开启支持可选属性头                            |
 | TC-CB-12 | `<<<\n灯光 % 注\n%%\n注释\n%%\n>>>` | TechCueBlock 内含注释节点/文本               | TechCueBlock 内注释语法可用                       |
 
-### 15.4 实现检查清单（角色声明与姓名解析）
+### 16.5 实现检查清单（角色声明与姓名解析）
 
 | 测试 ID | 输入 | 期望输出 | 说明 |
 | --- | --- | --- | --- |
@@ -1153,7 +1153,7 @@ enum LexMode {
 | CH-NM-07 | `@"\"The King\""` | CharacterBlock(character=`"The King"`) | 引号内转义保留 |
 | CH-NM-08 | `@冉阿让 我是谁` + compat | CharacterBlock + 首句对白 + deprecate warning | 兼容模式迁移行为 |
 
-### 15.5 实现检查清单（Frontmatter 引用与诊断）
+### 16.6 实现检查清单（Frontmatter 引用与诊断）
 
 | 测试 ID | 输入 | 期望输出 | 说明 |
 | --- | --- | --- | --- |

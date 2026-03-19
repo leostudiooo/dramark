@@ -36,7 +36,6 @@
 
 - Tech Cue 闭合优先级细节仍需补齐更多边界测试（特别是 `<<<\n<<<\n>>>`）
 - 外部 frontmatter 拉取执行链路仍在应用层，parser 未接入 fetch/merge 执行
-- block-level micromark constructs 未完全迁移
 - multipass 的 Pass 4（保护块显式还原）仍是约定语义，尚未形成独立可观测产物
 
 ---
@@ -57,7 +56,7 @@
 ### P2（架构升级）
 
 1. multipass 管线显式化（pass1/2/3/4 的可观测接口）
-2. 块级语法向 micromark flow 扩展迁移
+2. pass4 保护块还原的显式化与可测试化
 
 ---
 
@@ -103,11 +102,13 @@
 
 - 插件不再暴露 legacy/parserMode 切换
 - 统一走 micromark 集成路径 + DraMark 结构 pass
+- standalone parser 的 CommonMark 材料化已复用 `m2-extensions`（行内词法与插件同源）
 
 验收：
 
 - `plugin.test.ts` 不再包含 legacy 模式断言
 - `file.data.dramark` 输出包含 multipass 集成标识
+- `parser.test.ts` 中行内 cue/song/action 值解析与 song 上下文 `inline-spoken` 行为通过
 
 ### M2-2 闭合优先级收敛
 
@@ -121,26 +122,23 @@
 
 ---
 
-## M3：micromark 块级迁移（可并行探索）
+## M3：multipass 可观测性与保护还原（可并行探索）
 
-### M3-1 flow constructs 分阶段迁移
+### M3-1 pass 产物可观测化
 
 顺序建议：
 
-1. `%` / `%%`
-2. `<<<`（块级）
-3. `@` 与 `=`
-4. `$$` 与 `!!`
+1. 暴露 pass1 词法边界快照（调试开关）
+2. 暴露 pass2 结构段快照（调试开关）
+3. 补齐 pass4 显式还原路径与开关
 
 ### M3-2 插件行为收敛
 
-- 目标：在 micromark-only 集成下由 parse 阶段直接产出块级自定义节点
-- 在迁移完成前，继续由 DraMark 结构 pass 兜底块级语义
 - 保留 3-4 pass multipass 合同，避免因“单 pass 优化”破坏词法优先级与保护区语义
 
 验收：
 
-- `plugin.test.ts` 增加“块级节点在 micromark 模式可见”的断言
+- `plugin.test.ts` 持续验证“树不被覆盖 + file.data.dramark 输出完整”
 - 仍保持 remark 链路兼容
 
 ---
