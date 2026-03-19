@@ -10,13 +10,16 @@
 - 支持 warning 与 strict mode 报错
 
 当前状态（2026-03-19）：
-- 默认 `legacy` 路径已支持**所有** DraMark 语法（角色、唱段、译配、注释、技术提示、行内标记）
-- `micromark` 路径仅支持**行内 token**（`<<...>>`、`$...$`、`{...}`），块级构造（`@`、`=`、`$$`、`<<<`、`%`、`%%`）仍依赖 `legacy` 解析器
+- 默认 `legacy` 路径已支持**所有** DraMark 语法（角色、唱段、念白段落、译配、注释、技术提示、行内标记）
+- `micromark` 路径仅支持**行内 token**（`<<...>>`、`$...$`、`{...}`），块级构造（`@`、`=`、`$$`、`!!`、`<<<`、`%`、`%%`）仍依赖 `legacy` 解析器
 - **推荐**：使用 `legacy` 模式获得完整功能；`micromark` 模式目前仅作为实验性特性
 - `micromark` 路径下插件不再覆盖 `tree.children`；`legacy` 路径仍保持覆盖行为以复用现有状态机
 - `legacy` 已修复 `<<...>>` 在 from-markdown 被拆分为 `text/html/text` 时的漏识别问题
-- 在 `$$` 唱段上下文中，`$...$` 会回退为普通文本，不再生成 `inline-song`
-- 已验证 `pnpm build`、`pnpm test:run` 与 `pnpm build:web` 全通过（5 个测试文件，42 个用例）
+- `$$` 支持标题文本（如 `$$ My Shot`），存储在 `SongBlock.title` 字段
+- 新增 `!!` 念白段落标记，在唱段内可临时切换到念白模式
+- 在 `$$` 唱段上下文中，`$...$` 表示行内念白（`inline-spoken`），而非行内唱段
+- 角色声明必须独占一行，支持 `@"含空格姓名"` 引号语法
+- 已验证 `pnpm build`、`pnpm test:run` 与 `pnpm build:web` 全通过
 
 ## 2. 目录结构
 
@@ -87,37 +90,42 @@ parserMode 选项：
 
 ### `legacy` 模式（完整支持）
 - frontmatter 提取（作为配置层透传）
-- 角色声明：@角色名，支持多角色行声明与情绪注释（[] / 【】）
+- 角色声明：@角色名，支持引号空格姓名 `@"名"`、多角色行声明与情绪注释（[] / 【】）
 - 角色上下文台词吞噬
+- 角色声明独占行约束（允许行尾 `<<...>>` 与注释）
 - 全局重置：--- *** ___
 - 标题穿透（根级 heading 会结束 song context）
-- 唱段容器：$$ ... $$
+- 唱段容器：$$ ... $$（支持标题 `$$ 标题文本`）
+- 念白段落：!! ... !!（唱段内临时切换到念白模式）
 - 翻译对：= source + target block 收集（仅角色上下文有效）
 - 注释：% 行注释、%% 块注释
 - 技术提示：<<< >>> 块提示、<< >> 行内提示
 - 行内动作：{动作} 与全角｛动作｝
-- 行内短唱：$...$（仅在 `spoken` 上下文；`sung` 上下文回退为普通文本）
+- 行内短唱/念白：$...$（`global` 上下文为 `inline-song`，`sung` 上下文为 `inline-spoken`）
 - 转义字符：\@ \$ \% \{ \} \< \= \>
 
 ### `micromark` 模式（实验性）
 - 行内标记（micromark 原生 tokenization）：
   - `<<...>>` → `inline-tech-cue`
-  - `$...$` → `inline-song`
+  - `$...$` → `inline-song` / `inline-spoken`（取决于上下文）
   - `{...}` / `｛...｝` → `inline-action`
 - 块级构造暂不支持，仍由 legacy 解析器兜底处理
-- 块级构造包括：frontmatter、角色 `@`、翻译 `=`、唱段 `$$`、块注释 `%%`、块提示 `<<<`、行注释 `%`
+- 块级构造包括：frontmatter、角色 `@`、翻译 `=`、唱段 `$$`（含标题）、念白 `!!`、块注释 `%%`、块提示 `<<<`、行注释 `%`
 
 ## 5. 状态机模型
 
 核心状态：
 - 表演状态：global / character
 - 音乐状态：spoken / sung
+- 念白段落：spokenSegment（在 sung 内临时切换）
 
 关键切换：
 - @ 开启或切换 character
 - --- / *** / ___ 退出 character 回到 global
-- $$ 在 sung 与非 sung 之间切换
-- 根级 heading 在 sung 内部会触发穿透并退出 sung
+- $$ 开启/关闭唱段（sung）
+- $$ 标题文本 开启带标题的唱段
+- !! 在唱段内开启/关闭念白段落
+- 根级 heading 在 sung 内部会触发穿透并退出 sung（同时关闭 spokenSegment）
 
 ## 6. Warning 与 strict mode
 
@@ -125,7 +133,11 @@ parserMode 选项：
 - UNCLOSED_BLOCK_COMMENT
 - UNCLOSED_BLOCK_TECH_CUE
 - UNCLOSED_SONG_CONTAINER
+- UNCLOSED_SPOKEN_SEGMENT
 - TRANSLATION_OUTSIDE_CHARACTER
+- CHARACTER_DECLARATION_NOT_STANDALONE（角色声明非独占行）
+- INVALID_CHARACTER_NAME（空角色名）
+- DEPRECATED_INLINE_CHARACTER_DECLARATION（弃用的行内角色声明）
 
 严格模式：
 - `parseDraMark`：始终返回 `warnings`，不会抛错
@@ -173,7 +185,8 @@ parserMode 选项：
 - **块级构造暂未实现 micromark 扩展**，包括：
   - 角色声明 `@...`
   - 翻译对 `= ...`
-  - 唱段容器 `$$`
+  - 唱段容器 `$$`（含标题 `$$ 标题`）
+  - 念白段落 `!!`
   - 块注释 `%%`
   - 块技术提示 `<<<`
   - 行注释 `%`
