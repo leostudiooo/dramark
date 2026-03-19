@@ -104,10 +104,29 @@ export interface DraMarkWarning {
 export interface DraMarkParseResult {
   tree: DraMarkRoot;
   warnings: DraMarkWarning[];
-  metadata: {
-    frontmatterRaw?: string;
-    translationEnabledFromFrontmatter: boolean;
+  metadata: DraMarkMetadata;
+}
+
+export interface DraMarkMultipassDebugArtifacts {
+  pass0: {
+    hasFrontmatter: boolean;
+    startIndex: number;
   };
+  pass1: {
+    markedInput: string;
+  };
+  pass2: {
+    segments: Array<{
+      kind: string;
+      lineNo: number;
+    }>;
+  };
+}
+
+export interface DraMarkMetadata {
+  frontmatterRaw?: string;
+  translationEnabledFromFrontmatter: boolean;
+  multipassDebug?: DraMarkMultipassDebugArtifacts;
 }
 
 export interface DraMarkOptions {
@@ -115,6 +134,7 @@ export interface DraMarkOptions {
   includeComments?: boolean;
   strictMode?: boolean;
   characterDeclarationMode?: 'strict' | 'compat';
+  multipassDebug?: boolean;
 }
 
 declare module 'mdast' {

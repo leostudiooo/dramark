@@ -7,6 +7,7 @@ import type {
   CharacterBlock,
   CommentBlock,
   CommentLine,
+  DraMarkMetadata,
   DraMarkOptions,
   DraMarkParseResult,
   DraMarkRoot,
@@ -573,13 +574,30 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
   closeAllToRoot();
   runPass4RestoreProtectedBlocks(root);
 
+  const metadata: DraMarkMetadata = {
+    frontmatterRaw: frontmatterPass.frontmatter?.value,
+    translationEnabledFromFrontmatter: frontmatterPass.translationEnabledFromFrontmatter,
+  };
+
+  if (opts.multipassDebug) {
+    metadata.multipassDebug = {
+      pass0: {
+        hasFrontmatter: frontmatterPass.frontmatter !== null,
+        startIndex: frontmatterPass.startIndex,
+      },
+      pass1: {
+        markedInput: pass1MarkedInput,
+      },
+      pass2: {
+        segments: segments.map((segment) => ({ kind: segment.kind, lineNo: segment.lineNo })),
+      },
+    };
+  }
+
   return {
     tree: root,
     warnings,
-    metadata: {
-      frontmatterRaw: frontmatterPass.frontmatter?.value,
-      translationEnabledFromFrontmatter: frontmatterPass.translationEnabledFromFrontmatter,
-    },
+    metadata,
   };
 }
 

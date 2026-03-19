@@ -20,6 +20,7 @@ export function defaultOptions(options?: DraMarkOptions): Required<DraMarkOption
     includeComments: options?.includeComments ?? false,
     strictMode: options?.strictMode ?? false,
     characterDeclarationMode: options?.characterDeclarationMode ?? 'strict',
+    multipassDebug: options?.multipassDebug ?? false,
   };
 }
 

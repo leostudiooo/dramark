@@ -308,4 +308,15 @@ describe('parseDraMark', () => {
     expect(character.children[1].type).toBe('paragraph');
     expect(character.children[1].children?.[0]?.value).toContain('退出后对白');
   });
+
+  it('emits pass snapshots when multipassDebug is enabled', () => {
+    const input = ['---', 'meta:', '  title: Demo', '---', '@A', '台词 <<LX01 GO>>'].join('\n');
+    const result = parseDraMark(input, { multipassDebug: true });
+
+    expect(result.metadata.multipassDebug).toBeDefined();
+    expect(result.metadata.multipassDebug?.pass0.hasFrontmatter).toBe(true);
+    expect(result.metadata.multipassDebug?.pass0.startIndex).toBe(4);
+    expect(result.metadata.multipassDebug?.pass1.markedInput).toContain('<<LX01 GO>>');
+    expect(result.metadata.multipassDebug?.pass2.segments.map((segment) => segment.kind)).toEqual(['character', 'content']);
+  });
 });

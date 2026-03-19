@@ -74,11 +74,17 @@
 - `metadata`
   - `frontmatterRaw?: string`
   - `translationEnabledFromFrontmatter: boolean`
+  - `multipassDebug?`（仅在 `multipassDebug: true` 时输出）
+    - `pass0.hasFrontmatter`
+    - `pass0.startIndex`
+    - `pass1.markedInput`
+    - `pass2.segments[]`（`kind` + `lineNo`）
 
 说明：
 
 - 解析器只透传 frontmatter 原文并做最小开关判定
 - frontmatter schema 校验与外部配置拉取不在 parser 语法层完成
+- `multipassDebug` 用于调试 pass 产物，不影响默认解析语义
 
 ### 4.2 remark 插件
 
