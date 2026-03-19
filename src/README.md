@@ -79,12 +79,16 @@
     - `pass0.startIndex`
     - `pass1.markedInput`
     - `pass2.segments[]`（`kind` + `lineNo`）
+    - `pass4.enabled`
+    - `pass4.executed`
+    - `pass4.restoredNodeCount`
 
 说明：
 
 - 解析器只透传 frontmatter 原文并做最小开关判定
 - frontmatter schema 校验与外部配置拉取不在 parser 语法层完成
 - `multipassDebug` 用于调试 pass 产物，不影响默认解析语义
+- `pass4Restore` 默认为开启；可在调试或对比场景显式关闭
 
 ### 4.2 remark 插件
 

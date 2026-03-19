@@ -21,6 +21,7 @@ export function defaultOptions(options?: DraMarkOptions): Required<DraMarkOption
     strictMode: options?.strictMode ?? false,
     characterDeclarationMode: options?.characterDeclarationMode ?? 'strict',
     multipassDebug: options?.multipassDebug ?? false,
+    pass4Restore: options?.pass4Restore ?? true,
   };
 }
 

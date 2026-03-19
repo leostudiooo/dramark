@@ -121,6 +121,11 @@ export interface DraMarkMultipassDebugArtifacts {
       lineNo: number;
     }>;
   };
+  pass4: {
+    enabled: boolean;
+    executed: boolean;
+    restoredNodeCount: number;
+  };
 }
 
 export interface DraMarkMetadata {
@@ -135,6 +140,7 @@ export interface DraMarkOptions {
   strictMode?: boolean;
   characterDeclarationMode?: 'strict' | 'compat';
   multipassDebug?: boolean;
+  pass4Restore?: boolean;
 }
 
 declare module 'mdast' {

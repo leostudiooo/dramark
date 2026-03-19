@@ -95,6 +95,25 @@ describe('remarkDraMark plugin', () => {
     expect(dramark.warnings.map((warning) => warning.code)).toContain('TRANSLATION_OUTSIDE_CHARACTER');
   });
 
+  it('exposes multipass debug artifacts on file.data when enabled', async () => {
+    const processor = unified().use(remarkParse).use(remarkDraMark, { multipassDebug: true, pass4Restore: false });
+    const file = new VFile({ value: '@A\n台词 <<LX01 GO>>' });
+    const tree = processor.parse(file);
+
+    await processor.run(tree, file);
+
+    const dramark = file.data.dramark as {
+      multipassDebug?: {
+        pass2: { segments: Array<{ kind: string }> };
+        pass4: { enabled: boolean; executed: boolean };
+      };
+    };
+
+    expect(dramark.multipassDebug?.pass2.segments.map((segment) => segment.kind)).toEqual(['character', 'content']);
+    expect(dramark.multipassDebug?.pass4.enabled).toBe(false);
+    expect(dramark.multipassDebug?.pass4.executed).toBe(false);
+  });
+
   it('keeps tree intact while collecting parse metadata', async () => {
     const processor = unified().use(remarkParse).use(remarkDraMark);
     const file = new VFile({ value: '= orphan translation line\n台词 <<LX01 GO>>' });

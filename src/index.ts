@@ -30,6 +30,7 @@ const remarkDraMark: Plugin<[RemarkDraMarkPluginOptions?], Root> = function rema
     file.data.dramark = {
       warnings: result.warnings,
       metadata: result.metadata,
+      multipassDebug: result.metadata.multipassDebug,
       parserMode: 'micromark',
       integrationMode: 'micromark-only',
       multipass: true,
