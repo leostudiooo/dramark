@@ -572,7 +572,7 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
   }
 
   closeAllToRoot();
-  runPass4RestoreProtectedBlocks(root);
+  const pass4 = runPass4RestoreProtectedBlocks(root, { enabled: opts.pass4Restore });
 
   const metadata: DraMarkMetadata = {
     frontmatterRaw: frontmatterPass.frontmatter?.value,
@@ -590,6 +590,11 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
       },
       pass2: {
         segments: segments.map((segment) => ({ kind: segment.kind, lineNo: segment.lineNo })),
+      },
+      pass4: {
+        enabled: opts.pass4Restore,
+        executed: pass4.executed,
+        restoredNodeCount: pass4.restoredNodeCount,
       },
     };
   }
@@ -630,9 +635,17 @@ function runPass2LexicalScan(lines: string[], startIndex: number): ScannedSegmen
   return scanSegments(lines, startIndex);
 }
 
-function runPass4RestoreProtectedBlocks(_root: DraMarkRoot): void {
+function runPass4RestoreProtectedBlocks(_root: DraMarkRoot, options: { enabled: boolean }): {
+  executed: boolean;
+  restoredNodeCount: number;
+} {
+  if (!options.enabled) {
+    return { executed: false, restoredNodeCount: 0 };
+  }
+
   // Reserved for explicit placeholder de-protection when pass2 introduces
   // protected sentinels for code sanctuary or other lexical shields.
+  return { executed: true, restoredNodeCount: 0 };
 }
 
 function consumeFrontmatter(lines: string[]): (FrontmatterBlock & { endLine: number }) | null {

@@ -318,5 +318,17 @@ describe('parseDraMark', () => {
     expect(result.metadata.multipassDebug?.pass0.startIndex).toBe(4);
     expect(result.metadata.multipassDebug?.pass1.markedInput).toContain('<<LX01 GO>>');
     expect(result.metadata.multipassDebug?.pass2.segments.map((segment) => segment.kind)).toEqual(['character', 'content']);
+    expect(result.metadata.multipassDebug?.pass4.enabled).toBe(true);
+    expect(result.metadata.multipassDebug?.pass4.executed).toBe(true);
+    expect(result.metadata.multipassDebug?.pass4.restoredNodeCount).toBe(0);
+  });
+
+  it('can disable pass4 restore explicitly', () => {
+    const input = ['@A', '台词'].join('\n');
+    const result = parseDraMark(input, { multipassDebug: true, pass4Restore: false });
+
+    expect(result.metadata.multipassDebug?.pass4.enabled).toBe(false);
+    expect(result.metadata.multipassDebug?.pass4.executed).toBe(false);
+    expect(result.metadata.multipassDebug?.pass4.restoredNodeCount).toBe(0);
   });
 });
