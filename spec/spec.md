@@ -8,9 +8,13 @@
 
 - 规范 Frontmatter 传递模型：解析器必须原样透传 YAML 文本，应用层使用 YAML parser 解析
 - 规定 Frontmatter 推荐字段集：`use_frontmatter_from`、`meta`、`casting`、`translation`、`tech`
+- 补充 `use_frontmatter_from` 的合并优先级（外部基线 + 本地覆盖）与数组策略
+- 补充外部 Frontmatter 拉取的安全建议（协议、超时、缓存、失败回退）
 - 角色声明语句必须独占一行（允许行尾附着行内 Tech Cue 与注释）
 - `@姓名` 支持空格姓名解析：裁剪首尾空白，以下一个 `@`、情绪标识或换行作为终止点
+- 细化引号角色名规则（引号集合、转义、空值非法）
 - 推荐对包含空格的姓名使用引号包裹，减少歧义
+- 建议统一诊断码命名与严重级别，便于编辑器和 CI 接入
 
 ## 目录
 
@@ -209,6 +213,27 @@ tech:
 - 不应在语法层主动请求 `use_frontmatter_from` 指向的远程资源
 - 不负责严格业务 schema 校验或消费端呈现策略
 
+### 4.1 `use_frontmatter_from` 合并优先级（应用层）
+
+若应用层实现外部 Frontmatter 引用，建议采用以下确定性合并顺序：
+
+1. 读取外部文档，作为基线配置（base）
+2. 将当前文档 Frontmatter 作为覆盖层（overlay）
+3. 对象字段按 key 递归覆盖；标量字段后者覆盖前者
+4. 数组字段默认整段替换（replace），不做隐式拼接
+
+上述策略可简写为：`resolved = deepMerge(external, local)`，且 `local` 优先级更高。
+
+### 4.2 外部 Frontmatter 拉取安全策略（应用层）
+
+本规范不要求语法层执行网络访问；如应用层启用 `use_frontmatter_from`，建议至少满足：
+
+1. 默认关闭远程拉取；由应用显式开启
+2. 仅允许 `https` 方案；`http` 默认拒绝
+3. 支持域名白名单与最大响应体积限制（例如 1MB）
+4. 采用可配置超时与缓存 TTL（例如 timeout=2000ms）
+5. 拉取失败时回退到本地 Frontmatter，并产生可诊断 warning
+
 ## 5. 角色与台词 (CharacterBlock)
 
 ### 5.1 进入角色
@@ -238,6 +263,9 @@ open: CharacterBlock
 - 读取角色名前，先裁剪 `@` 后的前导空白
 - 角色名默认读取到以下任一终止符：下一个 `@`、`[`、`【`、换行
 - 对未加引号的角色名，解析后必须裁剪首尾空白
+- 引号角色名支持 `"..."` 或 `“...”` 两种形式
+- 引号内允许使用 `\"` 或 `\”` 表示字面引号
+- 引号角色名若解析后为空字符串，必须降级并给出 warning
 - 推荐对含空格角色名使用引号包裹（如 `@"冉 阿让"`），以避免与多角色声明混淆
 
 示例：
@@ -247,6 +275,15 @@ open: CharacterBlock
 @"冉 阿让" <<MIC=HM2>> % 行尾允许附着技术标记和注释
 @Peter Pan @Wendy [aside]
 ```
+
+### 5.1.2 角色声明兼容模式（迁移期）
+
+为降低旧文档迁移成本，应用层可提供可选兼容模式（例如 `characterDeclarationMode: "compat"`）：
+
+1. `strict`（默认）：执行“独占一行”硬约束，违规即降级为普通文本并给 warning
+2. `compat`（可选）：允许 `@角色名 台词` 旧写法，并将同一行剩余文本作为首句对白
+
+`compat` 模式应额外产生弃用 warning，提示后续迁移到独占行语法。
 
 ### 5.2 内容吞噬
 
@@ -744,6 +781,23 @@ something >>> else % 不合法的 >>> 闭合
 3. 未加引号角色名在落盘前必须做首尾空白裁剪。
 4. 对包含空格的人名，推荐使用引号包裹；引号内空白应按字面保留。
 
+### 裁决十四：外部 Frontmatter 失败回退
+
+1. `use_frontmatter_from` 的拉取与解析失败，不得阻断正文解析。
+2. 失败时必须保留本地 Frontmatter，并继续输出正文 AST。
+3. 应产生 warning（例如 `EXTERNAL_FRONTMATTER_FETCH_FAILED` 或 `EXTERNAL_FRONTMATTER_PARSE_FAILED`）。
+
+### 裁决十五：诊断码命名与级别
+
+1. 诊断码使用全大写蛇形命名（`[A-Z0-9_]+`）。
+2. 语法可恢复问题使用 warning；不可恢复问题使用 error。
+3. 推荐最小诊断集合：
+  - `CHARACTER_DECLARATION_NOT_STANDALONE`（warning）
+  - `INVALID_CHARACTER_NAME`（warning）
+  - `DEPRECATED_INLINE_CHARACTER_DECLARATION`（warning）
+  - `EXTERNAL_FRONTMATTER_FETCH_FAILED`（warning）
+  - `EXTERNAL_FRONTMATTER_PARSE_FAILED`（warning）
+
 ## 13. 语法分层与兼容矩阵
 
 ### 13.1 Token 与 Block 关闭关系
@@ -930,6 +984,17 @@ enum LexMode {
 | CH-NM-04 | `@Peter Pan @Wendy [aside]` | 主角色 + 别名（实现可选） | 下一 `@` 终止前一角色名 |
 | CH-NM-05 | `@冉阿让 我是谁` | 普通文本 + warning | 非独占行应降级 |
 | CH-NM-06 | `@  ` | 普通文本 + warning | 空角色名非法 |
+| CH-NM-07 | `@"\"The King\""` | CharacterBlock(character=`"The King"`) | 引号内转义保留 |
+| CH-NM-08 | `@冉阿让 我是谁` + compat | CharacterBlock + 首句对白 + deprecate warning | 兼容模式迁移行为 |
+
+### 15.5 实现检查清单（Frontmatter 引用与诊断）
+
+| 测试 ID | 输入 | 期望输出 | 说明 |
+| --- | --- | --- | --- |
+| FM-EX-01 | `use_frontmatter_from + local meta.title` | local 覆盖 external | 合并优先级 |
+| FM-EX-02 | `use_frontmatter_from` 超时 | 仅本地生效 + warning | 失败回退 |
+| FM-EX-03 | external `casting.groups=[A]`, local `[B]` | `[B]` | 数组默认 replace |
+| FM-EX-04 | external YAML 非法 | 仅本地生效 + parse warning | 拉取成功但解析失败 |
 
 ## 附录 A：向后兼容性说明
 
@@ -938,13 +1003,17 @@ enum LexMode {
 - `translation.render` 调整为 `translation.render_mode`；应用层可提供别名兼容
 - 旧写法 `@角色名 台词正文` 不再被视为合法角色声明，应降级为普通文本并给出 warning
 - 新增 `use_frontmatter_from` 为可选扩展字段；语法层不主动拉取外部文档
+- 应用层若启用外部 Frontmatter，建议采用“external 基线 + local 覆盖”的确定性合并
 - 空格姓名成为规范能力，推荐使用引号提升可读性与确定性
+- 允许通过可选 `compat` 模式过渡旧写法，但应输出弃用 warning
 
 **v0.4.0 解析器要求**：
 
 - 必须原样透传 frontmatter 原文，供应用层 YAML parser 消费
 - 必须实现角色声明独占行约束（允许行尾附着 `<<...>>` 与注释）
 - 必须实现空格姓名解析规则（前导跳过、终止符裁决、首尾裁剪）
+- 若支持外部 Frontmatter，失败必须可回退且不阻断正文解析
+- 诊断码与级别应保持稳定，以支撑编辑器与 CI 集成
 - 必须继续满足代码保护区与 Tech Cue 分层语义要求
 
 ## 附录 B：输入法与编辑器体验优化 (IME Tricks)

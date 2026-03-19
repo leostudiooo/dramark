@@ -39,6 +39,8 @@
 - 语义修复：
   - legacy 路径修复 `<<...>>` 在 html-split 场景下的 `inline-tech-cue` 归一化
   - `$$` 上下文禁用 `$...$` inline-song，回退普通文本
+- 规范同步：
+  - `spec/spec.md` 已升级至 v0.4.0，新增 Frontmatter 外部引用策略、角色声明独占行、空格姓名与诊断规范
 - 本地回归基线：`pnpm build:web && pnpm test:run` 通过（5 files / 42 tests）
 
 ---
@@ -114,6 +116,42 @@
 
 **验收标准**：
 - 选项与警告在代码路径上可达且有测试；或彻底移除并更新文档
+
+### M0-4：Frontmatter 外部引用解析策略（v0.4.0 对齐）
+
+**目标**：应用层可稳定处理 `use_frontmatter_from`，且失败不影响正文解析。
+
+**任务**：
+
+- 在 `src/core/config-normalizer.ts` 增加可选的 external 解析入口（由调用方注入 fetch/load 函数）
+- 实现确定性合并：`resolved = deepMerge(external, local)`，其中 local 优先
+- 对数组字段采用默认 replace 策略
+- 失败回退到 local，并输出诊断码（见 M0-5）
+
+**验收标准**：
+
+- 不论 external 成功或失败，解析主流程都不会中断
+- 合并优先级与数组策略可被测试稳定断言
+
+### M0-5：诊断码稳定化 + 角色兼容迁移开关
+
+**目标**：给编辑器与 CI 提供稳定的 machine-readable 诊断，并可平滑迁移旧语法。
+
+**任务**：
+
+- 在 `src/types.ts` 中补齐/冻结诊断码（至少包含）
+  - `CHARACTER_DECLARATION_NOT_STANDALONE`
+  - `INVALID_CHARACTER_NAME`
+  - `DEPRECATED_INLINE_CHARACTER_DECLARATION`
+  - `EXTERNAL_FRONTMATTER_FETCH_FAILED`
+  - `EXTERNAL_FRONTMATTER_PARSE_FAILED`
+- 增加 `characterDeclarationMode: 'strict' | 'compat'`（默认 `strict`）
+- `compat` 模式下保留 `@角色名 台词` 并附带弃用 warning
+
+**验收标准**：
+
+- warning code 在 parse API 与 plugin API 中一致
+- `strict/compat` 在单测里均有覆盖，且行为可预期
 
 ---
 
@@ -263,6 +301,7 @@
 ## 8. 风险清单（实施时优先关注）
 
 - **AST 兼容性**：自定义节点需正确扩展 mdast 的类型映射（`src/types.ts`），否则下游插件可能崩溃
-- **指令优先级**：frontmatter phase-0、song breakout、translation 截断点必须持续满足 spec 的 6 条裁决
+- **指令优先级**：frontmatter phase-0、song breakout、translation 截断点必须持续满足 spec 的关键裁决条目
 - **性能与内存**：M1 大量调用 `fromMarkdown` 时要避免“按行解析”；必须以 chunk 为单位
 - **语义回归**：任何改动都要确保 `src/tests/edge-cases.test.ts` 的裁决门禁不被破坏
+- **外部配置安全**：`use_frontmatter_from` 若启用，必须受协议/超时/体积/缓存策略约束，避免 SSRF 与超时阻塞
