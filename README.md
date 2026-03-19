@@ -33,7 +33,7 @@ casting:
     - name: 冉阿让
       actor: 张三
       mic: HM1
-      aliases: [24601]
+      aliases: ["24601"]
   groups:
     principals:
       members: [冉阿让]
