@@ -25,6 +25,12 @@ export interface TranslationPair {
 
 export interface SongContainer {
   type: 'song-container';
+  title?: string;
+  children: DraMarkRootContent[];
+}
+
+export interface SpokenSegment {
+  type: 'spoken-segment';
   children: DraMarkRootContent[];
 }
 
@@ -35,6 +41,11 @@ export interface InlineAction {
 
 export interface InlineSongSegment {
   type: 'inline-song';
+  value: string;
+}
+
+export interface InlineSpokenSegment {
+  type: 'inline-spoken';
   value: string;
 }
 
@@ -64,6 +75,7 @@ export type DraMarkRootContent =
   | CharacterBlock
   | TranslationPair
   | SongContainer
+  | SpokenSegment
   | BlockTechCue
   | CommentLine
   | CommentBlock;
@@ -105,6 +117,7 @@ declare module 'mdast' {
     'character-block': CharacterBlock;
     'translation-pair': TranslationPair;
     'song-container': SongContainer;
+    'spoken-segment': SpokenSegment;
     'block-tech-cue': BlockTechCue;
     'comment-line': CommentLine;
     'comment-block': CommentBlock;
@@ -113,6 +126,7 @@ declare module 'mdast' {
   interface PhrasingContentMap {
     'inline-action': InlineAction;
     'inline-song': InlineSongSegment;
+    'inline-spoken': InlineSpokenSegment;
     'inline-tech-cue': InlineTechCue;
   }
 }
