@@ -1,15 +1,17 @@
 # DraMark Language Specification
 
-**Version:** 0.3.1  
+**Version:** 0.3.1.1  
 **Date:** 2026-03-19  
 **Status:** Draft
 
-**Changelog (0.3.0 → 0.3.1):**
+**Changelog (0.3.1 → 0.3.1.1):**
 
-- 引入**代码保护区（Code Sanctuary）**机制，确立围栏代码块和行内代码为语法黑洞，解决与 C++ 模板/位移操作符的冲突
-- 重构 **Tech Cue** 为三层形态：行内 Attached Node（`<<>>`）、单行块级（`<<< >>>`）、多行块级（围栏 `<<<`...`>>>` 或 `<<<`...`<<<`）
-- 确立**行尾闭合优先原则（Trailing Rule）**：处于 TechCueBlock 内时，行尾 `>>>` 强制识别为闭合标记，不参与 CommonMark 引用解析
-- 新增**裁决九（代码保护区优先）**与**裁决十（Tech Cue 单层块级原则）**
+- 明确 `>>>` 独占一行时**应当被解析为 TechCueBlock 闭合**，但出于 CommonMark 三级引用兼容性不建议使用
+- 确立 TechCueBlock 闭合优先级：`>>>`（含独占一行）高于对称闭合 `<<<`
+- 多行 TechCueBlock 开启行支持可选属性头：`<<< 属性`（类似 code block info string）
+- 明确 TechCueBlock 内允许注释语法（`%` 与 `%%...%%`）
+- 调整闭合顺序为：`CommentBlockState` → `TechCueBlock` → `TranslationBlock` → `CharacterBlock` → `SongBlock`
+- 补充 Tech Cue 与真实三级引用邻接场景的测试要求
 
 ## 目录
 
@@ -80,6 +82,10 @@ DraMark 语法分为三个层级：
 - TechCue（仅行内 `<< >>`）
 - Comment（注释）
 
+**Lexical States（词法态）**：不进入结构栈，但会影响语义识别优先级
+
+- CommentBlockState（`%%`...`%%`，最高优先级屏蔽态）
+
 ### 3.2 Block 嵌套关系
 
 ```
@@ -105,13 +111,13 @@ onToken(T):
   apply(T)
 ```
 
-**语义层级闭合顺序（从内到外）**：
+**词法+语义层级闭合顺序（从内到外）**：
 
 ```
-Translation → TechCueBlock（块级）→ Character → Song
+CommentBlockState → TechCueBlock（块级）→ Translation → Character → Song
 ```
 
-即：始终先关闭语义最内层，再处理外层结构。
+即：始终先关闭词法/语义最内层，再处理外层结构。
 
 ### 3.4 GlobalBlock 内容语义
 
@@ -152,7 +158,7 @@ Translation → TechCueBlock（块级）→ Character → Song
 meta:
   title: 悲惨世界 (Les Misérables)
   locale: zh-CN
-  version: 0.3.1
+  version: 0.3.1.1
 casting:
   characters:
     - name: 冉阿让
@@ -187,7 +193,7 @@ tech:
 **触发操作**：
 
 ```python
-close: TranslationBlock, TechCueBlock, CharacterBlock
+close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
 open: CharacterBlock
 ```
 
@@ -218,7 +224,7 @@ open: CharacterBlock
 **触发操作**：
 
 ```python
-close: TranslationBlock, TechCueBlock, CharacterBlock
+close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
 ```
 
 语义：`@@` 作为一个显式的状态边界标记，不生成 AST 节点，仅触发栈关闭操作。
@@ -232,7 +238,7 @@ close: TranslationBlock, TechCueBlock, CharacterBlock
 **触发操作**：
 
 ```python
-close: TranslationBlock, TechCueBlock, CharacterBlock
+close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
 ```
 
 **特性**：
@@ -260,7 +266,7 @@ close: TranslationBlock, TechCueBlock, CharacterBlock
 **触发操作**：
 
 ```python
-close: TranslationBlock, TechCueBlock, CharacterBlock
+close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
 open: SongBlock
 ```
 
@@ -319,6 +325,7 @@ TranslationBlock 包含：
 
 - `source`: 行内文本（原文）
 - `target`: 块级节点数组（译文，可包含段落、列表、加粗等格式）
+- `source` 与 `target` 都允许包含 Normal Text 节点（纯文本节点），不强制依赖其他行内语义标记
 
 ### 8.3 吞噬规则（Target Capture）
 
@@ -363,19 +370,20 @@ close: TranslationBlock
 
 - `=␠` → 译配起始（等号+空格+原文）
 - `=`（独占一行）→ 译配退出
+- 在普通文本节点（Normal Text Node）中出现的 `=` 或 `=␠`，按字面文本保留
 - 其他形式的 `=` → 普通文本，不解析为 DraMark 指令
 
 ## 9. 技术提示标记 (Tech Cue)
 
-Tech Cue 用于表达技术调度信息（灯光、音效、麦克风等）。v0.3.1 采用**分层设计**：
+Tech Cue 用于表达技术调度信息（灯光、音效、麦克风等）。v0.3.1.1 采用**分层设计**：
 
 ### 9.1 语法形态
 
-| 形态                  | 类型             | 语法                               | 参与 Block Stack | 内容特性                                      |
-| --------------------- | ---------------- | ---------------------------------- | ---------------- | --------------------------------------------- |
-| **行内 Tech Cue**     | Attached Node    | `<<内容>>`                         | **否**           | 标准 CommonMark，不跨行                       |
-| **单行块级 Tech Cue** | Structural Block | `<<< 内容 >>>`（行尾闭合）         | **是**           | 标准 CommonMark，独占一行                     |
-| **多行块级 Tech Cue** | Structural Block | `<<<` ... `>>>` 或 `<<<` ... `<<<` | **是**           | 标准 CommonMark，可包含行内 Tech Cue 作为标签 |
+| 形态                  | 类型             | 语法                                             | 参与 Block Stack | 内容特性                                    |
+| --------------------- | ---------------- | ------------------------------------------------ | ---------------- | ------------------------------------------- |
+| **行内 Tech Cue**     | Attached Node    | `<<内容>>`                                       | **否**           | 标准 CommonMark，不跨行                     |
+| **单行块级 Tech Cue** | Structural Block | `<<< 内容 >>>`（行尾闭合）                       | **是**           | 标准 CommonMark，独占一行                   |
+| **多行块级 Tech Cue** | Structural Block | `<<< [属性]` ... `>>>` 或 `<<< [属性]` ... `<<<` | **是**           | 标准 CommonMark，可包含行内 Tech Cue 与注释 |
 
 ### 9.2 行内 Tech Cue（Inline Attached）
 
@@ -401,7 +409,7 @@ Tech Cue 用于表达技术调度信息（灯光、音效、麦克风等）。v0
 **触发操作**：
 
 ```python
-close: TranslationBlock, CharacterBlock  # 按需关闭不兼容块
+close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock  # 按需关闭不兼容块
 open: TechCueBlock
 add_content(content)
 close: TechCueBlock  # 立即关闭，瞬态块
@@ -420,40 +428,48 @@ close: TechCueBlock  # 立即关闭，瞬态块
 
 #### 9.3.2 多行形式（围栏）
 
-**开启触发**：独占一行的 `<<<`（后仅可接空白或行尾注释 `%`）
+**开启触发**：根级行首 `<<<`，允许后接可选属性头文本（例如 `<<< LX`，类似 code block info string）。
 
-**闭合触发**（推荐方案）：
+- 若同一行同时出现行尾 `>>>`，按单行块级 Tech Cue 处理
+- 属性头按原文保留在 `TechCueBlock.header`（可选）
 
-**对称形式（推荐）**：独占一行的 `<<<`
+**闭合触发**（主规则 + 兼容回退）：
 
-- **理由**：与 CommonMark 完全兼容。单独一行的 `>>>` 会被 CommonMark 解析器误识别为三级引用（`>>>`），造成兼容性问题。
-- **闭合优先级**：行首 `<<<` 在 TechCueBlock 内触发对称闭合
+**主闭合（优先级更高）**：行尾 `>>>`（含独占一行）
 
-**行尾形式（备选）**：末行行尾的 `>>>`（后仅可接空白或注释 `%`）
+- **语义**：当栈顶为 TechCueBlock 时，`>>>` 必须闭合 TechCueBlock
+- **兼容说明**：`>>>` 独占一行虽然应当解析，但会与 CommonMark 三级引用语法冲突，生产文档不建议使用
 
-- **前提**：`>>>` 必须位于行尾，不可独占一行
-- **优势**：节省空间，适合单行内容
-- **注意**：仅在行尾有效；独占一行会被 CommonMark 引用块解析器拦截
+**对称回退闭合**：独占一行的 `<<<`
+
+- **前提**：仅在当前 TechCueBlock 尚未匹配到主闭合 `>>>` 时触发
+- **优先级**：低于 `>>>`
 
 **Block Stack 操作**：
 
 ```python
-onToken("<<<_LINE"):  # 行首 <<<
-  if peek(blockStack) is TechCueBlock:
-    # 对称闭合（推荐）
-    close(TechCueBlock)
-  else:
-    # 开启新的 Tech Cue
+onToken("<<<_OPEN_WITH_OPTIONAL_HEADER"):
+  if peek(blockStack) is not TechCueBlock:
     while top incompatible with TechCueBlock:
       close(top)
-    open(TechCueBlock)
+    open(TechCueBlock, header=headerTextOrNull)
 
-onToken(">>>_TRAILING"):  # 仅行尾 >>>
+onToken(">>>_CLOSE"):  # 行尾或独占一行 >>>
   if peek(blockStack) is TechCueBlock:
     close(TechCueBlock)
   else:
-    # 不在 Tech Cue 内，降级为普通文本
-    emit(TEXT(">>>"))
+    # 不在 Tech Cue 内，交给 CommonMark（通常解析为 blockquote）
+    emit(COMMONMARK_FALLBACK(currentLine))
+
+onToken("<<<_SYMMETRIC_CANDIDATE"):  # 独占一行 <<<
+  if peek(blockStack) is TechCueBlock and no_pending_primary_close_ahead():
+    close(TechCueBlock)
+  else:
+    add_content(TEXT("<<<"))
+
+onToken("<<<_INSIDE_TECH_WITH_PAYLOAD"):
+  # 在 TechCueBlock 内，"<<< ..." 默认作为内容文本处理，避免块级嵌套
+  add_content(TEXT(currentLine))
 ```
 
 #### 9.3.3 内部嵌套规则
@@ -468,11 +484,31 @@ onToken(">>>_TRAILING"):  # 仅行尾 >>>
 <<<
 ```
 
-**禁止**：块级 Tech Cue 嵌套其他块级 Tech Cue（开启标记 `<<<` 在 TechCueBlock 内触发**闭合操作**而非嵌套，裁决十）
+**禁止**：块级 Tech Cue 嵌套其他块级 Tech Cue（TechCueBlock 内出现 `<<< ...` 默认按内容文本处理；仅在满足回退条件时裸 `<<<` 可闭合，裁决十）
+
+#### 9.3.4 Tech Cue 内注释语法
+
+TechCueBlock 内允许完整注释语法：
+
+- 行注释 `%`（遵循第 10 章空白前置规则）
+- 块注释 `%% ... %%`
+
+注释节点附着于当前 TechCueBlock 内容流，不改变 TechCueBlock 的结构栈层级。
 
 ### 9.4 行尾闭合优先原则（Trailing Rule）
 
-当解析器处于 TechCueBlock 上下文时（栈顶为 TechCueBlock），位于物理行末尾的 `>>>` 序列（后仅可接空白字符或行尾注释 `%`）被识别为闭合标记。但为了确保与 CommonMark 的最大兼容性，**强烈推荐使用对称形式**（`<<<` ... `<<<`）。
+当解析器处于 TechCueBlock 上下文时（栈顶为 TechCueBlock），`>>>`（行尾或独占一行）是主闭合标记，且优先级高于对称回退闭合 `<<<`。为避免与 CommonMark 三级引用歧义，仍建议优先使用对称写法 `<<<` ... `<<<`。
+
+**优先级示例**：
+
+```markdown
+<<<
+<<<
+
+> > >
+```
+
+上述输入应解析为：一个 TechCueBlock，其内容包含普通文本行 `<<<`，并由第三行 `>>>` 闭合。
 
 ### 9.5 麦克风换麦扩展（简洁语法）
 
@@ -489,7 +525,7 @@ onToken(">>>_TRAILING"):  # 仅行尾 >>>
 
 ## 10. 注释 (Attached Node)
 
-注释是 Attached Node，仅在源文件或特定工作版渲染目标中可见。
+注释是 Attached Node，仅在源文件或特定工作版渲染目标中可见。该语法在 TechCueBlock 内同样有效。
 
 ### 10.1 行注释
 
@@ -550,7 +586,7 @@ C++ 模板：vector\<int\> % 显示为 <int>，不触发 Tech Cue
 
 所有冲突通过 **LIFO close + incompatibility check** 解决。当 Token 与当前栈顶 Block 不兼容时，持续弹出栈顶直到兼容或栈空，然后应用 Token。
 
-**闭合顺序**：`TranslationBlock` → `TechCueBlock` → `CharacterBlock` → `SongBlock`（从内到外）
+**闭合顺序**：`CommentBlockState` → `TechCueBlock` → `TranslationBlock` → `CharacterBlock` → `SongBlock`（从内到外）
 
 ### 裁决五：Tech Cue 不跨行（修订）
 
@@ -558,10 +594,10 @@ C++ 模板：vector\<int\> % 显示为 <int>，不触发 Tech Cue
 
 **单行块级 Tech Cue** `<<<...>>>`：要求 `<<<` 位于行首，`>>>` 位于行尾，中间不得包含换行。
 
-**多行块级 Tech Cue**：开启标记 `<<<` 独占一行，闭合标记：
+**多行块级 Tech Cue**：开启标记支持 `<<<` 或 `<<< 属性`；闭合标记：
 
-- `>>>` 可位于行尾（推荐）或独占一行（为了与 CommonMark 兼容强烈不推荐，但如果读取到应当正确解析）
-- 若使用对称闭合 `<<<`，则必须独占一行
+- `>>>` 可位于行尾或独占一行（独占一行应当解析，但为兼容性不建议使用）
+- 裸 `<<<` 可作为对称回退闭合，但其优先级低于 `>>>`
 
 ### 裁决六：百分号防误伤
 
@@ -590,8 +626,9 @@ CommonMark 的围栏代码块（Fenced Code Blocks）和行内代码（Inline Co
 
 **示例**：
 
-~~~markdown
+````markdown
 % 以下必须原样保留，不产生任何 AST 语义节点
+
 ```cpp
 
 template <typename T>
@@ -603,48 +640,67 @@ void setup() {
   std::cout << "Hello, World! >>" << std::endl; % 不触发 Tech Cue
 }
 ```
-
-~~~
+````
 
 ### 裁决十：Tech Cue 单层块级原则（新增）
 
-**编号**：Ruling #10
-
 1. **块级 Tech Cue（单行或多行）不允许嵌套其他块级 Tech Cue**。
-2. **行内 Tech Cue 不允许嵌套**（内部 `<<` 视为普通文本）。
+2. **行内 Tech Cue 不允许嵌套**（外部 `<<` 视为普通文本）。
 3. **块级 Tech Cue 可以包含行内 Tech Cue** 作为内容的一部分（视为标签或细化标记）。
 4. 解析器在遇到块级 Tech Cue 开启标记 `<<<` 时，必须检查 Block Stack：
-   - 若栈顶已是 TechCueBlock，则执行**闭合操作**（Toggle 语义）；
-   - 若栈顶不是 TechCueBlock，则执行**开启操作**。
+
+- 若栈顶已是 TechCueBlock，则默认按内容文本处理；
+- 若栈顶不是 TechCueBlock，则执行**开启操作**。
+
+示例：
+
+```markdown
+<<LX01>> % 正确，单层行内 Tech Cue
+<<< LX01 >>> % 正确，单层块级 Tech Cue
+something <<< LX01 >>> % 解析为 "something <", inline_tech_cue(LX01), ">"，不触发块级 Tech Cue
+<<<< LX01 >>>> % 解析为 "<<", inline_tech_cue(LX01), ">>"
+<<<<<< % 此行解析为文本
+<<< % 从此行开始进入 TechCueBlock
+>>> % 触发闭合，回到普通文本模式
+```
+
+### 裁决十一：Tech Cue 闭合优先级与三级引用兼容
+
+1. 在 TechCueBlock 内，`>>>`（行尾或独占一行）是**主闭合标记**，优先级高于对称回退闭合 `<<<`。
+2. 在 TechCueBlock 外，`>>>` 应遵循 CommonMark 语义（通常为三级引用），不应被错误抢占为 DraMark 闭合。
+3. 对于输入 `<<<\n<<<\n>>>`，第二行 `<<<` 必须解析为 TechCueBlock 内容文本，第三行 `>>>` 才执行闭合。
 
 ## 13. 语法分层与兼容矩阵
 
 ### 13.1 Token 与 Block 关闭关系
 
-| Token                  | 关闭的 Block（按 LIFO 顺序）                   | 打开的 Block                | 备注                     |
-| ---------------------- | ---------------------------------------------- | --------------------------- | ------------------------ |
-| `@角色`                | TranslationBlock, TechCueBlock, CharacterBlock | CharacterBlock              | 技术提示需先关闭         |
-| `$$`                   | TranslationBlock, TechCueBlock, CharacterBlock | SongBlock                   | -                        |
-| `=␠原文`               | TranslationBlock                               | TranslationBlock            | -                        |
-| `=`（单行）            | TranslationBlock                               | -                           | -                        |
-| `@@`                   | TranslationBlock, TechCueBlock, CharacterBlock | -                           | 显式状态重置             |
-| `---` / `#`            | TranslationBlock, TechCueBlock, CharacterBlock | -（保留为 CommonMark 结构） | 结构标记穿透             |
-| `<<<`（开启）          | TranslationBlock, TechCueBlock, CharacterBlock | TechCueBlock                | 开启块级 Tech Cue        |
-| `>>>`（行尾闭合）      | TechCueBlock                                   | -                           | 仅在 TechCueBlock 内有效 |
-| `<<<`（对称闭合）      | TechCueBlock                                   | -                           | 仅在 TechCueBlock 内有效 |
-| `$$`（结束）           | SongBlock                                      | -                           | -                        |
-| `#`（在 SongBlock 内） | SongBlock                                      | -                           | 标题穿透                 |
+| Token                  | 关闭的状态（按优先级）                                            | 打开的 Block                | 备注                                 |
+| ---------------------- | ----------------------------------------------------------------- | --------------------------- | ------------------------------------ |
+| `@角色`                | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | CharacterBlock              | 技术提示先于译配关闭                 |
+| `$$`                   | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | SongBlock                   | -                                    |
+| `=␠原文`               | TranslationBlock                                                  | TranslationBlock            | -                                    |
+| `=`（单行）            | TranslationBlock                                                  | -                           | -                                    |
+| `@@`                   | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | -                           | 显式状态重置                         |
+| `---` / `#`            | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | -（保留为 CommonMark 结构） | 结构标记穿透                         |
+| `<<<`（开启）          | CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock | TechCueBlock                | 支持 `<<< 属性`                      |
+| `>>>`（行尾/独占闭合） | TechCueBlock                                                      | -                           | 在 TechCueBlock 内应解析；独占不建议 |
+| `<<<`（对称回退闭合）  | TechCueBlock                                                      | -                           | 仅在未命中 `>>>` 主闭合时有效        |
+| `$$`（结束）           | SongBlock                                                         | -                           | -                                    |
+| `#`（在 SongBlock 内） | SongBlock                                                         | -                           | 标题穿透                             |
+
+注：`=␠原文` 与 `=` 行未列出 `CommentBlockState`，因为注释块词法态仅由 `%%` 闭合，其他 token 在其内部均不触发 DraMark 语义。
 
 ### 13.2 语法特性速查
 
-| 特性             | 类型       | 是否入栈 | 显式闭合      | 隐式闭合触发                       |
-| ---------------- | ---------- | -------- | ------------- | ---------------------------------- |
-| CharacterBlock   | Structural | 是       | `@@`          | `@`, `$$`, `<<<`, `---`, `#`       |
-| SongBlock        | Structural | 是       | `$$`          | `#`（穿透）                        |
-| TranslationBlock | Structural | 是       | `=`（单行）   | `@`, `$$`, `<<<`, `---`, `#`, `=␠` |
-| TechCueBlock     | Structural | 是       | `>>>` / `<<<` | `@`, `$$`, `---`, `#`              |
-| TechCue（行内）  | Attached   | 否       | 必须（`>>`）  | -                                  |
-| Comment          | Attached   | 否       | 自动          | -                                  |
+| 特性              | 类型       | 是否入栈 | 显式闭合      | 隐式闭合触发                       |
+| ----------------- | ---------- | -------- | ------------- | ---------------------------------- |
+| CharacterBlock    | Structural | 是       | `@@`          | `@`, `$$`, `<<<`, `---`, `#`       |
+| SongBlock         | Structural | 是       | `$$`          | `#`（穿透）                        |
+| TranslationBlock  | Structural | 是       | `=`（单行）   | `@`, `$$`, `<<<`, `---`, `#`, `=␠` |
+| TechCueBlock      | Structural | 是       | `>>>` / `<<<` | `@`, `$$`, `---`, `#`              |
+| CommentBlockState | Lexical    | 否       | `%%`          | 仅由 `%%` 结束；内部屏蔽其他语法   |
+| TechCue（行内）   | Attached   | 否       | 必须（`>>`）  | -                                  |
+| Comment           | Attached   | 否       | 自动          | -                                  |
 
 ### 13.3 保护区与语法特性交互矩阵
 
@@ -689,14 +745,20 @@ interface SongBlock {
 
 interface TranslationBlock {
   type: "TranslationBlock";
-  source: InlineContent[];
+  source: InlineContent[]; // 允许 Normal Text 节点
   target: Block[]; // Array of Blocks，支持多段落、列表等
 }
 
 interface TechCueBlock {
   type: "TechCueBlock";
   variant: "single-line" | "multi-line";
+  header?: string; // 多行开启行中的可选属性头（例如 "LX"）
   content: (TechCueInline | TextNode)[]; // 可包含行内 Tech Cue 作为标签
+}
+
+interface TextNode {
+  type: "text";
+  value: string;
 }
 
 interface Dialogue {
@@ -749,6 +811,7 @@ interface InlineAction {
   2. 对于每个块：
      - 若为围栏代码块：原样保留，内容不解析
      - 若为普通块：应用 DraMark 语义解析（识别 `@`, `$$`, `<<<`, `<<...>>` 等），但**跳过**保护区内的 Tech Cue 识别
+     - 对 TechCueBlock 的对称回退闭合执行局部前瞻（lookahead），保证 `>>>` 主闭合优先于裸 `<<<`
   3. 维护 Block Stack，处理嵌套关系
 - 输出：完整 AST
 
@@ -761,36 +824,42 @@ enum LexMode {
     Normal,           // 正常 DraMark 模式（识别 Tech Cue）
     FencedCode,       // 围栏代码块内部（所有 DraMark 标记失效）
     InlineCode,       // 行内代码内部
+    CommentBlock,     // 注释块内部（屏蔽结构/行内语义）
     TechCueBlock,     // 块级 Tech Cue 内部（识别行内 Tech Cue 和闭合标记）
 }
 ```
 
 ### 15.3 实现检查清单（Tech Cue 与代码块）
 
-| 测试 ID  | 输入                        | 期望输出                                     | 说明                                              |
-| -------- | --------------------------- | -------------------------------------------- | ------------------------------------------------- |
-| TC-CB-01 | `<<LX01>>`                  | TechCueInline 节点                           | 正常识别                                          |
-| TC-CB-02 | `` `<<LX01>>` ``            | InlineCode 节点                              | 行内代码保护                                      |
-| TC-CB-03 | ` ```\n<<LX01>>\n``` `      | CodeBlock 节点                               | 围栏代码块保护                                    |
-| TC-CB-04 | `vector<vector<int>>`       | 普通文本                                     | 非代码区内 C++ 模板（若不在代码块内，按文本处理） |
-| TC-CB-05 | `` `vector<vector<int>>` `` | InlineCode 节点                              | 行内代码内模板安全                                |
-| TC-CB-06 | `<<< LX01 >>>`              | TechCueBlock (single-line)                   | 单行块级                                          |
-| TC-CB-07 | `<<<\n<<LX01>>\n>>>`        | TechCueBlock (multi-line) 内含 TechCueInline | 嵌套行内 Tech Cue                                 |
-| TC-CB-08 | `<<<\n<<<\n>>>`             | TechCueBlock 内含文本 `<<<`                  | 对称闭合触发，或文本（取决于实现严格度）          |
+| 测试 ID  | 输入                                | 期望输出                                     | 说明                                              |
+| -------- | ----------------------------------- | -------------------------------------------- | ------------------------------------------------- |
+| TC-CB-01 | `<<LX01>>`                          | TechCueInline 节点                           | 正常识别                                          |
+| TC-CB-02 | `` `<<LX01>>` ``                    | InlineCode 节点                              | 行内代码保护                                      |
+| TC-CB-03 | ` ```\n<<LX01>>\n``` `              | CodeBlock 节点                               | 围栏代码块保护                                    |
+| TC-CB-04 | `vector<vector<int>>`               | 普通文本                                     | 非代码区内 C++ 模板（若不在代码块内，按文本处理） |
+| TC-CB-05 | `` `vector<vector<int>>` ``         | InlineCode 节点                              | 行内代码内模板安全                                |
+| TC-CB-06 | `<<< LX01 >>>`                      | TechCueBlock (single-line)                   | 单行块级                                          |
+| TC-CB-07 | `<<<\n<<LX01>>\n>>>`                | TechCueBlock (multi-line) 内含 TechCueInline | 嵌套行内 Tech Cue                                 |
+| TC-CB-08 | `<<<\n<<<\n>>>`                     | TechCueBlock 内含文本 `<<<`                  | `>>>` 主闭合优先，行为必须确定                    |
+| TC-CB-09 | `<<<\nLX\n>>>\n>>> 引用`            | 先闭合 TechCueBlock，再生成三级引用块        | 与真实三级引用邻接不应误判                        |
+| TC-CB-10 | `>>> 引用`                          | CommonMark blockquote                        | 不在 TechCueBlock 内时不得抢占为 DraMark 闭合     |
+| TC-CB-11 | `<<< LX\n内容\n<<<`                 | TechCueBlock(header="LX")                    | 多行开启支持可选属性头                            |
+| TC-CB-12 | `<<<\n灯光 % 注\n%%\n注释\n%%\n>>>` | TechCueBlock 内含注释节点/文本               | TechCueBlock 内注释语法可用                       |
 
 ## 附录 A：向后兼容性说明
 
-**v0.3.0 → v0.3.1 兼容性**：
+**v0.3.1 → v0.3.1.1 兼容性**：
 
-- 不含代码块的纯剧本文本：解析结果**一致**
-- 含代码块的文档：v0.3.1 更安全，避免 C++ 模板等被误解析
-- **破坏性变更**：若 v0.3.0 实现错误地将 `>>>` 作为块级 Tech Cue 闭合标记，v0.3.1 改为行尾优先原则，需更新 Lexer 逻辑
+- 既有 `<<<`...`<<<` 写法保持兼容
+- `>>>` 独占一行从“歧义未定”收敛为“应解析，但不建议”
+- 新增 `<<< 属性` 语法为向后兼容扩展，不影响旧文档
 
-**v0.3.1 解析器要求**：
+**v0.3.1.1 解析器要求**：
 
 - 必须实现代码保护区机制
-- 必须实现 Tech Cue 的行尾闭合优先原则
+- 必须实现 Tech Cue 闭合优先级：`>>>`（含独占一行）高于 `<<<` 对称回退
 - 必须区分行内 Tech Cue（Attached）与块级 Tech Cue（Structural）
+- 必须支持 TechCueBlock 开启属性头与块内注释语法
 
 ## 附录 B：输入法与编辑器体验优化 (IME Tricks)
 
