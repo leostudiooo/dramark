@@ -1,8 +1,8 @@
 import type { PhrasingContent } from 'mdast';
-import type { InlineAction, InlineSongSegment, InlineTechCue } from './types.js';
+import type { InlineAction, InlineSongSegment, InlineSpokenSegment, InlineTechCue } from './types.js';
 
 export interface InlineMarkerParseOptions {
-  allowInlineSong?: boolean;
+  inSongContext?: boolean; // true = $...$ is inline-spoken, false = $...$ is inline-song
 }
 
 export function transformInlineMarkersInTree(node: unknown, options?: InlineMarkerParseOptions): void {
@@ -27,7 +27,7 @@ export function transformInlineMarkersInTree(node: unknown, options?: InlineMark
 export function parseInlineContent(line: string, options?: InlineMarkerParseOptions): PhrasingContent[] {
   const nodes: PhrasingContent[] = [];
   let cursor = 0;
-  const allowInlineSong = options?.allowInlineSong ?? true;
+  const inSongContext = options?.inSongContext ?? false;
 
   const pushText = (value: string): void => {
     if (value.length > 0) {
@@ -60,16 +60,14 @@ export function parseInlineContent(line: string, options?: InlineMarkerParseOpti
     }
 
     if (token === '$') {
-      if (!allowInlineSong) {
-        pushText('$');
-        cursor = actionStart + 1;
-        continue;
-      }
-
       const close = line.indexOf('$', actionStart + 1);
       if (close > actionStart + 1) {
         const value = line.slice(actionStart + 1, close);
-        nodes.push({ type: 'inline-song', value } satisfies InlineSongSegment);
+        if (inSongContext) {
+          nodes.push({ type: 'inline-spoken', value } satisfies InlineSpokenSegment);
+        } else {
+          nodes.push({ type: 'inline-song', value } satisfies InlineSongSegment);
+        }
         cursor = close + 1;
         continue;
       }

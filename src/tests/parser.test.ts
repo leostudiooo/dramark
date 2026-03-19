@@ -174,25 +174,110 @@ describe('parseDraMark', () => {
     expect(techCue?.value).toBe('LX01 GO');
   });
 
-  it('does not parse inline-song inside song container and falls back to text', () => {
-    const input = ['$$', '@歌者', '这句 $不应嵌套$ 仍是普通唱段文本', '$$'].join('\n');
+  it('parses inline-spoken inside song container instead of inline-song', () => {
+    const input = ['$$', '@A', '这句 $不应嵌套$ 仍是普通唱段文本', '$$'].join('\n');
 
     const result = parseDraMark(input);
-    const song = result.tree.children[0] as {
-      type: string;
-      children: Array<{
-        type: string;
-        children: Array<{ type: string; children?: Array<{ type: string; value?: string }> }>;
-      }>;
-    };
+    const song = result.tree.children[0] as { type: string; children: Array<{ type: string; children: unknown[] }> };
     const character = song.children[0];
     const paragraph = character.children[0] as { type: string; children: Array<{ type: string; value?: string }> };
 
     expect(song.type).toBe('song-container');
     expect(character.type).toBe('character-block');
     expect(paragraph.type).toBe('paragraph');
+    // In song context, $...$ becomes inline-spoken, not inline-song
     expect(paragraph.children.some((node) => node.type === 'inline-song')).toBe(false);
-    const text = paragraph.children.map((node) => node.value ?? '').join('');
-    expect(text).toContain('$不应嵌套$');
+    const inlineSpoken = paragraph.children.find((node) => node.type === 'inline-spoken');
+    expect(inlineSpoken).toBeDefined();
+    expect(inlineSpoken?.value).toBe('不应嵌套');
+  });
+
+  // ── v0.4.1: SongBlock title
+  it('parses song container with title', () => {
+    const input = ['$$ My Shot', '@Alexander Hamilton', 'I am not throwing away my shot', '$$'].join('\n');
+
+    const result = parseDraMark(input);
+    const song = result.tree.children[0] as { type: string; title?: string; children: unknown[] };
+
+    expect(song.type).toBe('song-container');
+    expect(song.title).toBe('My Shot');
+    expect(song.children.length).toBe(1);
+  });
+
+  it('parses song container without title', () => {
+    const input = ['$$', '@Ensemble', 'Some lyrics', '$$'].join('\n');
+
+    const result = parseDraMark(input);
+    const song = result.tree.children[0] as { type: string; title?: string };
+
+    expect(song.type).toBe('song-container');
+    expect(song.title).toBeUndefined();
+  });
+
+  // ── v0.4.1: SpokenSegment
+  it('parses spoken segment inside song container', () => {
+    const input = [
+      '$$ Farmer Refuted',
+      '@Samuel Seabury',
+      'Heed not the rabble',
+      '!!',
+      '@Alexander Hamilton',
+      'What?!',
+      '!!',
+      '@Samuel Seabury',
+      'who scream',
+      '$$',
+    ].join('\n');
+
+    const result = parseDraMark(input);
+    const song = result.tree.children[0] as { type: string; children: Array<{ type: string }> };
+
+    expect(song.type).toBe('song-container');
+    expect(song.children[0].type).toBe('character-block'); // Samuel Seabury
+    expect(song.children[1].type).toBe('spoken-segment'); // !! block
+    expect(song.children[2].type).toBe('character-block'); // Samuel Seabury again
+  });
+
+  // ── v0.4.1: Inline spoken in song context
+  it('parses inline-spoken in song context', () => {
+    const input = ['$$ Farmer Refuted', '@Seabury', 'who scream, $"Revolution!"$', '$$'].join('\n');
+
+    const result = parseDraMark(input);
+    const song = result.tree.children[0] as { type: string; children: Array<{ type: string; children: unknown[] }> };
+    const character = song.children[0];
+    const paragraph = character.children[0] as { type: string; children: Array<{ type: string; value?: string }> };
+
+    expect(paragraph.type).toBe('paragraph');
+    const inlineSpoken = paragraph.children.find((node) => node.type === 'inline-spoken');
+    expect(inlineSpoken).toBeDefined();
+    expect(inlineSpoken?.value).toBe('"Revolution!"');
+  });
+
+  it('parses inline-song in global context (not song)', () => {
+    const input = ['@Hamilton', 'I am $not$ throwing away'].join('\n');
+
+    const result = parseDraMark(input);
+    const character = result.tree.children[0] as { type: string; children: Array<{ type: string; children: unknown[] }> };
+    const paragraph = character.children[0] as { type: string; children: Array<{ type: string; value?: string }> };
+
+    expect(paragraph.type).toBe('paragraph');
+    const inlineSong = paragraph.children.find((node) => node.type === 'inline-song');
+    expect(inlineSong).toBeDefined();
+    expect(inlineSong?.value).toBe('not');
+  });
+
+  it('parses inline-song inside spoken segment (spoken segment = global context)', () => {
+    const input = ['$$', '!!', '@A', 'say $hello$', '!!', '$$'].join('\n');
+
+    const result = parseDraMark(input);
+    const song = result.tree.children[0] as { type: string; children: Array<{ type: string; children: unknown[] }> };
+    const spoken = song.children[0] as { type: string; children: Array<{ type: string; children: unknown[] }> };
+    const character = spoken.children[0] as { type: string; children: Array<{ type: string; children: Array<{ type: string; value?: string }> }> };
+    const paragraph = character.children[0];
+
+    // Inside spoken segment, $...$ should be inline-song (since spoken segment = global context)
+    const inlineSong = paragraph.children.find((node) => node.type === 'inline-song');
+    expect(inlineSong).toBeDefined();
+    expect(inlineSong?.value).toBe('hello');
   });
 });

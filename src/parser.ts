@@ -14,6 +14,7 @@ import type {
   DraMarkWarning,
   FrontmatterBlock,
   SongContainer,
+  SpokenSegment,
   TranslationPair,
 } from './types.js';
 
@@ -25,7 +26,8 @@ import type {
 // context) is tracked here — that belongs to Phase 3 (assembly).
 
 export type ScannedSegment =
-  | { kind: 'song-toggle'; lineNo: number }
+  | { kind: 'song-toggle'; title?: string; lineNo: number }
+  | { kind: 'spoken-toggle'; lineNo: number }
   | { kind: 'heading'; raw: string; lineNo: number }
   | { kind: 'thematic-break'; lineNo: number }
   | { kind: 'comment-block'; value: string; closed: boolean; lineNo: number }
@@ -69,10 +71,20 @@ export function scanSegments(lines: string[], startIndex: number): ScannedSegmen
     const lineNo = index + 1;
     const isRoot = isRootDirectiveLine(rawLine);
 
-    // ── Song container toggle $$
-    if (isRoot && trimmed === '$$') {
+    // ── Song container toggle $$ or $$ Title
+    if (isRoot && (trimmed === '$$' || trimmed.startsWith('$$ '))) {
       flushContent();
-      segments.push({ kind: 'song-toggle', lineNo });
+      const title = trimmed.length > 3 ? trimmed.slice(3).trim() : undefined;
+      segments.push({ kind: 'song-toggle', title: title || undefined, lineNo });
+      index += 1;
+      contentStartLine = index;
+      continue;
+    }
+
+    // ── Spoken segment toggle !!
+    if (isRoot && trimmed === '!!') {
+      flushContent();
+      segments.push({ kind: 'spoken-toggle', lineNo });
       index += 1;
       contentStartLine = index;
       continue;
@@ -183,10 +195,15 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
   // assembler: content segments are parsed on-demand as they are encountered.
 
   let inSong = false;
+  let inSpoken = false;
   let currentSong: SongContainer | null = null;
+  let currentSpoken: SpokenSegment | null = null;
   let currentCharacter: CharacterBlock | null = null;
 
   function currentContainer(): DraMarkRootContent[] {
+    if (currentSpoken !== null) {
+      return currentSpoken.children as DraMarkRootContent[];
+    }
     if (currentSong !== null) {
       return currentSong.children as DraMarkRootContent[];
     }
@@ -206,17 +223,38 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
     const seg = segments[si];
 
     switch (seg.kind) {
-      // ── $$ toggle
+      // ── $$ toggle (with optional title)
       case 'song-toggle': {
         if (inSong) {
           inSong = false;
+          inSpoken = false;
           currentSong = null;
+          currentSpoken = null;
           currentCharacter = null;
         } else {
-          const song: SongContainer = { type: 'song-container', children: [] };
+          const song: SongContainer = { type: 'song-container', title: seg.title, children: [] };
           root.children.push(song);
           inSong = true;
+          inSpoken = false;
           currentSong = song;
+          currentSpoken = null;
+          currentCharacter = null;
+        }
+        si += 1;
+        break;
+      }
+
+      // ── !! spoken segment toggle
+      case 'spoken-toggle': {
+        if (inSpoken) {
+          inSpoken = false;
+          currentSpoken = null;
+          currentCharacter = null;
+        } else if (inSong) {
+          const spoken: SpokenSegment = { type: 'spoken-segment', children: [] };
+          currentSong!.children.push(spoken);
+          inSpoken = true;
+          currentSpoken = spoken;
           currentCharacter = null;
         }
         si += 1;
@@ -228,7 +266,9 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
         currentCharacter = null;
         if (inSong) {
           inSong = false;
+          inSpoken = false;
           currentSong = null;
+          currentSpoken = null;
         }
         root.children.push(asHeading(seg.raw));
         si += 1;
@@ -314,7 +354,9 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
             column: 1,
           });
           // Treat the source line as plain content so it appears in the tree.
-          const fallback = parseMarkdownBlocks(`= ${seg.text}`, { allowInlineSong: !inSong });
+          const fallback = parseMarkdownBlocks(`= ${seg.text}`, {
+            inSongContext: inSong && !inSpoken,
+          });
           for (const block of fallback) {
             pushNode(block);
           }
@@ -328,7 +370,9 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
             ? (segments[nextSi] as Extract<ScannedSegment, { kind: 'content' }>)
             : null;
 
-        const targetBlocks = parseMarkdownBlocks((targetSeg?.lines ?? []).join('\n'), { allowInlineSong: !inSong });
+        const targetBlocks = parseMarkdownBlocks((targetSeg?.lines ?? []).join('\n'), {
+          inSongContext: inSong && !inSpoken,
+        });
         const pair: TranslationPair = {
           type: 'translation-pair',
           sourceText: seg.text,
@@ -344,7 +388,9 @@ export function parseDraMark(input: string, options?: DraMarkOptions): DraMarkPa
 
       // ── Content block: parse with CommonMark (Phase 2) and attach
       case 'content': {
-        const blocks = parseMarkdownBlocks(seg.lines.join('\n'), { allowInlineSong: !inSong });
+        const blocks = parseMarkdownBlocks(seg.lines.join('\n'), {
+          inSongContext: inSong && !inSpoken,
+        });
         for (const block of blocks) {
           pushNode(block);
         }
@@ -487,11 +533,13 @@ function consumeBlockTechCue(lines: string[], start: number): { value: string; c
 
 // ─── Helpers: CommonMark block parsing (Phase 2) ─────────────────────────────
 
-function parseMarkdownBlocks(markdown: string, options?: { allowInlineSong?: boolean }): Content[] {
+function parseMarkdownBlocks(markdown: string, options?: { inSongContext?: boolean }): Content[] {
   const tree = fromMarkdown(markdown);
   const blocks = tree.children as Content[];
   for (const block of blocks) {
-    transformInlineMarkersInTree(block, { allowInlineSong: options?.allowInlineSong ?? true });
+    transformInlineMarkersInTree(block, {
+      inSongContext: options?.inSongContext ?? false,
+    });
   }
   return blocks;
 }

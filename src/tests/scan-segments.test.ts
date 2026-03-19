@@ -192,4 +192,37 @@ describe('scanSegments — Phase 1 (Lexical Shield)', () => {
     const segs = scanSegments(['- @Hamlet'], 0);
     expect(kinds(segs)).toEqual(['content']);
   });
+
+  // ── v0.4.1: Song container with title
+  it('parses song container with title', () => {
+    const segs = scanSegments(['$$ My Shot', '@Hamilton', '$$'], 0);
+    expect(kinds(segs)).toEqual(['song-toggle', 'character', 'song-toggle']);
+    const songSeg = segs[0] as Extract<ScannedSegment, { kind: 'song-toggle' }>;
+    expect(songSeg.title).toBe('My Shot');
+  });
+
+  it('parses song container without title', () => {
+    const segs = scanSegments(['$$', '@Hamilton', '$$'], 0);
+    expect(kinds(segs)).toEqual(['song-toggle', 'character', 'song-toggle']);
+    const songSeg = segs[0] as Extract<ScannedSegment, { kind: 'song-toggle' }>;
+    expect(songSeg.title).toBeUndefined();
+  });
+
+  it('parses song container with empty title after $$', () => {
+    const segs = scanSegments(['$$ ', '@Hamilton', '$$'], 0);
+    expect(kinds(segs)).toEqual(['song-toggle', 'character', 'song-toggle']);
+    const songSeg = segs[0] as Extract<ScannedSegment, { kind: 'song-toggle' }>;
+    expect(songSeg.title).toBeUndefined();
+  });
+
+  // ── v0.4.1: Spoken segment toggle
+  it('parses spoken segment toggle !!', () => {
+    const segs = scanSegments(['$$', '!!', '@A', '!!', '$$'], 0);
+    expect(kinds(segs)).toEqual(['song-toggle', 'spoken-toggle', 'character', 'spoken-toggle', 'song-toggle']);
+  });
+
+  it('treats indented !! as plain text (container isolation)', () => {
+    const segs = scanSegments(['  !!'], 0);
+    expect(kinds(segs)).toEqual(['content']);
+  });
 });
