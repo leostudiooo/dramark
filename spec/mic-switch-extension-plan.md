@@ -4,6 +4,7 @@
 在不改动 DraMark 核心 parser 语法的前提下，为 app/扩展新增“换麦指令识别层”。
 该层由前端读取 `frontmatter.tech` 的可配置关键词与默认行为，识别换麦指令并生成结构化 `MicEvent`，用于时间线、提示和一键筛选。
 v1 不做 group 级换麦指令，避免“组内逐人麦位”歧义；仍支持按角色逐条声明。
+该方案应与 Block Stack 规范模型兼容，不依赖 legacy parser 的内部状态机实现细节。
 
 ## Key Changes
 - 解析归属与边界：

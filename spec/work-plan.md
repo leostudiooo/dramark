@@ -1,307 +1,181 @@
-# DraMark Parser/Plugin 工作计划（面向 Agent 实施）
+# DraMark Parser/Plugin 工作计划（Block Stack 对齐版）
 
-> 适用版本：`0.1.x → 0.3+`  
-> 目标读者：实现/重构 DraMark 解析器与 remark 插件的自动化 Agent  
-> 本文定位：把“下一步要做什么”拆成可执行、可验收、可回归的任务清单。
-
----
-
-## 0. 背景与现状（对齐）
-
-当前实现（v0.1.0）的关键事实：
-
-- 解析核心是**逐行状态机**：`src/parser.ts`
-  - 产出自定义节点：`character-block` / `translation-pair` / `song-container` / `block-tech-cue` / `comment-*` 等（见 `src/types.ts`）
-  - 普通文本目前基本都被降级为 `paragraph(text)`，并在段落内做少量自定义 inline（`{}` / `$...$` / `<<...>>`）
-- remark 插件会**覆盖** `tree.children`：`src/index.ts`
-- 测试覆盖：
-  - 语法基本能力：`src/tests/parser.test.ts`
-  - 规范裁决门禁（6 条）：`src/tests/edge-cases.test.ts`
-  - plugin strict 行为：`src/tests/plugin.test.ts`
-  - 示例集成：`src/tests/ham.test.ts` + `example/ham.md`
-
-当前主要差距（与 `spec/spec.md` 的“CommonMark 超集方言”目标相比）：
-
-1. CommonMark 结构未保留（列表/引用/强调/heading/thematicBreak 等节点不真实）
-2. “Root-level/容器隔离”是靠缩进猜测，无法严格对齐 CommonMark 容器语义
-3. translation target 目前仅按空行切段生成 paragraph，无法表达“target 是 block list 且可含列表/引用”
-4. 缩进注释等场景存在信息丢失风险
-5. 选项与实现存在不一致（例如 `strictMode` 在 parse API 里不生效；`NESTED_SONG_CONTAINER` 基本不可达）
-
-### 执行状态快照（2026-03-19）
-
-- M0：已完成并在测试中覆盖（strict 行为归属、百分号注释词法、防不可达 nested song 警告分支）
-- M1：已完成核心目标（角色对白与 translation target 均可保留 CommonMark block 结构）
-- M2：已完成“插件注入 + inline token”阶段
-  - 已完成：`parserMode: 'legacy' | 'micromark'`、`micromarkExtensions`/`fromMarkdownExtensions` 注入、`<<...>>`/`$...$`/`{...}` 行内 tokenization
-  - 未完成：`@`, `=`, `$$`, `<<<`, `%`, `%%` 的 block construct 迁移
-- Web MVP：已启动 `apps/web`（编辑、预览、诊断、outline、config 面板）
-- 语义修复：
-  - legacy 路径修复 `<<...>>` 在 html-split 场景下的 `inline-tech-cue` 归一化
-  - `$$` 上下文禁用 `$...$` inline-song，回退普通文本
-- 规范同步：
-  - `spec/spec.md` 已升级至 v0.4.0，新增 Frontmatter 外部引用策略、角色声明独占行、空格姓名与诊断规范
-- 本地回归基线：`pnpm build:web && pnpm test:run` 通过（5 files / 42 tests）
+> 适用版本：0.4.1（spec）
+> 文档定位：实现路线与验收基线，不替代语言规范正文。
 
 ---
 
-## 1. 总目标（Definition of Done）
+## 0. 目标与约束
 
-实现完成的最低标准（DoD）：
+目标：让仓库实现逐步与 `spec/spec.md` 的 Block Stack 模型对齐。
 
-- 解析结果 AST 既能表达 DraMark 语义（角色/唱段/译配/技术 cue/注释等），又**最大化保留 CommonMark 结构**
-- “容器隔离原则”能被可靠执行：位于列表/引用等嵌套容器中的 `---/#/@/=/$$/<<<` 不应触发 DraMark 状态切换
-- `translation-pair.target` 为**块级节点数组**，可以包含段落、列表、引用等多种块级结构
-- plugin 能在 unified/remark 链路中工作，且不会破坏下游插件对标准 mdast 的预期
-- 测试与示例可回归：`pnpm test:run` 必须稳定通过，并新增覆盖关键缺口的测试用例
+约束：
 
----
-
-## 2. 路线图概览（里程碑）
-
-建议按从“小修一致性 → 引入真实 mdast → micromark 扩展”的顺序推进：
-
-- **M0（v0.1.x）一致性修复**：清理不一致与明显缺口，避免后续重构被历史包袱拖累
-- **M1（v0.2）引入真实 mdast blocks（增量）**：保持“状态机驱动”，但用 `mdast-util-from-markdown` 解析内容块
-- **M2（v0.3+）micromark 扩展 + from-markdown bridge（根治）**：让 `remark-parse` 原生识别 DraMark，严格容器隔离
-
-每个里程碑都必须提供：
-
-- 任务清单（可逐项勾选）
-- 验收标准（可自动化判断）
-- 必要的测试新增点（对应 spec 关键规则）
+- 不回退现有可用能力（`$$ title`、`!!`、`inline-spoken`、frontmatter 透传）。
+- 继续保持 CommonMark 结构保留（通过 `fromMarkdown` 解析内容块）。
+- 所有变更必须由 `pnpm build` + `pnpm test:run` 回归。
 
 ---
 
-## 3. M0（v0.1.x）一致性修复（建议先做）
+## 1. 当前实现快照（2026-03-19）
 
-### M0-1：明确 strict 行为的归属
+### 1.1 已稳定能力
 
-**问题**：`DraMarkOptions.strictMode` 目前在 `parseDraMark` 内不生效，仅 remark 插件使用。
+- frontmatter 原文透传与最小开关判定
+- `@角色`（含多角色与情绪）
+- `$$` / `$$ 标题`、`!!`、song 中 `inline-spoken`
+- `= 原文` 译配对（角色上下文）
+- `%`、`%%`、`<<<...>>>`、`<<<...\n...\n>>>`
+- 根级 heading/thematicBreak 输出真实 mdast 节点
+- root-level 指令门禁（缩进行不触发 DraMark 指令）
 
-**决策（需选其一，并在文档中写清楚）**：
+### 1.2 与规范差距（重点）
 
-- 方案 A（推荐）：`parseDraMark` 始终只返回 `warnings`，strict 仅在插件层生效  
-  - 动作：从 `DraMarkOptions` 移除 `strictMode`，或者保留但在 parse API 文档中声明“无效/仅插件使用”
-- 方案 B：`parseDraMark` 在 `strictMode=true` 时对首个 warning 抛 `DraMarkParseError`  
-  - 动作：在 `parseDraMark` 内调用 `warningToError` 并抛出；同步更新 tests 与 `src/README.md`
-
-**验收标准**：
-- 对 `parseDraMark` 与 plugin 的 strict 行为描述一致（代码 + `src/README.md`）
-- 新增/更新测试覆盖 strict 行为边界
-
-### M0-2：修复/定义 “缩进注释” 的行为
-
-**问题**：缩进形式的 `% 注释` 可能被当作普通段落并被 `stripInlineComment` 清空，导致信息丢失。
-
-**建议行为**（与 spec 精神一致）：
-- 只要某行的“第一个非空字符”为 `%`（且不是 `%%`），就应视作 `comment-line`（当 `includeComments=true`）
-- 不要求注释必须 root-level；注释应能附着在当前角色/唱段上下文
-
-**任务**：
-- 调整注释识别逻辑：将 comment-line 的识别从 `rootDirectiveLine` 中解耦
-- 新增测试：
-  - 角色上下文里、列表缩进里、引用块里分别出现 `%` 时的行为（至少覆盖“不丢内容”）
-
-**验收标准**：
-- `includeComments=true` 时，不会把“本应是注释的内容”变成空 paragraph
-
-### M0-3：移除或修正 `NESTED_SONG_CONTAINER` / `allowNestedSongContainers`
-
-**问题**：当前 `$$` 逻辑是 toggle，`NESTED_SONG_CONTAINER` 分支基本不可达。
-
-**任务**（二选一）：
-- 方案 A（推荐）：移除 `allowNestedSongContainers` 与 `NESTED_SONG_CONTAINER`，简化 API
-- 方案 B：实现真正的 song container stack（复杂度较高，不建议在 v0.1.x 做）
-
-**验收标准**：
-- 选项与警告在代码路径上可达且有测试；或彻底移除并更新文档
-
-### M0-4：Frontmatter 外部引用解析策略（v0.4.0 对齐）
-
-**目标**：应用层可稳定处理 `use_frontmatter_from`，且失败不影响正文解析。
-
-**任务**：
-
-- 在 `src/core/config-normalizer.ts` 增加可选的 external 解析入口（由调用方注入 fetch/load 函数）
-- 实现确定性合并：`resolved = deepMerge(external, local)`，其中 local 优先
-- 对数组字段采用默认 replace 策略
-- 失败回退到 local，并输出诊断码（见 M0-5）
-
-**验收标准**：
-
-- 不论 external 成功或失败，解析主流程都不会中断
-- 合并优先级与数组策略可被测试稳定断言
-
-### M0-5：诊断码稳定化 + 角色兼容迁移开关
-
-**目标**：给编辑器与 CI 提供稳定的 machine-readable 诊断，并可平滑迁移旧语法。
-
-**任务**：
-
-- 在 `src/types.ts` 中补齐/冻结诊断码（至少包含）
-  - `CHARACTER_DECLARATION_NOT_STANDALONE`
-  - `INVALID_CHARACTER_NAME`
-  - `DEPRECATED_INLINE_CHARACTER_DECLARATION`
-  - `EXTERNAL_FRONTMATTER_FETCH_FAILED`
-  - `EXTERNAL_FRONTMATTER_PARSE_FAILED`
-- 增加 `characterDeclarationMode: 'strict' | 'compat'`（默认 `strict`）
-- `compat` 模式下保留 `@角色名 台词` 并附带弃用 warning
-
-**验收标准**：
-
-- warning code 在 parse API 与 plugin API 中一致
-- `strict/compat` 在单测里均有覆盖，且行为可预期
+- 未实现 `@@` 显式退出角色
+- 未实现单行 `=` 显式退出译配
+- 未实现角色声明独占行硬约束与相关 warning
+- 未实现引号角色名完整解析
+- warning code 集合明显少于规范建议
+- Tech Cue 尚未完整支持 `<<<` 对称回退闭合策略
+- `micromark` 仅行内扩展，块级构造未迁移
 
 ---
 
-## 4. M1（v0.2）增量：引入真实 mdast blocks（保留状态机）
+## 2. 差距分级
 
-> 核心思路：仍用“逐行状态机”决定上下文边界，但不再手工造 paragraph/text；改为对“内容块”使用 `mdast-util-from-markdown` 解析为真实 mdast blocks。
+### P0（语义一致性）
 
-### M1-1：内容块缓冲与 flush 策略
+1. `@@` 与 `=` 显式退出
+2. 角色声明独占行校验（含兼容模式策略）
+3. 角色名解析（空格裁剪、引号、空名降级）
 
-**要做的结构性调整**：
+### P1（闭合与诊断一致性）
 
-- 在 `character-block` 内，不再对每行直接 `paragraphFromLine`，而是：
-  1. 缓冲一段原始 markdown lines（直到状态切换指令出现）
-  2. flush：对缓冲内容调用 `fromMarkdown` 得到 `Content[]`
-  3. 将这些 blocks push 到 `currentCharacter.children`
-- 在 `translation-pair.target` 内同样使用 `fromMarkdown` 解析 target chunk
+1. Tech Cue 多行闭合优先级：`>>>` 主闭合 + `<<<` 回退闭合
+2. 诊断码集合与严重级别对齐规范建议
 
-**边界要点**：
-- 必须保持 spec 的截断点（下一个 `= ` / `@` / root `---` / root `#` / `$$`）
-- 仍需维持“容器隔离原则”：只有 root-level 指令才截断/切换
+### P2（架构升级）
 
-### M1-2：自定义 inline 的注入策略（临时）
-
-`fromMarkdown` 会产出标准 mdast（text/emphasis/strong/link/list/...）。
-
-在 M1 阶段可以先采用“后处理 walker”：
-
-- 遍历 mdast 的所有 `text` 节点，将其中的
-  - `{动作}` / `｛动作｝` → `inline-action`
-  - `$短唱$` → `inline-song`
-  - `<<...>>` → `inline-tech-cue`
-  做成 split + 替换（注意转义字符 `\`）
-
-**注意**：spec 对 inline tech cue 有“词法抢占权”，M1 的后处理可能仍会被 HTML/实体等影响；这属于 M2 才根治的问题，但 M1 至少要保证：
-
-- “不跨行泄漏”仍成立
-- 转义序列生效
-- 不破坏 `fromMarkdown` 生成的强调/链接等节点结构
-
-### M1-3：新增测试（必须）
-
-新增覆盖应当以 spec 的“缺口点”为导向：
-
-- translation target 内包含列表/引用/多段落，并断言 `target` 中出现 `list` / `blockquote` 等节点类型
-- character dialogue 内包含 `*斜体*`、`**加粗**`、链接等，断言 mdast 结构被保留
-- root-level 指令与“≤3 空格顶格”兼容性（如果决定在 M1 阶段支持）
-
-**验收标准**：
-- `translation-pair.target` 不再只包含 paragraph
-- 示例 `example/ham.md` 解析后能在 tree 中找到常见 mdast 结构（例如 list/heading/thematicBreak，具体以实现选择为准）
+1. `legacy` 汇编器内显式 Block Stack 数据结构
+2. 块级语法向 micromark flow 扩展迁移
 
 ---
 
-## 5. M2（v0.3+）根治：micromark 扩展 + from-markdown bridge
+## 3. 里程碑计划
 
-> 核心思路：让 DraMark 成为 remark-parse 的一等公民。用 micromark 扩展实现 block/inline tokenization，再用 from-markdown 扩展生成 mdast 自定义节点。这样容器隔离将由 CommonMark 解析过程天然保证。
+## M1：Legacy 语义补齐（先对齐功能）
 
-### M2-1：插件形态调整（关键）
+### M1-1 结构控制 token 补齐
 
-将 `remarkDraMark` 从“覆盖 tree.children”升级为“向 remark-parse 注入扩展”：
+- 增加 `@@` 语义：关闭 `CharacterBlock`（及其内层兼容关闭）
+- 增加单行 `=` 语义：显式关闭 `TranslationBlock`
 
-- 在 unified 插件里设置：
-  - `this.data('micromarkExtensions', [...])`
-  - `this.data('fromMarkdownExtensions', [...])`
-- 由 `remark-parse` 在 parse 阶段直接生成 DraMark 节点与 CommonMark 节点混合 AST
+验收：
 
-### M2-2：需要实现的 token（建议拆分实现）
+- 新增 parser tests 覆盖正常关闭与无效位置输入
+- 不影响已有 `= 原文` 行为
 
-按风险从低到高拆：
+### M1-2 角色声明规则补齐
 
-1. inline：`<<...>>`（不跨行）、`$...$`、`{...}`（含全角）
-2. block：`<<< ... >>>`、`%% ... %%`、`% ...`（comment-line）
-3. block：`@角色...`（character-block）
-4. block：`= source` + target 吞噬（translation-pair）
-5. block：`$$` song-container（含 heading breakout 的裁决）
+- 引入角色声明独占行校验
+- 增加 `characterDeclarationMode: 'strict' | 'compat'`（默认 strict）
+- strict：违规降级为文本并 warning
+- compat：保留旧写法并产生弃用 warning
 
-### M2-3：测试策略升级
+验收：
 
-除现有单测外，增加：
+- 旧测试全通过
+- 新增 strict/compat 双模式测试
 
-- “容器隔离”严格测试：在 list item / blockquote 内写入 `---/#/@/=`，断言**不触发** DraMark 行为
-- 与 remark 生态协作测试：跑一条 unified 链（`remark-parse` + `remark-stringify` + 自定义），确保 AST 可 round-trip（不要求字面完全相同，但结构必须可处理）
-- snapshot（可选）：对关键输入输出 AST 做快照，稳定重构
+### M1-3 角色名解析升级
 
-**验收标准**：
-- 在嵌套容器内，DraMark 指令不会触发状态机切换（靠 CommonMark 语义保证）
-- plugin 不再需要手工覆盖 `tree.children`
+- 支持 `@"..."` / `@“...”`
+- 处理空白裁剪与空名降级
 
----
+验收：
 
-## 6. 实施顺序建议（给 Agent 的最短可行路径）
-
-如果要让 Agent 在最少回合内产出可用改进，推荐：
-
-1. 先做 **M0（strict/注释/nested song 选项）**：低风险、立刻消除不一致
-2. 再做 **M1（fromMarkdown 引入真实 blocks）**：大幅提升“CommonMark 超集”的实际效果
-3. 最后推进 **M2（micromark 扩展）**：根治容器隔离与词法抢占
+- 空格姓名与引号姓名测试覆盖
+- 非法空名产生 warning
 
 ---
 
-## 6.1 M3（app/扩展层）麦克风分配与换麦扩展
+## M2：Block Stack 显式化（先保留 legacy 外观）
 
-> 核心思路：换麦识别完全由前端/应用层处理，Parser 只输出普通 `<<...>>` 行内技术标记。
+### M2-1 引入显式栈模型
 
-### M3-1：简洁语法规范（spec 已更新）
+- 在 `parser.ts` 内将上下文布尔变量迁移为统一 stack
+- 落地兼容性闭合算法（内到外）
 
-换麦指令通过简洁语法识别，**不依赖关键词配置**：
+### M2-2 闭合优先级收敛
 
-| 语法 | 含义 | 角色来源 | 源麦来源 |
-|------|------|----------|----------|
-| `<<=HM2>>` | 切到 HM2 | 当前 `@角色` 上下文 | 角色默认麦 |
-| `<<角色=HM2>>` | 角色切到 HM2 | 显式指定 | 角色默认麦 |
-| `<<HM1->HM2>>` | 从 HM1 切到 HM2 | 当前 `@角色` 上下文 | 显式指定 |
-| `<<角色:HM1->HM2>>` | 角色从 HM1 切到 HM2 | 显式指定 | 显式指定 |
+- 统一处理 `Comment/Tech/Translation/Character/Song` 闭合优先
+- Tech Cue 支持 `>>>` 主闭合、`<<<` 回退闭合
 
-- 等号 `=` 与箭头 `->` 等价，可混用
-- 歧义时优先匹配角色名；无法消歧时产出 warning
+验收：
 
-### M3-2：前端识别层职责
-
-- 解析 `<<...>>` 和 `<<<...>>>` 内容，识别上述简洁语法
-- 默认目标策略：
-  - 角色上下文省略 target 时绑定当前角色
-  - 非角色上下文省略 target 时发 warning
-- 角色匹配：默认按 `name`，重名时通过 `id` 消歧
-
-### M3-3：Parser 职责
-
-- **无变化**：继续将 `<<...>>` 输出为 `inline-tech-cue` 节点
-- 前端自行处理语义识别，无需 Parser 特殊支持
-
-### M3 验收标准
-
-- Parser 不增加换麦相关代码，保持 `inline-tech-cue` 统一输出
-- 前端可稳定识别简洁语法换麦事件
-- 无换麦指令的旧文档行为完全不变
+- `scan-segments` + `parser` + `edge-cases` 新增闭合顺序用例
+- 保证既有 AST 结构不退化
 
 ---
 
-## 7. 运行与回归命令（Agent 必跑）
+## M3：micromark 块级迁移（可并行探索）
 
-- 单测：`pnpm test:run`
-- 构建：`pnpm build`
+### M3-1 flow constructs 分阶段迁移
+
+顺序建议：
+
+1. `%` / `%%`
+2. `<<<`（块级）
+3. `@` 与 `=`
+4. `$$` 与 `!!`
+
+### M3-2 插件行为收敛
+
+- 目标：`micromark` 模式下由 parse 阶段直接产出块级自定义节点
+- 在迁移完成前，明确 `micromark` 仍为实验路径
+
+验收：
+
+- `plugin.test.ts` 增加“块级节点在 micromark 模式可见”的断言
+- 仍保持 remark 链路兼容
 
 ---
 
-## 8. 风险清单（实施时优先关注）
+## 4. 诊断码收敛建议
 
-- **AST 兼容性**：自定义节点需正确扩展 mdast 的类型映射（`src/types.ts`），否则下游插件可能崩溃
-- **指令优先级**：frontmatter phase-0、song breakout、translation 截断点必须持续满足 spec 的关键裁决条目
-- **性能与内存**：M1 大量调用 `fromMarkdown` 时要避免“按行解析”；必须以 chunk 为单位
-- **语义回归**：任何改动都要确保 `src/tests/edge-cases.test.ts` 的裁决门禁不被破坏
-- **外部配置安全**：`use_frontmatter_from` 若启用，必须受协议/超时/体积/缓存策略约束，避免 SSRF 与超时阻塞
+在现有 4 个 parser warning 基础上，逐步增加：
+
+- `CHARACTER_DECLARATION_NOT_STANDALONE`
+- `INVALID_CHARACTER_NAME`
+- `DEPRECATED_INLINE_CHARACTER_DECLARATION`
+- `EXTERNAL_FRONTMATTER_FETCH_FAILED`
+- `EXTERNAL_FRONTMATTER_PARSE_FAILED`
+
+说明：外部 frontmatter 拉取本身应继续由应用层实现，parser 只负责接收与透传相关诊断。
+
+---
+
+## 5. 文档同步约束
+
+每次里程碑完成后必须同步更新：
+
+- `README.md`
+- `src/README.md`
+- `spec/editor-renderer-v1-plan.md`
+- `spec/mic-switch-extension-plan.md`
+
+原则：
+
+- 规范目标（spec）与实现状态（README）必须分层叙述
+- 文档中“已支持”必须有测试依据
+
+---
+
+## 6. 回归命令
+
+- `pnpm build`
+- `pnpm test:run`
+
+若涉及 Web 渲染行为变更，再执行：
+
+- `pnpm build:web`
