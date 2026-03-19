@@ -4,6 +4,8 @@
 **Date:** 2026-03-19  
 **Status:** Draft
 
+> 说明：本文件定义 DraMark 的规范目标模型（Block Stack）。当前仓库实现可能阶段性落后于本规范，实施进度请参考 `spec/work-plan.md` 与根目录 `README.md` 的“实现对齐说明”。
+
 **Changelog (0.4.0 → 0.4.1):**
 
 - 唱段开启标记 `$$` 允许后跟空格与文本，作为歌曲标题/说明（如 `$$ My Shot`）

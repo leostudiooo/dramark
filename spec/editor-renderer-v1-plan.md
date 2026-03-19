@@ -4,6 +4,7 @@
 Build a shared `core` package on top of current `parseDraMark` output, then ship two clients: a Web editor and a VS Code extension.
 v1 is text-first editing with full-document debounced parse, Actor Script rendering as default, and `legacy` parser runtime as the only production semantic engine.
 Frontmatter is treated as a document config layer (not DraMark core grammar): parser extracts raw payload + minimal flags, while app/extension normalize and consume config.
+Language semantics should follow the Block Stack model defined in `spec/spec.md`; clients must not couple to legacy parser internals (state flags or transient assembly details).
 
 ## Key Changes
 - Shared architecture (single source of truth):
@@ -46,6 +47,7 @@ Frontmatter is treated as a document config layer (not DraMark core grammar): pa
 - Runtime policy:
   - `legacy` parser only in v1 production path.
   - `micromark` remains non-user-facing experimental track; no runtime toggle in v1 UI.
+  - Keep renderer contracts model-based (`character-block` / `song-container` / `translation-pair`) rather than implementation-based (state-machine assumptions).
 
 ## Test Plan
 - Core unit tests:

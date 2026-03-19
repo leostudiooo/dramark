@@ -1,214 +1,129 @@
 # DraMark Parser 开发文档
 
-## 1. 目标
+## 1. 文档定位
 
-本目录实现了 DraMark 的 remark 插件与解析核心，当前版本为 v0。
+本文件描述的是当前仓库实现状态，而不是语言规范全文。
 
-当前目标：
-- 可以解析核心语法并输出结构化树
-- 可以作为 unified/remark 插件接入处理链
-- 支持 warning 与 strict mode 报错
+- 规范目标模型：Block Stack（见 `spec/spec.md`）
+- 当前实现模型：`legacy` 路径采用“frontmatter 预处理 + 分段扫描 + 汇编组装”的过渡实现
+- 结论：当前实现已经覆盖大量语法能力，但尚未完整落地规范中的全部闭合与诊断规则
 
-当前状态（2026-03-19）：
-- 默认 `legacy` 路径已支持**所有** DraMark 语法（角色、唱段、念白段落、译配、注释、技术提示、行内标记）
-- `micromark` 路径仅支持**行内 token**（`<<...>>`、`$...$`、`{...}`），块级构造（`@`、`=`、`$$`、`!!`、`<<<`、`%`、`%%`）仍依赖 `legacy` 解析器
-- **推荐**：使用 `legacy` 模式获得完整功能；`micromark` 模式目前仅作为实验性特性
-- `micromark` 路径下插件不再覆盖 `tree.children`；`legacy` 路径仍保持覆盖行为以复用现有状态机
-- `legacy` 已修复 `<<...>>` 在 from-markdown 被拆分为 `text/html/text` 时的漏识别问题
-- `$$` 支持标题文本（如 `$$ My Shot`），存储在 `SongBlock.title` 字段
-- 新增 `!!` 念白段落标记，在唱段内可临时切换到念白模式
-- 在 `$$` 唱段上下文中，`$...$` 表示行内念白（`inline-spoken`），而非行内唱段
-- 角色声明必须独占一行，支持 `@"含空格姓名"` 引号语法
-- 已验证 `pnpm build`、`pnpm test:run` 与 `pnpm build:web` 全通过
+## 2. 当前状态（2026-03-19）
 
-## 2. 目录结构
+- `legacy`：生产可用路径，负责 DraMark 块级语义组装
+- `micromark`：实验性路径，仅做行内 tokenization（`<<...>>`、`$...$`、`{...}`）
+- `pnpm build`、`pnpm test:run` 已通过（6 files / 77 tests）
 
-- errors.ts
-  - 错误模型与默认选项处理
-- types.ts
-  - DraMark 节点类型、警告类型、配置类型
-- parser.ts
-  - 行级状态机解析核心，产出 DraMarkRoot
-- index.ts
-  - remark 插件入口，封装 parseDraMark
-- tests/
-  - 单元与集成测试
+## 3. 目录结构
 
-## 3. 对外 API
+- `errors.ts`
+  - `DraMarkParseError`、`defaultOptions`、`warningToError`
+- `types.ts`
+  - 自定义 AST 节点与 warning 类型
+- `parser.ts`
+  - legacy 解析主流程（scan + assemble）
+- `inline-markers.ts`
+  - 行内 marker 变换（含 `inline-spoken`）
+- `m2-extensions.ts`
+  - micromark 行内扩展与 from-markdown bridge
+- `index.ts`
+  - remark 插件入口
+- `core/`
+  - frontmatter 归一化、诊断映射、outline、view-model
 
-### parseDraMark
+## 4. 对外 API
 
-输入字符串，返回解析结果：
-- tree: 解析树
-- warnings: 告警列表
-- metadata: 元信息（frontmatter 原文透传 + 最小可用开关）
+### 4.1 parseDraMark
+
+输入字符串，返回：
+
+- `tree`
+- `warnings`
+- `metadata`
   - `frontmatterRaw?: string`
   - `translationEnabledFromFrontmatter: boolean`
 
 说明：
-- Frontmatter 被视为文档配置层，不属于 DraMark 正文语法本体
-- 解析器仅做提取与最小可用判断（例如 `translation.enabled`）
-- 字段归一化与业务消费建议由前端/渲染器处理
 
-### core API（新增）
+- 解析器只透传 frontmatter 原文并做最小开关判定
+- frontmatter schema 校验与外部配置拉取不在 parser 语法层完成
 
-为 Web 编辑器与 VS Code 扩展共享应用层逻辑，新增 `core` 子模块：
+### 4.2 remark 插件
 
-- `normalizeFrontmatter(frontmatterRaw)`
-  - 归一化 `meta/casting/translation/tech`
-  - 保留未知字段到 `extras`
-  - 产出非致命 `config diagnostics`
-- `createParseViewModel(sourceText, options)` / `toParseViewModel(parseResult)`
-  - 输出统一的 `ParseViewModel`
-  - 合并 parser warnings 与 config diagnostics
-  - 生成基础 outline（heading/character/song/thematic-break）
+- 默认导出：`remarkDraMark`
+- `parserMode`：`legacy | micromark`（默认 `legacy`）
 
-导入方式：
+行为差异：
 
-- `import { normalizeFrontmatter } from 'remark-dramark/core'`
-- `import { createParseViewModel } from 'remark-dramark/core'`
+- `legacy`：会用 `parseDraMark` 结果覆盖 `tree.children`
+- `micromark`：不覆盖 `tree.children`，仅注入行内扩展；同时把 legacy 解析出的 warnings/metadata 挂到 `file.data.dramark`
 
-### remark 插件
+### 4.3 strictMode
 
-默认导出为 remarkDraMark。
+- `parseDraMark`：不会抛错，只返回 warnings
+- `remarkDraMark`：`strictMode=true` 时，遇到 warnings 抛首条错误
 
-行为：
-- 调用 parseDraMark 解析文件内容
-- 将 warnings 与 metadata 挂到 file.data.dramark
-- 在 strictMode 下，如果存在 warning，抛出首个错误
+## 5. 语法支持矩阵（实现视角）
 
-parserMode 选项：
-- `parserMode: 'legacy' | 'micromark'`（**默认 `legacy`**）
-- **`legacy`（推荐）**：完整支持所有 DraMark 语法，使用行状态机解析，运行期覆盖 `tree.children`
-- `micromark`（实验性）：仅支持行内标记（`<<...>>`、`$...$`、`{...}`）的原生 micromark tokenization；块级构造（`@`、`=`、`$$` 等）仍回退到 legacy 解析器处理，不再覆盖 `tree.children`
+### 5.1 已支持
 
-使用建议：
-- 需要完整 DraMark 功能时，使用默认的 `legacy` 模式
-- 仅需行内标记增强的标准 Markdown 处理时，可尝试 `micromark` 模式
+- frontmatter 提取与原文透传
+- `@角色`、多角色声明、`[]/【】` 情绪解析
+- `---` / `***` / `___` 重置
+- 根级 heading 识别与 song 穿透退出
+- `$$` 与 `$$ 标题`
+- `!!`（仅在 song 内有效）
+- `= 原文` 译配源行（角色上下文 + translation enabled）
+- `%` 行注释、`%%...%%` 块注释
+- `<<<...>>>`（单行）与 `<<<`...`>>>`（多行主闭合）
+- 行内 `{...}` / `｛...｝`、`$...$`、`<<...>>`
+- `inline-spoken`：song 上下文下 `$...$` 转为 `inline-spoken`
+- root-level 指令门禁（缩进行不触发 DraMark 指令）
 
-## 4. 语法能力支持矩阵
+### 5.2 部分支持
 
-### `legacy` 模式（完整支持）
-- frontmatter 提取（作为配置层透传）
-- 角色声明：@角色名，支持引号空格姓名 `@"名"`、多角色行声明与情绪注释（[] / 【】）
-- 角色上下文台词吞噬
-- 角色声明独占行约束（允许行尾 `<<...>>` 与注释）
-- 全局重置：--- *** ___
-- 标题穿透（根级 heading 会结束 song context）
-- 唱段容器：$$ ... $$（支持标题 `$$ 标题文本`）
-- 念白段落：!! ... !!（唱段内临时切换到念白模式）
-- 翻译对：= source + target block 收集（仅角色上下文有效）
-- 注释：% 行注释、%% 块注释
-- 技术提示：<<< >>> 块提示、<< >> 行内提示
-- 行内动作：{动作} 与全角｛动作｝
-- 行内短唱/念白：$...$（`global` 上下文为 `inline-song`，`sung` 上下文为 `inline-spoken`）
-- 转义字符：\@ \$ \% \{ \} \< \= \>
+- Tech Cue 多行闭合：目前只支持 `>>>` 主闭合；规范中的 `<<<` 对称回退闭合尚未完整实现
+- `micromark` 模式：仅行内 tokenization，块级语义不由 micromark 构造自定义节点
 
-### `micromark` 模式（实验性）
-- 行内标记（micromark 原生 tokenization）：
-  - `<<...>>` → `inline-tech-cue`
-  - `$...$` → `inline-song` / `inline-spoken`（取决于上下文）
-  - `{...}` / `｛...｝` → `inline-action`
-- 块级构造暂不支持，仍由 legacy 解析器兜底处理
-- 块级构造包括：frontmatter、角色 `@`、翻译 `=`、唱段 `$$`（含标题）、念白 `!!`、块注释 `%%`、块提示 `<<<`、行注释 `%`
+### 5.3 尚未支持（规范条目）
 
-## 5. 状态机模型
+- `@@` 显式退出角色模式
+- 单行 `=` 显式退出译配
+- 角色声明独占行校验（含兼容模式 warning）
+- 引号角色名完整解析（例如 `@"冉 阿让"`）
+- 外部 frontmatter 拉取 warning（如 `EXTERNAL_FRONTMATTER_*`）
+- 扩展 warning 码（如 `INVALID_CHARACTER_NAME` 等）
 
-核心状态：
-- 表演状态：global / character
-- 音乐状态：spoken / sung
-- 念白段落：spokenSegment（在 sung 内临时切换）
+## 6. Warning 与诊断
 
-关键切换：
-- @ 开启或切换 character
-- --- / *** / ___ 退出 character 回到 global
-- $$ 开启/关闭唱段（sung）
-- $$ 标题文本 开启带标题的唱段
-- !! 在唱段内开启/关闭念白段落
-- 根级 heading 在 sung 内部会触发穿透并退出 sung（同时关闭 spokenSegment）
+当前 parser warning code（仅 4 个）：
 
-## 6. Warning 与 strict mode
+- `UNCLOSED_BLOCK_COMMENT`
+- `UNCLOSED_BLOCK_TECH_CUE`
+- `UNCLOSED_SONG_CONTAINER`
+- `TRANSLATION_OUTSIDE_CHARACTER`
 
-目前 warning code：
-- UNCLOSED_BLOCK_COMMENT
-- UNCLOSED_BLOCK_TECH_CUE
-- UNCLOSED_SONG_CONTAINER
-- UNCLOSED_SPOKEN_SEGMENT
-- TRANSLATION_OUTSIDE_CHARACTER
-- CHARACTER_DECLARATION_NOT_STANDALONE（角色声明非独占行）
-- INVALID_CHARACTER_NAME（空角色名）
-- DEPRECATED_INLINE_CHARACTER_DECLARATION（弃用的行内角色声明）
+`core` 层可附加配置诊断（`CONFIG_*`），用于 frontmatter 归一化反馈。
 
-严格模式：
-- `parseDraMark`：始终返回 `warnings`，不会抛错
-- `remarkDraMark` 插件：
-  - strictMode=false：保留 warning，不中断
-  - strictMode=true：发现 warning 即抛出首个错误
+## 7. 测试与命令
 
-## 7. 测试
+- `pnpm build`
+- `pnpm test:run`
+- `pnpm dev:web`
+- `pnpm build:web`
 
-当前测试覆盖：
-- parser.test.ts
-  - 角色块解析
-  - translation-pair 构建
-  - song-container 构建
-  - heading/thematicBreak 的 mdast 节点产出
-  - translation target 与角色对白的 CommonMark block 保留（list/blockquote）
-  - 百分号防误伤
-- edge-cases.test.ts
-  - 6 条 edge-case 裁决门禁（frontmatter 豁免、容器隔离、song 穿透、translation target block list、百分号词法、inline tech 不跨行）
-  - warning 行为覆盖（未闭合 comment/tech cue/song、translation 脱离 character）
-- plugin.test.ts
-  - 非 strict 收集 warning
-  - strict 抛错
-  - `micromark` 模式下行内 tokenization 生效（包含“inline tech 不跨行”断言）
-  - `micromark` 模式下不覆盖 `tree.children`
-- ham.test.ts
-  - 解析 example/ham.md 的集成测试
+测试文件：
 
-运行方式：
-- pnpm test:run
-- pnpm build
+- `src/tests/parser.test.ts`
+- `src/tests/scan-segments.test.ts`
+- `src/tests/edge-cases.test.ts`
+- `src/tests/plugin.test.ts`
+- `src/tests/core.test.ts`
+- `src/tests/ham.test.ts`
 
-最近一次本地验证（2026-03-19）：
-- `pnpm build && pnpm test:run && pnpm build:web`
-- 结果：5 passed files / 42 passed tests，Web 构建通过
+## 8. 下一步（与 Block 模型对齐）
 
-## 8. 已知限制
-
-### v0 整体限制
-- 自定义节点生态兼容性仍需在真实 remark 链路中持续验证
-- 容器隔离已增强为“仅 root-level 行触发 DraMark 指令”，但更完整的 CommonMark 容器语义（复杂列表/引用嵌套）仍有精化空间
-
-### `micromark` 模式限制（实验性）
-- **仅支持行内标记的原生 tokenization**（`<<...>>`、`$...$`、`{...}`）
-- **块级构造暂未实现 micromark 扩展**，包括：
-  - 角色声明 `@...`
-  - 翻译对 `= ...`
-  - 唱段容器 `$$`（含标题 `$$ 标题`）
-  - 念白段落 `!!`
-  - 块注释 `%%`
-  - 块技术提示 `<<<`
-  - 行注释 `%`
-- 这些块级构造在 `micromark` 模式下仍由 legacy 解析器兜底处理
-- 实现块级 micromark 扩展需要更深入的 micromark flow 解析机制研究（line continuation、container state 等）
-
-## 9. 下一步建议
-
-### 当前推荐（稳定路径）
-- **继续使用 `legacy` 模式作为默认选项**，它提供完整的 DraMark 功能
-- 增加复杂列表/引用嵌套场景的容器隔离回归测试
-- 增加 AST 快照测试，稳定后续重构
-
-### M2 micromark 扩展（未来探索）
-- 块级构造的 micromark flow 扩展实现复杂度较高，需要深入研究：
-  - Line continuation 机制（处理多行块注释、技术提示等）
-  - Container state 管理（确保块级指令只在 root level 触发）
-  - 与 CommonMark 块级构造的优先级协调
-- 短期优先级的替代方案：保持现有架构，`micromark` 模式仅用于行内标记增强
-
-### 当前实现状态
-- M2 已打通插件注入骨架（`src/m2-extensions.ts`）
-- 行内标记（`<<...>>` / `$...$` / `{...}`）已完成 micromark inline tokenization + from-markdown bridge
-- 块级构造（`@`, `=`, `$$`, `<<<`, `%`, `%%`）仅在 `legacy` 模式下完整支持
-- from-markdown 的 handlers 已预留接口，但对应的 micromark tokenizers 未实现
+1. 在 `legacy` 路径中引入显式 Block Stack 结构与统一 close/open 规则
+2. 补齐规范差距：`@@`、`=` 显式退出、角色独占行校验、引号角色名解析、warning code 扩展
+3. 收敛 Tech Cue 多行闭合优先级（`>>>` 主闭合 + `<<<` 回退闭合）
+4. 将 block-level 能力逐步迁移到 micromark flow constructs
