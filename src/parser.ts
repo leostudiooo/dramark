@@ -1,7 +1,7 @@
 import { fromMarkdown } from 'mdast-util-from-markdown';
-import type { Content, Heading, ThematicBreak } from 'mdast';
+import type { Content, Heading, PhrasingContent, ThematicBreak } from 'mdast';
 import { defaultOptions } from './errors.js';
-import { parseInlineContent, transformInlineMarkersInTree } from './inline-markers.js';
+import { getDraMarkFromMarkdownOptions } from './m2-extensions.js';
 import type {
   BlockTechCue,
   CharacterBlock,
@@ -79,6 +79,8 @@ type FenceState = {
   marker: '`' | '~';
   minLength: number;
 };
+
+const markdownParseOptions = getDraMarkFromMarkdownOptions();
 
 export function scanSegments(lines: string[], startIndex: number): ScannedSegment[] {
   const segments: ScannedSegment[] = [];
@@ -903,12 +905,10 @@ function consumeBlockTechCue(lines: string[], start: number): { value: string; c
 }
 
 function parseMarkdownBlocks(markdown: string, options?: { inSongContext?: boolean }): Content[] {
-  const tree = fromMarkdown(markdown);
+  const tree = fromMarkdown(markdown, markdownParseOptions);
   const blocks = tree.children as Content[];
   for (const block of blocks) {
-    transformInlineMarkersInTree(block, {
-      inSongContext: options?.inSongContext ?? false,
-    });
+    transformSongScopedInlineNodes(block, { inSongContext: options?.inSongContext ?? false });
   }
   return blocks;
 }
@@ -926,10 +926,43 @@ function asHeading(line: string): Heading {
   return {
     type: 'heading',
     depth: headingMatch[1].length as Heading['depth'],
-    children: parseInlineContent(headingMatch[2]),
+    children: parseInlinePhrasing(headingMatch[2]),
   };
 }
 
 function asThematicBreak(): ThematicBreak {
   return { type: 'thematicBreak' };
+}
+
+function parseInlinePhrasing(value: string): PhrasingContent[] {
+  const blocks = parseMarkdownBlocks(value);
+  const first = blocks[0];
+  if (first?.type === 'paragraph') {
+    return first.children as PhrasingContent[];
+  }
+  return [{ type: 'text', value } satisfies PhrasingContent];
+}
+
+function transformSongScopedInlineNodes(node: unknown, options: { inSongContext: boolean }): void {
+  if (!hasChildren(node)) {
+    return;
+  }
+
+  for (const child of node.children) {
+    if (options.inSongContext && isInlineSongNode(child)) {
+      (child as { type: string }).type = 'inline-spoken';
+    }
+    transformSongScopedInlineNodes(child, options);
+  }
+}
+
+function hasChildren(node: unknown): node is { children: unknown[] } {
+  return typeof node === 'object' && node !== null && Array.isArray((node as { children?: unknown[] }).children);
+}
+
+function isInlineSongNode(node: unknown): node is { type: 'inline-song'; value: string } {
+  return typeof node === 'object'
+    && node !== null
+    && (node as { type?: string }).type === 'inline-song'
+    && typeof (node as { value?: unknown }).value === 'string';
 }

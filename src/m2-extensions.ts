@@ -1,4 +1,5 @@
 import type { Code, Construct, Extension as MicromarkExtension, State, Tokenizer } from 'micromark-util-types';
+import type { Options as MdastFromMarkdownOptions } from 'mdast-util-from-markdown';
 import type { Processor } from 'unified';
 import type { InlineAction, InlineSongSegment, InlineTechCue } from './types.js';
 
@@ -13,6 +14,7 @@ interface FromMarkdownCompileContextLike {
   exit(token: unknown): undefined;
   buffer(): undefined;
   resume(): string;
+  sliceSerialize(token: unknown): string;
 }
 
 const draMarkFromMarkdownExtension: FromMarkdownExtensionLike = {
@@ -99,12 +101,15 @@ const draMarkFromMarkdownExtension: FromMarkdownExtensionLike = {
       return undefined;
     },
     dramarkInlineAction(token): undefined {
+      setNodeValueFromDelimitedToken(this, token, 1, 1);
       return this.exit(token);
     },
     dramarkInlineSong(token): undefined {
+      setNodeValueFromDelimitedToken(this, token, 1, 1);
       return this.exit(token);
     },
     dramarkInlineTechCue(token): undefined {
+      setNodeValueFromDelimitedToken(this, token, 2, 2);
       return this.exit(token);
     },
     dramarkBlockComment(token): undefined {
@@ -291,10 +296,29 @@ export function registerDraMarkParseExtensions(processor: Processor): void {
   appendExtension(data, 'fromMarkdownExtensions', draMarkFromMarkdownExtension);
 }
 
+export function getDraMarkFromMarkdownOptions(): Pick<MdastFromMarkdownOptions, 'extensions' | 'mdastExtensions'> {
+  return {
+    extensions: [draMarkMicromarkExtension],
+    mdastExtensions: [draMarkFromMarkdownExtension as NonNullable<MdastFromMarkdownOptions['mdastExtensions']>[number]],
+  };
+}
+
 function appendExtension<T>(data: Record<string, unknown>, key: string, extension: T): void {
   const existing = Array.isArray(data[key]) ? (data[key] as T[]) : [];
   existing.push(extension);
   data[key] = existing;
+}
+
+function setNodeValueFromDelimitedToken(
+  context: FromMarkdownCompileContextLike,
+  token: unknown,
+  openLength: number,
+  closeLength: number,
+): void {
+  const raw = context.sliceSerialize(token);
+  const start = Math.min(openLength, raw.length);
+  const end = Math.max(start, raw.length - closeLength);
+  topNodeWithValue(context.stack).value = raw.slice(start, end);
 }
 
 function isLineEnding(code: Code): boolean {

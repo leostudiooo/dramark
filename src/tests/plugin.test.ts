@@ -32,14 +32,22 @@ describe('remarkDraMark plugin', () => {
   it('tokenizes inline markers in micromark-integrated mode', async () => {
     const processor = unified().use(remarkParse).use(remarkDraMark);
     const file = new VFile({ value: '台词 <<LX01 GO>> 与 $短唱$ 和 {动作}' });
-    const tree = processor.parse(file) as { children: Array<{ type: string; children?: unknown[] }> };
+    const tree = processor.parse(file) as { children: Array<{ type: string; value?: string; children?: unknown[] }> };
 
     await processor.run(tree, file);
 
     const allTypes = flatten(tree).map((node) => node.type);
+    const allNodes = flatten(tree);
+    const techCue = allNodes.find((node) => node.type === 'inline-tech-cue');
+    const inlineSong = allNodes.find((node) => node.type === 'inline-song');
+    const inlineAction = allNodes.find((node) => node.type === 'inline-action');
+
     expect(allTypes).toContain('inline-tech-cue');
     expect(allTypes).toContain('inline-song');
     expect(allTypes).toContain('inline-action');
+    expect(techCue?.value).toBe('LX01 GO');
+    expect(inlineSong?.value).toBe('短唱');
+    expect(inlineAction?.value).toBe('动作');
   });
 
   it('does not create inline-tech-cue when <<...>> spans lines', async () => {
