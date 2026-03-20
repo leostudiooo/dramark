@@ -26,6 +26,7 @@
   "scripts": {
     "build": "tsc",
     "build:web": "pnpm --dir apps/web build",
+    "build:vscode": "pnpm --dir apps/vscode-extension build",
     "dev:web": "pnpm --dir apps/web dev",
     "test": "vitest",
     "test:run": "vitest run"

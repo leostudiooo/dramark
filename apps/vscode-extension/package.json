@@ -1,0 +1,46 @@
+{
+  "name": "dramark",
+  "displayName": "DraMark",
+  "description": "DraMark — Drama Markdown language support",
+  
+  "license": "MIT",
+  "publisher": "dramark",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:dramark"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "dramark",
+        "aliases": ["DraMark", "dramark"],
+        "extensions": [".dramark", ".drm", ".drm.md"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "dramark.showPreview",
+        "title": "DraMark: Show Preview"
+      },
+      {
+        "command": "dramark.copyDiagnostics",
+        "title": "DraMark: Copy Diagnostics"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.24.0"
+  }
+}
