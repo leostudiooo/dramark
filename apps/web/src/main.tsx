@@ -1,20 +1,17 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { WebWorkerClient } from './adapters/web-worker-client.js';
 import type { ParseViewModel } from '../../../src/core/index.js';
-import type { OutlineItem } from '../../../src/core/index.js';
-import type { DraMarkRootContent } from '../../../src/types.js';
+import type { PreviewConfig } from '../../../packages/app-core/index.js';
+import {
+  buildTechCueColorMap,
+  convertAstToRenderBlocks,
+  buildColumnarLayout,
+  generateCSS,
+  defaultTheme,
+} from '../../../packages/app-core/index.js';
+import { createPreviewHTML, createConfigPanelHTML, attachConfigPanelListeners } from '../../../packages/app-core/index.js';
 import './styles.css';
-
-interface RenderNode {
-  type: string;
-  value?: string;
-  depth?: number;
-  name?: string;
-  sourceText?: string;
-  children?: RenderNode[];
-  target?: RenderNode[];
-}
 
 const INITIAL_TEXT = `---
 meta:
@@ -29,6 +26,11 @@ tech:
   mics:
     - id: HM1
       label: Hamlet 主麦
+  sfx:
+    color: "#66ccff"
+    entries:
+      - id: BGM_ENTER
+        desc: 入场音乐
 ---
 
 # 第一幕
@@ -48,18 +50,21 @@ $$
 const DOC_URI = 'dramark://editor/current';
 
 function App(): React.JSX.Element {
-  const clientRef = React.useRef<WebWorkerClient | null>(null);
-  if (clientRef.current === null) {
-    clientRef.current = new WebWorkerClient();
-  }
+  const client = useMemo(() => new WebWorkerClient(), []);
+  const [sourceText, setSourceText] = useState(INITIAL_TEXT);
+  const [viewModel, setViewModel] = useState<ParseViewModel | null>(null);
+  const [config, setConfig] = useState<PreviewConfig>({
+    showTechCues: true,
+    showComments: true,
+    translationMode: 'bilingual',
+    translationLayout: 'side-by-side',
+    theme: 'auto',
+  });
+  const [configOpen, setConfigOpen] = useState(false);
+  const previewRef = React.useRef<HTMLDivElement>(null);
+  const configRef = React.useRef<HTMLDivElement>(null);
 
-  const [sourceText, setSourceText] = React.useState(INITIAL_TEXT);
-  const [activeLine, setActiveLine] = React.useState<number | null>(null);
-  const [viewModel, setViewModel] = React.useState<ParseViewModel | null>(null);
-
-  React.useEffect(() => {
-    const client = clientRef.current!;
-
+  useEffect(() => {
     client.openDocument(DOC_URI, INITIAL_TEXT).then((snapshot) => {
       setViewModel(snapshot.viewModel);
     });
@@ -69,20 +74,56 @@ function App(): React.JSX.Element {
         setViewModel(snapshot.viewModel);
       }
     });
-  }, []);
+  }, [client]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (viewModel !== null) {
-      clientRef.current!.updateDocument(DOC_URI, sourceText);
+      client.updateDocument(DOC_URI, sourceText);
     }
-  }, [sourceText, viewModel]);
+  }, [sourceText, viewModel, client]);
+
+  // Generate preview HTML when viewModel or config changes
+  const previewHTML = useMemo(() => {
+    if (!viewModel) return '';
+
+    const techConfig = viewModel.config.tech ?? { mics: [] };
+    const techColorMap = buildTechCueColorMap(techConfig);
+    const context = {
+      ast: viewModel.tree,
+      techConfig,
+      config,
+      theme: defaultTheme,
+      techColorMap,
+    };
+
+    const blocks = convertAstToRenderBlocks(context);
+    const layout = buildColumnarLayout(blocks, context);
+    return createPreviewHTML({ layout, config });
+  }, [viewModel, config]);
+
+  // Generate CSS
+  const previewCSS = useMemo(() => {
+    return generateCSS(defaultTheme, config);
+  }, [config]);
+
+  // Attach event listeners after render
+  useEffect(() => {
+    if (configRef.current) {
+      attachConfigPanelListeners(configRef.current, {
+        config,
+        onChange: setConfig,
+        isOpen: configOpen,
+        onToggle: () => setConfigOpen(!configOpen),
+      });
+    }
+  }, [config, configOpen]);
 
   if (viewModel === null) {
     return (
       <div className="app-shell">
         <header className="app-header">
           <div>
-            <h1>DraMark Web MVP</h1>
+            <h1>DraMark Preview</h1>
             <p>Loading parser engine...</p>
           </div>
         </header>
@@ -94,12 +135,12 @@ function App(): React.JSX.Element {
     <div className="app-shell">
       <header className="app-header">
         <div>
-          <h1>DraMark Web MVP</h1>
-          <p>Worker parser | Debounced parse | Actor script preview</p>
+          <h1>DraMark Preview</h1>
+          <p>New renderer with tech cue colors & container queries</p>
         </div>
         <div className="status-badges">
           <span>Warnings {viewModel.warnings.length}</span>
-          <span>Diagnostics {viewModel.diagnostics.length}</span>
+          <span>Blocks {viewModel.tree.children?.length ?? 0}</span>
         </div>
       </header>
 
@@ -108,49 +149,36 @@ function App(): React.JSX.Element {
           <h2>Source</h2>
           <textarea
             value={sourceText}
-            onChange={(event) => {
-              setSourceText(event.target.value);
-              setActiveLine(null);
-            }}
+            onChange={(e) => setSourceText(e.target.value)}
             spellCheck={false}
             aria-label="DraMark source editor"
           />
         </section>
 
         <section className="panel panel-preview">
-          <h2>Actor Preview</h2>
-          <div className="preview-content">{renderNodes(viewModel.tree.children)}</div>
-        </section>
-
-        <section className="panel panel-warning">
-          <h2>Warnings & Diagnostics</h2>
-          <ul className="list">
-            {viewModel.diagnostics.length === 0 && <li>No diagnostics</li>}
-            {viewModel.diagnostics.map((item: { source: string; code: string; message: string; line?: number; column?: number }, index: number) => (
-              <li key={`${item.code}-${index}`}>
-                <button
-                  type="button"
-                  className={item.line === activeLine ? 'active' : ''}
-                  onClick={() => {
-                    if (item.line !== undefined) {
-                      setActiveLine(item.line);
-                    }
-                  }}
-                >
-                  <strong>[{item.source}]</strong> {item.code}
-                  {item.line !== undefined ? ` @${item.line}:${item.column ?? 1}` : ''}
-                  <br />
-                  <span>{item.message}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {activeLine !== null && <p className="hint">Selected line: {activeLine}</p>}
+          <h2>Preview</h2>
+          <style>{previewCSS}</style>
+          <div ref={previewRef} dangerouslySetInnerHTML={{ __html: previewHTML }} />
+          <div ref={configRef} dangerouslySetInnerHTML={{
+            __html: createConfigPanelHTML({
+              config,
+              onChange: setConfig,
+              isOpen: configOpen,
+              onToggle: () => setConfigOpen(!configOpen),
+            })
+          }} />
         </section>
 
         <section className="panel panel-outline">
           <h2>Outline</h2>
-          <OutlineList items={viewModel.outline} />
+          <ul className="list">
+            {viewModel.outline.map((item: { kind: string; label: string }, index: number) => (
+              <li key={`${item.kind}-${index}`}>
+                <span className="outline-kind">{item.kind}</span>
+                <span>{item.label}</span>
+              </li>
+            ))}
+          </ul>
 
           <h2>Config</h2>
           <pre>{JSON.stringify(viewModel.config, null, 2)}</pre>
@@ -158,214 +186,6 @@ function App(): React.JSX.Element {
       </main>
     </div>
   );
-}
-
-function OutlineList({ items }: { items: OutlineItem[] }): React.JSX.Element {
-  return (
-    <ul className="list">
-      {items.length === 0 && <li>No outline items</li>}
-      {items.map((item, index) => (
-        <li key={`${item.kind}-${index}`}>
-          <span className="outline-kind">{item.kind}</span>
-          <span>{item.label}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function renderNodes(nodes: DraMarkRootContent[]): React.JSX.Element[] {
-  return nodes.map((node, index) => <div key={`root-${index}`}>{renderNode(node)}</div>);
-}
-
-function renderNode(node: DraMarkRootContent | RenderNode): React.JSX.Element {
-  if (node.type === 'character-block') {
-    return (
-      <article className="preview-card character-card">
-        <h3>@{node.name ?? ''}</h3>
-        {(node.children ?? []).map((child, childIndex) => (
-          <div key={`character-child-${childIndex}`}>{renderNode(child as DraMarkRootContent)}</div>
-        ))}
-      </article>
-    );
-  }
-
-  if (node.type === 'song-container') {
-    return (
-      <article className="preview-card song-card">
-        <h3>Song</h3>
-        {(node.children ?? []).map((child, childIndex) => (
-          <div key={`song-child-${childIndex}`}>{renderNode(child as DraMarkRootContent)}</div>
-        ))}
-      </article>
-    );
-  }
-
-  if (node.type === 'heading') {
-    const content = renderPhrasingChildren((node as RenderNode).children);
-    return <h3>{content}</h3>;
-  }
-
-  if (node.type === 'thematicBreak') {
-    return <hr />;
-  }
-
-  if (node.type === 'translation-pair') {
-    return (
-      <div className="translation-pair">
-        <p className="translation-source">= {node.sourceText ?? ''}</p>
-        {(node.target ?? []).map((targetNode, index) => (
-          <div key={`target-${index}`}>{renderMarkdownBlock(targetNode as RenderNode)}</div>
-        ))}
-      </div>
-    );
-  }
-
-  if (node.type === 'paragraph') {
-    return <p>{renderPhrasingChildren((node as RenderNode).children)}</p>;
-  }
-
-  if (node.type === 'list') {
-    return (
-      <ul>
-        {(node.children ?? []).map((item, itemIndex) => (
-          <li key={`list-item-${itemIndex}`}>{renderMarkdownBlock(item as RenderNode)}</li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (node.type === 'blockquote') {
-    return (
-      <blockquote>
-        {(node.children ?? []).map((item, itemIndex) => (
-          <div key={`blockquote-item-${itemIndex}`}>{renderMarkdownBlock(item as RenderNode)}</div>
-        ))}
-      </blockquote>
-    );
-  }
-
-  if (node.type === 'frontmatter') {
-    return <p className="muted">frontmatter loaded</p>;
-  }
-
-  if (node.type === 'block-tech-cue') {
-    return <pre className="block-tech-cue">{node.value ?? ''}</pre>;
-  }
-
-  if (node.type === 'comment-line' || node.type === 'comment-block') {
-    return <p className="muted">[{node.type}]</p>;
-  }
-
-  return <p className="muted">[{node.type}]</p>;
-}
-
-function renderMarkdownBlock(node: RenderNode): React.JSX.Element {
-  if (node.type === 'paragraph') {
-    return <p>{renderPhrasingChildren(node.children)}</p>;
-  }
-
-  if (node.type === 'list') {
-    return (
-      <ul>
-        {(node.children ?? []).map((child, index) => (
-          <li key={`nested-list-item-${index}`}>{renderMarkdownBlock(child)}</li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (node.type === 'listItem') {
-    return (
-      <>
-        {(node.children ?? []).map((child, index) => (
-          <div key={`list-item-child-${index}`}>{renderMarkdownBlock(child)}</div>
-        ))}
-      </>
-    );
-  }
-
-  if (node.type === 'blockquote') {
-    return (
-      <blockquote>
-        {(node.children ?? []).map((child, index) => (
-          <div key={`nested-blockquote-${index}`}>{renderMarkdownBlock(child)}</div>
-        ))}
-      </blockquote>
-    );
-  }
-
-  if (node.type === 'text') {
-    return <>{node.value}</>;
-  }
-
-  return <p>{flattenTextFromNode(node)}</p>;
-}
-
-function renderPhrasingChildren(children?: RenderNode[]): React.ReactNode {
-  if (!Array.isArray(children)) {
-    return '';
-  }
-
-  return children.map((child, index) => {
-    if (child.type === 'text') {
-      return <React.Fragment key={`text-${index}`}>{child.value}</React.Fragment>;
-    }
-
-    if (child.type === 'emphasis') {
-      return <em key={`emphasis-${index}`}>{renderPhrasingChildren(child.children)}</em>;
-    }
-
-    if (child.type === 'strong') {
-      return <strong key={`strong-${index}`}>{renderPhrasingChildren(child.children)}</strong>;
-    }
-
-    if (child.type === 'inline-action') {
-      return (
-        <span key={`action-${index}`} className="inline-action">
-          {`{${flattenTextFromNode(child)}}`}
-        </span>
-      );
-    }
-
-    if (child.type === 'inline-song') {
-      return (
-        <span key={`song-${index}`} className="inline-song">
-          {child.value}
-        </span>
-      );
-    }
-
-    if (child.type === 'inline-tech-cue') {
-      return (
-        <span key={`cue-${index}`} className="inline-tech-cue">
-          {'<<'}{child.value ?? ''}{'>>'}
-        </span>
-      );
-    }
-
-    if ('children' in child && Array.isArray(child.children)) {
-      return <React.Fragment key={`nested-${index}`}>{renderPhrasingChildren(child.children)}</React.Fragment>;
-    }
-
-    if ('value' in child && typeof child.value === 'string') {
-      return <React.Fragment key={`value-${index}`}>{child.value}</React.Fragment>;
-    }
-
-    return null;
-  });
-}
-
-function flattenTextFromNode(node: RenderNode): string {
-  if ('value' in node && typeof node.value === 'string') {
-    return node.value;
-  }
-
-  if ('children' in node && Array.isArray(node.children)) {
-    return node.children.map((child) => flattenTextFromNode(child)).join('').trim();
-  }
-
-  return '';
 }
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
