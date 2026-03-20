@@ -9,6 +9,7 @@
     { "include": "#character-name" },
     { "include": "#scene-break" },
     { "include": "#song-container" },
+    { "include": "#block-tech-cue" },
     { "include": "#translation-source" },
     { "include": "#inline-song" },
     { "include": "#inline-tech-cue" },
@@ -55,9 +56,27 @@
         { "include": "#comment-line" },
         { "include": "#comment-inline" },
         { "include": "#character-name" },
+        { "include": "#block-tech-cue" },
         { "include": "#translation-source" },
         { "include": "#inline-song" },
         { "include": "#inline-tech-cue" },
+        { "include": "#inline-action" }
+      ]
+    },
+    "block-tech-cue": {
+      "begin": "^(\\s*<<<)(?!<)(?:\\s+(.*))?\\s*$",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.tech-cue-boundary.dramark" },
+        "2": { "name": "support.function.tech-cue.dramark" }
+      },
+      "end": "^(\\s*(?:>>>|<<<))\\s*$",
+      "endCaptures": {
+        "1": { "name": "keyword.control.tech-cue-boundary.dramark" }
+      },
+      "patterns": [
+        { "include": "#comment-line" },
+        { "include": "#comment-inline" },
+        { "include": "#inline-song" },
         { "include": "#inline-action" }
       ]
     },
@@ -70,7 +89,7 @@
       "name": "string.quoted.other.song.dramark"
     },
     "inline-tech-cue": {
-      "match": "(?<!\\\\)<<([^>]+)>>",
+      "match": "(?<!\\\\)(?<!<)<<(?!<)([^>]+)(?<!>)>>(?!>)",
       "name": "support.function.tech-cue.dramark"
     },
     "inline-action": {

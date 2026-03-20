@@ -155,7 +155,7 @@ function extractCharacterNameSpan(trimmed: string): { start: number; length: num
 }
 
 function highlightInlineMarkers(builder: vscode.SemanticTokensBuilder, line: number, text: string): void {
-  for (const match of text.matchAll(/(?<!\\)<<([^>\n]+)>>/gu)) {
+  for (const match of text.matchAll(/(?<!\\)(?<!<)<<(?!<)([^>\n]+)(?<!>)>>(?!>)/gu)) {
     const full = match[0];
     const body = match[1];
     const start = match.index ?? 0;
