@@ -87,77 +87,67 @@
     "tech": {
       "type": "object",
       "description": "Technical cue configuration",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/techCategory"
+          },
+          {
+            "type": "array",
+            "description": "Array of tech entries (legacy format for mics or as fallback)",
+            "items": {
+              "$ref": "#/definitions/techEntry"
+            }
+          }
+        ]
+      },
       "properties": {
         "mics": {
           "type": "array",
-          "description": "Microphone definitions",
+          "description": "Reserved field for microphone definitions (array structure only)",
           "items": {
-            "type": "object",
-            "required": ["id"],
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "Microphone identifier"
-              },
-              "label": {
-                "type": "string",
-                "description": "Display label"
-              }
-            }
+            "$ref": "#/definitions/techEntry"
           }
         },
-        "sfx": {
-          "type": "array",
-          "description": "Sound effects definitions",
-          "items": {
-            "type": "object",
-            "required": ["id"],
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "SFX identifier"
-              },
-              "label": {
-                "type": "string",
-                "description": "Display label"
-              }
-            }
-          }
+        "color": {
+          "type": "string",
+          "description": "Fallback color for unmatched tech cues (hex format)"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "techEntry": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Tech cue identifier"
         },
-        "lx": {
-          "type": "array",
-          "description": "Lighting cue definitions",
-          "items": {
-            "type": "object",
-            "required": ["id"],
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "Lighting cue identifier"
-              },
-              "label": {
-                "type": "string",
-                "description": "Display label"
-              }
-            }
-          }
+        "label": {
+          "type": "string",
+          "description": "Display label"
         },
-        "keywords": {
+        "desc": {
+          "type": "string",
+          "description": "Description of the tech cue"
+        }
+      }
+    },
+    "techCategory": {
+      "type": "object",
+      "description": "Dynamic tech category with color and entries",
+      "properties": {
+        "color": {
+          "type": "string",
+          "description": "Color for tech cues in this category (hex format)"
+        },
+        "entries": {
           "type": "array",
-          "description": "Custom keyword definitions",
+          "description": "Entries in this category",
           "items": {
-            "type": "object",
-            "required": ["token", "label"],
-            "properties": {
-              "token": {
-                "type": "string",
-                "description": "Keyword token to match"
-              },
-              "label": {
-                "type": "string",
-                "description": "Display label"
-              }
-            }
+            "$ref": "#/definitions/techEntry"
           }
         }
       }
