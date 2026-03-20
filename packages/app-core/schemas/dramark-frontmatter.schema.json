@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dramark-frontmatter",
+  "title": "DraMark Frontmatter",
+  "description": "Configuration schema for DraMark script frontmatter",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Document metadata",
+      "additionalProperties": true
+    },
+    "casting": {
+      "type": "object",
+      "description": "Cast configuration",
+      "properties": {
+        "characters": {
+          "type": "array",
+          "description": "Character definitions",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Character display name"
+              },
+              "id": {
+                "type": "string",
+                "description": "Unique character identifier"
+              },
+              "actor": {
+                "type": "string",
+                "description": "Assigned actor name"
+              },
+              "mic": {
+                "type": "string",
+                "description": "Assigned microphone ID"
+              },
+              "aliases": {
+                "type": "array",
+                "description": "Alternative names for this character",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "groups": {
+          "type": "object",
+          "description": "Character groups",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "members": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "translation": {
+      "type": "object",
+      "description": "Translation settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable translation pair parsing",
+          "default": false
+        },
+        "source_lang": {
+          "type": "string",
+          "description": "Source language code (e.g. en)"
+        },
+        "target_lang": {
+          "type": "string",
+          "description": "Target language code (e.g. zh)"
+        },
+        "render": {
+          "type": "string",
+          "description": "Render mode for translation pairs"
+        }
+      }
+    },
+    "tech": {
+      "type": "object",
+      "description": "Technical cue configuration",
+      "properties": {
+        "mics": {
+          "type": "array",
+          "description": "Microphone definitions",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Microphone identifier"
+              },
+              "label": {
+                "type": "string",
+                "description": "Display label"
+              }
+            }
+          }
+        },
+        "sfx": {
+          "type": "array",
+          "description": "Sound effects definitions",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "SFX identifier"
+              },
+              "label": {
+                "type": "string",
+                "description": "Display label"
+              }
+            }
+          }
+        },
+        "lx": {
+          "type": "array",
+          "description": "Lighting cue definitions",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Lighting cue identifier"
+              },
+              "label": {
+                "type": "string",
+                "description": "Display label"
+              }
+            }
+          }
+        },
+        "keywords": {
+          "type": "array",
+          "description": "Custom keyword definitions",
+          "items": {
+            "type": "object",
+            "required": ["token", "label"],
+            "properties": {
+              "token": {
+                "type": "string",
+                "description": "Keyword token to match"
+              },
+              "label": {
+                "type": "string",
+                "description": "Display label"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

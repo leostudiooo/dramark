@@ -11,6 +11,7 @@ const buildOptions = {
   platform: 'node',
   target: 'node18',
   sourcemap: true,
+  loader: { '.json': 'json' },
 };
 
 if (watch) {

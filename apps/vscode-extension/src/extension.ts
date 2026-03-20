@@ -3,7 +3,10 @@ import { DocumentEngine } from '../../../packages/app-core/index.js';
 import { DocumentController } from './document-controller.js';
 import { DiagnosticsManager } from './diagnostics.js';
 import { DraMarkCompletionProvider } from './completion-provider.js';
+import { DraMarkFoldingProvider } from './folding-provider.js';
+import { DraMarkFormattingProvider } from './formatting-provider.js';
 import { PreviewPanel } from './preview-panel.js';
+import { registerYamlSchema } from './yaml-schema.js';
 
 const DRAMARK_SELECTOR: vscode.DocumentSelector = { language: 'dramark' };
 
@@ -24,6 +27,18 @@ export function activate(context: vscode.ExtensionContext): void {
     '@',
     '<',
   );
+
+  const foldingProvider = vscode.languages.registerFoldingRangeProvider(
+    DRAMARK_SELECTOR,
+    new DraMarkFoldingProvider(),
+  );
+
+  const formattingProvider = vscode.languages.registerDocumentFormattingEditProvider(
+    DRAMARK_SELECTOR,
+    new DraMarkFormattingProvider(),
+  );
+
+  registerYamlSchema(context);
 
   const showPreview = vscode.commands.registerCommand('dramark.showPreview', () => {
     const editor = vscode.window.activeTextEditor;
@@ -78,6 +93,8 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     diagnostics,
     completionProvider,
+    foldingProvider,
+    formattingProvider,
     showPreview,
     copyDiagnostics,
     openSub,

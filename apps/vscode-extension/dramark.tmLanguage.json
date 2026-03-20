@@ -1,0 +1,81 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "DraMark",
+  "scopeName": "source.dramark",
+  "patterns": [
+    { "include": "#frontmatter" },
+    { "include": "#comment-line" },
+    { "include": "#comment-inline" },
+    { "include": "#character-name" },
+    { "include": "#scene-break" },
+    { "include": "#song-container" },
+    { "include": "#translation-source" },
+    { "include": "#inline-song" },
+    { "include": "#inline-tech-cue" },
+    { "include": "#inline-action" }
+  ],
+  "repository": {
+    "frontmatter": {
+      "begin": "\\A---",
+      "end": "^---\\s*$",
+      "contentName": "meta.embedded.block.frontmatter.dramark",
+      "patterns": [
+        { "include": "source.yaml" }
+      ]
+    },
+    "comment-line": {
+      "match": "^\\s*%(?!%).*$",
+      "name": "comment.line.percent.dramark"
+    },
+    "comment-inline": {
+      "match": "(?<=\\s)%(?!%).*$",
+      "name": "comment.line.percent.dramark"
+    },
+    "character-name": {
+      "match": "^@(?!@)([\\S]+(?:\\s+[\\S]+)*)",
+      "captures": {
+        "1": { "name": "entity.name.character.dramark" }
+      }
+    },
+    "scene-break": {
+      "match": "^(?:---|\\*\\*\\*)\\s*$",
+      "name": "keyword.control.scene-break.dramark"
+    },
+    "song-container": {
+      "begin": "^(\\$\\$)(?:\\s+(.*))?\\s*$",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.song-boundary.dramark" },
+        "2": { "name": "entity.name.section.song-title.dramark" }
+      },
+      "end": "^(\\$\\$)\\s*$",
+      "endCaptures": {
+        "1": { "name": "keyword.control.song-boundary.dramark" }
+      },
+      "patterns": [
+        { "include": "#comment-line" },
+        { "include": "#comment-inline" },
+        { "include": "#character-name" },
+        { "include": "#translation-source" },
+        { "include": "#inline-song" },
+        { "include": "#inline-tech-cue" },
+        { "include": "#inline-action" }
+      ]
+    },
+    "translation-source": {
+      "match": "^=\\s+(.*)$",
+      "name": "string.other.translation-source.dramark"
+    },
+    "inline-song": {
+      "match": "(?<!\\\\)\\$(?!\\$)([^$]+)(?<!\\\\)\\$(?!\\$)",
+      "name": "string.quoted.other.song.dramark"
+    },
+    "inline-tech-cue": {
+      "match": "(?<!\\\\)<<([^>]+)>>",
+      "name": "support.function.tech-cue.dramark"
+    },
+    "inline-action": {
+      "match": "(?<!\\\\)[{｛]([^}｝]+)[}｝]",
+      "name": "markup.other.action.dramark"
+    }
+  }
+}
