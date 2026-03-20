@@ -32,8 +32,8 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 /* Layout */
 .dramark-layout {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.5rem;
+  padding: 0.5rem;
 }
 
 .dm-layout-mobile {
@@ -41,11 +41,11 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 }
 
 .dm-row-slot {
-  min-height: 1.5rem;
+  min-height: 1.1rem;
 }
 
 .dm-row-placeholder {
-  min-height: 1.5rem;
+  min-height: 1.1rem;
 }
 
 /* Three column layout (>960px) */
@@ -95,18 +95,18 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 /* Character Block */
 .dm-character {
   display: flex;
-  gap: 1rem;
-  margin: 1rem 0;
-  padding: 0.75rem;
+  gap: 0.6rem;
+  margin: 0.35rem 0;
+  padding: 0.1rem 0;
   border-radius: 4px;
 }
 
 .dm-character[data-mode="sung"] {
-  background: var(--dm-sung-bg);
+  background: transparent;
 }
 
 .dm-character[data-mode="spoken"] {
-  background: var(--dm-spoken-bg);
+  background: transparent;
 }
 
 .dm-character-names {
@@ -124,12 +124,12 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 .dm-character-context {
   font-size: 0.875rem;
   color: var(--dm-text-muted);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.1rem;
 }
 
 /* Dialogue Content */
 .dm-paragraph {
-  margin: 0.5rem 0;
+  margin: 0.22rem 0;
   white-space: pre-wrap;
 }
 
@@ -172,8 +172,8 @@ ${generateTechCueCSS()}
 .dm-tech-cue-block {
   border: 1px solid var(--dm-tech-border);
   border-radius: 4px;
-  padding: 0.75rem;
-  margin: 0.5rem 0;
+  padding: 0.45rem 0.55rem;
+  margin: 0.25rem 0;
   background: rgba(128, 128, 128, 0.05);
 }
 
@@ -183,8 +183,8 @@ ${generateTechCueCSS()}
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--dm-text-muted);
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.15rem;
   border-bottom: 1px solid var(--dm-border);
 }
 
@@ -196,15 +196,17 @@ ${generateTechCueCSS()}
 
 /* Song Container */
 .dm-song-container {
-  border-left: 3px solid var(--dm-border);
-  padding-left: 1rem;
-  margin: 1rem 0;
+  border-left: none;
+  padding: 0.45rem 0.6rem;
+  margin: 0.35rem 0;
+  background: var(--dm-sung-bg);
+  border-radius: 6px;
 }
 
 .dm-song-title {
   font-weight: 600;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  margin-bottom: 0.2rem;
   color: var(--dm-text-muted);
 }
 
@@ -214,27 +216,27 @@ ${generateTechCueCSS()}
   color: var(--dm-comment);
   font-style: italic;
   white-space: pre-wrap;
-  padding: 0.5rem;
+  padding: 0.3rem 0.45rem;
   border-left: 2px solid var(--dm-border);
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
 }
 
 .dm-comment-block {
   background: rgba(128, 128, 128, 0.05);
   border-radius: 4px;
-  padding: 0.75rem;
+  padding: 0.45rem;
 }
 
 /* Thematic Break */
 .dm-thematic-break {
   border: none;
   border-top: 1px solid var(--dm-border);
-  margin: 1.5rem 0;
+  margin: 0.6rem 0;
 }
 
 /* Headings */
 .dm-heading {
-  margin: 1.5rem 0 1rem;
+  margin: 0.65rem 0 0.35rem;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -253,8 +255,8 @@ ${generateTechCueCSS()}
 
 /* Global Action */
 .dm-global-action {
-  margin: 1rem 0;
-  padding: 0.75rem;
+  margin: 0.25rem 0;
+  padding: 0.2rem 0;
   font-style: italic;
   color: var(--dm-text-muted);
 }
@@ -291,8 +293,8 @@ ${generateTechCueCSS()}
 }
 
 .dm-config-trigger {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--dm-character);
   color: var(--dm-bg);
@@ -311,13 +313,13 @@ ${generateTechCueCSS()}
 
 .dm-config-content {
   position: absolute;
-  bottom: 60px;
+  bottom: 52px;
   right: 0;
-  width: 280px;
+  width: 272px;
   background: var(--dm-bg);
   border: 1px solid var(--dm-border);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.7rem 0.75rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
@@ -343,7 +345,7 @@ ${generateTechCueCSS()}
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0;
+  padding: 0.35rem 0;
   border-bottom: 1px solid var(--dm-border);
 }
 
