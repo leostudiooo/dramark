@@ -1,0 +1,50 @@
+/* 自定义样式 */
+:root {
+  --vp-c-brand-1: #5f67ee;
+  --vp-c-brand-2: #747bff;
+  --vp-c-brand-3: #5f67ee;
+  --vp-c-brand-soft: rgba(95, 103, 238, 0.14);
+}
+
+.vp-doc pre {
+  background: var(--vp-code-block-bg);
+}
+
+/* 剧本示例样式 */
+.dramark-example {
+  background: var(--vp-code-block-bg);
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin: 16px 0;
+  font-family: var(--vp-font-family-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.dramark-example .character {
+  color: #5f67ee;
+  font-weight: 600;
+}
+
+.dramark-example .action {
+  color: #888;
+  font-style: italic;
+}
+
+.dramark-example .song {
+  color: #2d8cf0;
+}
+
+.dramark-example .tech {
+  color: #ff9900;
+}
+
+/* 特性卡片 */
+.VPFeatures .box {
+  transition: transform 0.2s;
+}
+
+.VPFeatures .box:hover {
+  transform: translateY(-4px);
+}
