@@ -107,6 +107,8 @@ $$
 - `$$` 唱段开启标记允许后跟空格与文本，作为歌曲标题/说明（如 `$$ My Shot`），存储在 `SongBlock.title` 字段
 - 新增念白标记 `!!`：在唱段内开启/关闭念白段落，`!!` 关闭后自动回到唱段上下文
 - 明确 GlobalBlock 语义：默认状态即为"念白"，无需额外标记
+- VSCode 预览支持运行时配置覆盖（译配模式/布局/主题等）；`translation.render_mode` 作为可选默认提示，不是强制前置条件
+- VSCode frontmatter 自动补全默认关闭（保留正文 DraMark 补全）
 
 说明：以上语法在当前 main 分支已基本落地；规范中仍有少量条目（主要是外部 frontmatter 拉取与块级 micromark 迁移）处于后续阶段。
 
@@ -139,6 +141,8 @@ DraMark 支持通过标准的 YAML frontmatter 定义剧本元信息、角色清
 Frontmatter 作为文档配置层存在，不属于 DraMark 正文语法本体；解析后通常交由前端/渲染器消费。
 
 推荐配置命名空间：`meta`、`casting`、`translation`、`tech`。其中 `translation.render` 已更名为 `translation.render_mode`。`group` 仅在 `casting.groups` 定义，正文 `@` 不重复声明分组；`tech` 推荐使用 `mics/sfx/lx/keywords` 四类字典（同类内 `id` 唯一，未知字段可透传）。
+
+`translation.render_mode` 是可选渲染提示字段（如 `bilingual`）。解析器不会将其视为语法前置条件；交互式前端/扩展可由运行时设置覆盖该值（例如预览面板中的译配模式切换）。在无头渲染/导出场景，可优先读取该字段作为默认输出策略。
 
 兼容策略：默认不要求角色 `id`。在不重名场景下，`@角色` 匹配和 `casting.groups.*.members` 均可直接按 `name` 生效；仅在重名或跨系统关联时建议补 `id`。
 
