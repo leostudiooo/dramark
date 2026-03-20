@@ -18,7 +18,7 @@ casting:
       aliases: [夜, 夜游神]
       mic: B4
 tech:
-  mics: 
+  mics:
     - id: B1
     - id: B2
     - id: B3

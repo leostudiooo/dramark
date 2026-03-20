@@ -221,17 +221,37 @@ ${generateTechCueCSS()}
 
 /* Song Container */
 .dm-song-container {
-  border-left: none;
+  border: 0;
   padding: 0;
   margin: 0.6rem 0;
-  border-radius: 6px;
+  border-radius: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+.dm-song-container::before {
+  content: "";
+  position: absolute;
+  left: -0.6rem;
+  right: -0.6rem;
+  top: -0.35rem;
+  bottom: -0.35rem;
+  z-index: -1;
 }
 
 .dm-song-container[data-mode="sung"] {
+  background: transparent;
+}
+
+.dm-song-container[data-mode="sung"]::before {
   background: var(--dm-sung-bg);
 }
 
 .dm-song-container[data-mode="spoken"] {
+  background: transparent;
+}
+
+.dm-song-container[data-mode="spoken"]::before {
   background: var(--dm-spoken-bg);
 }
 
@@ -242,14 +262,14 @@ ${generateTechCueCSS()}
 .dm-song-container > .dm-song-container,
 .dm-song-container > .dm-heading,
 .dm-song-container > .dm-thematic-break {
-  margin-left: 0.6rem;
-  margin-right: 0.6rem;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .dm-song-title {
   font-weight: 600;
   font-size: 1rem;
-  margin: 0.3rem 0.6rem 0.2rem;
+  margin: 0.3rem 0 0.2rem;
   color: var(--dm-text-muted);
 }
 

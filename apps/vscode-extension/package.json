@@ -17,7 +17,7 @@
       {
         "id": "dramark",
         "aliases": ["DraMark", "dramark"],
-        "extensions": [".dramark", ".drm", ".drm.md"],
+        "extensions": [".dramark", ".drm", ".dra.md", ".dra.markdown"],
         "configuration": "./language-configuration.json"
       }
     ],

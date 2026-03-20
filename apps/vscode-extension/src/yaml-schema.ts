@@ -18,7 +18,7 @@ export function registerYamlSchema(context: vscode.ExtensionContext): void {
       'dramark',
       (resource: string) => {
         const uri = vscode.Uri.parse(resource);
-        if (uri.scheme === 'dramark' || uri.path.endsWith('.dramark') || uri.path.endsWith('.drm') || uri.path.endsWith('.drm.md')) {
+        if (uri.scheme === 'dramark' || uri.path.endsWith('.dramark') || uri.path.endsWith('.drm') || uri.path.endsWith('.dra.md')) {
           return SCHEMA_URI;
         }
         return undefined;
