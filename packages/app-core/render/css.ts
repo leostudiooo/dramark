@@ -33,7 +33,9 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 .dramark-layout {
   display: grid;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .dm-layout-mobile {
