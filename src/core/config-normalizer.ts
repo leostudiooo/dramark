@@ -6,6 +6,7 @@ import type {
   CoreDiagnostic,
   DocumentConfig,
   NormalizationResult,
+  TechCategory,
   TechConfig,
   TechEntry,
   TechKeywordEntry,
@@ -311,21 +312,86 @@ function normalizeTech(value: unknown, diagnostics: CoreDiagnostic[]): TechConfi
     return undefined;
   }
 
-  const normalizedMics = normalizeTechEntries('mics', value.mics, diagnostics);
-  const normalizedSfx = normalizeTechEntries('sfx', value.sfx, diagnostics);
-  const normalizedLx = normalizeTechEntries('lx', value.lx, diagnostics);
-  const normalizedKeywords = normalizeTechKeywords(value.keywords, diagnostics);
+  const result: TechConfig = { mics: [] };
 
-  return {
-    ...value,
-    mics: normalizedMics,
-    sfx: normalizedSfx,
-    lx: normalizedLx,
-    keywords: normalizedKeywords,
-  };
+  // Handle mics as reserved array field
+  if (value.mics !== undefined) {
+    result.mics = normalizeTechArray('mics', value.mics, diagnostics);
+  }
+
+  // Handle keywords as legacy array field
+  if (value.keywords !== undefined) {
+    result.keywords = normalizeTechKeywords(value.keywords, diagnostics);
+  }
+
+  // Handle color fallback
+  if (value.color !== undefined) {
+    if (typeof value.color === 'string') {
+      result.color = value.color;
+    } else {
+      diagnostics.push({
+        source: 'config',
+        code: 'CONFIG_TECH_COLOR_TYPE',
+        message: 'tech.color should be a string.',
+        severity: 'warning',
+        path: 'tech.color',
+      });
+    }
+  }
+
+  // Handle dynamic categories (everything except mics, keywords, color)
+  for (const [key, val] of Object.entries(value)) {
+    if (key === 'mics' || key === 'keywords' || key === 'color') {
+      continue;
+    }
+
+    // Check if it's a category object with color/entries
+    if (isRecord(val) && (val.color !== undefined || val.entries !== undefined)) {
+      result[key] = normalizeTechCategory(key, val, diagnostics);
+    } else if (Array.isArray(val)) {
+      // Legacy array format - treat as entries without category color
+      result[key] = normalizeTechArray(key, val, diagnostics);
+    } else {
+      // Preserve other values as-is
+      result[key] = val as TechConfig[string];
+    }
+  }
+
+  return result;
 }
 
-function normalizeTechEntries(category: 'mics' | 'sfx' | 'lx', value: unknown, diagnostics: CoreDiagnostic[]): TechEntry[] {
+function normalizeTechCategory(category: string, value: Record<string, unknown>, diagnostics: CoreDiagnostic[]): TechCategory {
+  const result: TechCategory = {};
+
+  if (value.color !== undefined) {
+    if (typeof value.color === 'string') {
+      result.color = value.color;
+    } else {
+      diagnostics.push({
+        source: 'config',
+        code: `CONFIG_TECH_${category.toUpperCase()}_COLOR_TYPE`,
+        message: `tech.${category}.color should be a string.`,
+        severity: 'warning',
+        path: `tech.${category}.color`,
+      });
+    }
+  }
+
+  if (value.entries !== undefined) {
+    result.entries = normalizeTechArray(category, value.entries, diagnostics);
+  }
+
+  // Preserve other properties
+  for (const [key, val] of Object.entries(value)) {
+    if (key !== 'color' && key !== 'entries') {
+      result[key] = val;
+    }
+  }
+
+  return result;
+}
+
+function normalizeTechArray(category: string, value: unknown, diagnostics: CoreDiagnostic[]): TechEntry[] {
   if (value === undefined) {
     return [];
   }
