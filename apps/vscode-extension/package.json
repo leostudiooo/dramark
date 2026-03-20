@@ -2,6 +2,10 @@
   "name": "dramark",
   "displayName": "DraMark",
   "description": "DraMark — Drama Markdown language support",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leostudiooo/dramark.git"
+  },
   "version": "0.0.1",
   "publisher": "LeoLi",
   "engines": {
