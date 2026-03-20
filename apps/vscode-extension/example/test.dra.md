@@ -3,6 +3,9 @@ meta:
   title: 在公园的长椅上睡大觉
   author: 小橘猫_zzz
   locale: zh-CN
+translation:
+  source_lang: zh-CN
+  target_lang: en
 casting:
   characters:
     - name: 小帕
@@ -52,12 +55,18 @@ tech:
 
 $$ 小帕饿饿歌
 @小帕
-哪里会有夜宵呢
-哪里有好吃的呢
-到了夜里总是会突然肚子饿
-便利店已经关门
-公园里也没有人
-我该去哪里找好吃的夜宵呢
+= 哪里会有夜宵呢
+Where to find some a bite tonight?
+= 哪里有好吃的呢
+Where's the tasty in my sight?
+= 到了夜里总是会突然肚子饿
+It always happens in the midnight -- the hunger strikes
+= 便利店已经关门
+The stores are closed, I tried the door
+= 公园里也没有人
+The park is empty, searched the floor
+= 我该去哪里找好吃的夜宵呢
+How can I find my late night bite that I long for?
 
 ---
 小帕发现了躺着的小塔。
