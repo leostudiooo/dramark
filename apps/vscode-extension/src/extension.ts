@@ -6,6 +6,7 @@ import { DraMarkCompletionProvider } from './completion-provider.js';
 import { DraMarkFoldingProvider } from './folding-provider.js';
 import { DraMarkFormattingProvider } from './formatting-provider.js';
 import { PreviewPanel } from './preview-panel.js';
+import { DraMarkSemanticTokensProvider } from './semantic-tokens-provider.js';
 import { registerYamlSchema } from './yaml-schema.js';
 
 const DRAMARK_SELECTOR: vscode.DocumentSelector = { language: 'dramark' };
@@ -26,6 +27,8 @@ export function activate(context: vscode.ExtensionContext): void {
     new DraMarkCompletionProvider(controller),
     '@',
     '<',
+    ':',
+    '-',
   );
 
   const foldingProvider = vscode.languages.registerFoldingRangeProvider(
@@ -36,6 +39,12 @@ export function activate(context: vscode.ExtensionContext): void {
   const formattingProvider = vscode.languages.registerDocumentFormattingEditProvider(
     DRAMARK_SELECTOR,
     new DraMarkFormattingProvider(),
+  );
+
+  const semanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider(
+    DRAMARK_SELECTOR,
+    new DraMarkSemanticTokensProvider(),
+    DraMarkSemanticTokensProvider.legend,
   );
 
   registerYamlSchema(context);
@@ -95,6 +104,7 @@ export function activate(context: vscode.ExtensionContext): void {
     completionProvider,
     foldingProvider,
     formattingProvider,
+    semanticTokensProvider,
     showPreview,
     copyDiagnostics,
     openSub,

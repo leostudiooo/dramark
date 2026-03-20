@@ -1,103 +1,125 @@
 import * as vscode from 'vscode';
-
-const songTogglePattern = /^\$\$(?:\s+.*)?$/u;
-const blockTechSingleLinePattern = /^<<<.*>>>\s*$/u;
+import { scanSegments } from '../../../src/parser.js';
+import type { ScannedSegment } from '../../../src/parser.js';
 
 export class DraMarkFoldingProvider implements vscode.FoldingRangeProvider {
   provideFoldingRanges(document: vscode.TextDocument): vscode.FoldingRange[] {
     const ranges: vscode.FoldingRange[] = [];
 
-    const frontmatter = getFrontmatterRange(document);
+    const lines = readAllLines(document);
+    const frontmatter = getFrontmatterRange(lines);
     if (frontmatter !== null) {
       pushRange(ranges, frontmatter.startLine, frontmatter.endLine);
     }
+    const startIndex = frontmatter === null ? 0 : frontmatter.endLine + 1;
+    const segments = scanSegments(lines, startIndex);
 
     let songStart: number | null = null;
-    let blockCommentStart: number | null = null;
-    let blockTechStart: number | null = null;
     let characterStart: number | null = null;
+    let translationStart: number | null = null;
 
-    for (let i = 0; i < document.lineCount; i += 1) {
-      const line = document.lineAt(i).text;
-      const trimmed = line.trim();
-      const isRoot = isRootDirectiveLine(line);
+    for (let i = 0; i < segments.length; i += 1) {
+      const seg = segments[i];
+      const segLine = toZeroBased(seg.lineNo);
 
-      if (!isRoot) {
-        continue;
-      }
-
-      if (blockCommentStart !== null) {
-        if (trimmed === '%%') {
-          pushRange(ranges, blockCommentStart, i);
-          blockCommentStart = null;
+      switch (seg.kind) {
+        case 'song-toggle': {
+          closeTranslation(ranges, translationStart, segLine - 1);
+          translationStart = null;
+          closeCharacter(ranges, characterStart, segLine - 1);
+          characterStart = null;
+          if (songStart === null) {
+            songStart = segLine;
+          } else {
+            pushRange(ranges, songStart, segLine);
+            songStart = null;
+          }
+          break;
         }
-        continue;
-      }
 
-      if (blockTechStart !== null) {
-        if (isBlockTechClose(trimmed)) {
-          pushRange(ranges, blockTechStart, i);
-          blockTechStart = null;
+        case 'spoken-toggle':
+        case 'heading':
+        case 'thematic-break':
+        case 'character-exit': {
+          closeTranslation(ranges, translationStart, segLine - 1);
+          translationStart = null;
+          closeCharacter(ranges, characterStart, segLine - 1);
+          characterStart = null;
+          break;
         }
-        continue;
-      }
 
-      const opensCharacter = isCharacterDeclaration(trimmed);
-      const closesCharacter =
-        trimmed === '@@' ||
-        isSongToggle(trimmed) ||
-        isRootHeading(line) ||
-        isRootReset(line) ||
-        trimmed.startsWith('<<<') ||
-        opensCharacter;
-
-      if (characterStart !== null && closesCharacter) {
-        pushRange(ranges, characterStart, i - 1);
-        characterStart = null;
-      }
-
-      if (trimmed === '%%') {
-        blockCommentStart = i;
-        continue;
-      }
-
-      if (trimmed.startsWith('<<<')) {
-        if (!blockTechSingleLinePattern.test(trimmed)) {
-          blockTechStart = i;
+        case 'character': {
+          closeTranslation(ranges, translationStart, segLine - 1);
+          translationStart = null;
+          closeCharacter(ranges, characterStart, segLine - 1);
+          characterStart = segLine;
+          break;
         }
-        continue;
-      }
 
-      if (isSongToggle(trimmed)) {
-        if (songStart === null) {
-          songStart = i;
-        } else {
-          pushRange(ranges, songStart, i);
-          songStart = null;
+        case 'translation-source': {
+          closeTranslation(ranges, translationStart, segLine - 1);
+          translationStart = segLine;
+          break;
         }
-        continue;
-      }
 
-      if (opensCharacter) {
-        characterStart = i;
+        case 'translation-exit': {
+          closeTranslation(ranges, translationStart, segLine);
+          translationStart = null;
+          break;
+        }
+
+        case 'block-tech-cue': {
+          closeTranslation(ranges, translationStart, segLine - 1);
+          translationStart = null;
+          closeCharacter(ranges, characterStart, segLine - 1);
+          characterStart = null;
+          const endLine = findSegmentEndLine(segments, i, document.lineCount);
+          pushRange(ranges, segLine, endLine);
+          break;
+        }
+
+        case 'comment-block': {
+          const endLine = findSegmentEndLine(segments, i, document.lineCount);
+          pushRange(ranges, segLine, endLine);
+          break;
+        }
+
+        default:
+          break;
       }
     }
 
+    if (translationStart !== null) {
+      closeTranslation(ranges, translationStart, document.lineCount - 1);
+    }
+
     if (characterStart !== null) {
-      pushRange(ranges, characterStart, document.lineCount - 1);
+      closeCharacter(ranges, characterStart, document.lineCount - 1);
+    }
+
+    if (songStart !== null) {
+      pushRange(ranges, songStart, document.lineCount - 1);
     }
 
     return ranges;
   }
 }
 
-function getFrontmatterRange(document: vscode.TextDocument): { startLine: number; endLine: number } | null {
-  if (document.lineCount < 3 || document.lineAt(0).text.trim() !== '---') {
+function readAllLines(document: vscode.TextDocument): string[] {
+  const lines: string[] = [];
+  for (let i = 0; i < document.lineCount; i += 1) {
+    lines.push(document.lineAt(i).text);
+  }
+  return lines;
+}
+
+function getFrontmatterRange(lines: string[]): { startLine: number; endLine: number } | null {
+  if (lines.length < 3 || lines[0].trim() !== '---') {
     return null;
   }
 
-  for (let i = 1; i < document.lineCount; i += 1) {
-    if (document.lineAt(i).text.trim() === '---') {
+  for (let i = 1; i < lines.length; i += 1) {
+    if (lines[i].trim() === '---') {
       return { startLine: 0, endLine: i };
     }
   }
@@ -112,30 +134,28 @@ function pushRange(ranges: vscode.FoldingRange[], start: number, end: number): v
   ranges.push(new vscode.FoldingRange(start, end, vscode.FoldingRangeKind.Region));
 }
 
-function isRootDirectiveLine(line: string): boolean {
-  return line.trimStart() === line;
-}
-
-function isSongToggle(trimmed: string): boolean {
-  return songTogglePattern.test(trimmed);
-}
-
-function isCharacterDeclaration(trimmed: string): boolean {
-  return trimmed.startsWith('@') && trimmed !== '@@';
-}
-
-function isRootHeading(line: string): boolean {
-  return /^#{1,6}\s+/u.test(line);
-}
-
-function isRootReset(line: string): boolean {
-  const trimmed = line.trim();
-  if (trimmed !== line) {
-    return false;
+function closeCharacter(ranges: vscode.FoldingRange[], start: number | null, end: number): void {
+  if (start === null) {
+    return;
   }
-  return trimmed === '---' || trimmed === '***' || trimmed === '___';
+  pushRange(ranges, start, end);
 }
 
-function isBlockTechClose(trimmed: string): boolean {
-  return trimmed === '<<<' || trimmed === '>>>' || trimmed.endsWith('>>>');
+function closeTranslation(ranges: vscode.FoldingRange[], start: number | null, end: number): void {
+  if (start === null) {
+    return;
+  }
+  pushRange(ranges, start, end);
+}
+
+function findSegmentEndLine(segments: ScannedSegment[], currentIndex: number, lineCount: number): number {
+  const next = segments[currentIndex + 1];
+  if (!next) {
+    return lineCount - 1;
+  }
+  return Math.max(toZeroBased(segments[currentIndex].lineNo), toZeroBased(next.lineNo) - 1);
+}
+
+function toZeroBased(lineNo: number): number {
+  return Math.max(0, lineNo - 1);
 }
