@@ -9,11 +9,16 @@ export interface ConfigPanelProps {
 
 export function createConfigPanelHTML(props: ConfigPanelProps): string {
   const { config, isOpen } = props;
+  const icon = [
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">',
+    '<path fill="currentColor" d="M10.9 2.1a1 1 0 0 1 2.2 0l.3 1.9a8 8 0 0 1 1.7.7l1.6-1a1 1 0 0 1 1.4.4l1.1 1.9a1 1 0 0 1-.3 1.3l-1.5 1.2a8 8 0 0 1 0 1.9l1.5 1.2a1 1 0 0 1 .3 1.3l-1.1 1.9a1 1 0 0 1-1.4.4l-1.6-1a8 8 0 0 1-1.7.7l-.3 1.9a1 1 0 0 1-2.2 0l-.3-1.9a8 8 0 0 1-1.7-.7l-1.6 1a1 1 0 0 1-1.4-.4l-1.1-1.9a1 1 0 0 1 .3-1.3l1.5-1.2a8 8 0 0 1 0-1.9L4.5 7.6a1 1 0 0 1-.3-1.3l1.1-1.9a1 1 0 0 1 1.4-.4l1.6 1a8 8 0 0 1 1.7-.7zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>',
+    '</svg>',
+  ].join('');
 
   return `
     <div class="dm-config-panel">
       <button class="dm-config-trigger" aria-label="配置" aria-expanded="${isOpen}">
-        ⚙️
+        ${icon}
       </button>
       
       ${isOpen ? createConfigContentHTML(config) : ''}

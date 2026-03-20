@@ -10,6 +10,7 @@ export class DraMarkFoldingProvider implements vscode.FoldingRangeProvider {
     const frontmatter = getFrontmatterRange(lines);
     if (frontmatter !== null) {
       pushRange(ranges, frontmatter.startLine, frontmatter.endLine);
+      pushYamlIndentFolds(ranges, lines, frontmatter.startLine + 1, frontmatter.endLine - 1);
     }
     const startIndex = frontmatter === null ? 0 : frontmatter.endLine + 1;
     const segments = scanSegments(lines, startIndex);
@@ -103,6 +104,67 @@ export class DraMarkFoldingProvider implements vscode.FoldingRangeProvider {
 
     return ranges;
   }
+}
+
+function pushYamlIndentFolds(
+  ranges: vscode.FoldingRange[],
+  lines: string[],
+  startLine: number,
+  endLine: number,
+): void {
+  if (startLine >= endLine) {
+    return;
+  }
+
+  const stack: Array<{ line: number; indent: number }> = [];
+
+  for (let line = startLine; line <= endLine; line += 1) {
+    const text = lines[line] ?? '';
+    if (text.trim().length === 0) {
+      continue;
+    }
+    const indent = getIndent(text);
+
+    while (stack.length > 0 && indent <= stack[stack.length - 1].indent) {
+      const top = stack.pop();
+      if (top) {
+        pushRange(ranges, top.line, line - 1);
+      }
+    }
+
+    const nextLine = findNextContentLine(lines, line + 1, endLine);
+    if (nextLine === null) {
+      continue;
+    }
+    const nextIndent = getIndent(lines[nextLine] ?? '');
+    if (nextIndent > indent) {
+      stack.push({ line, indent });
+    }
+  }
+
+  while (stack.length > 0) {
+    const top = stack.pop();
+    if (top) {
+      pushRange(ranges, top.line, endLine);
+    }
+  }
+}
+
+function getIndent(text: string): number {
+  let indent = 0;
+  while (indent < text.length && text[indent] === ' ') {
+    indent += 1;
+  }
+  return indent;
+}
+
+function findNextContentLine(lines: string[], from: number, endLine: number): number | null {
+  for (let line = from; line <= endLine; line += 1) {
+    if ((lines[line] ?? '').trim().length > 0) {
+      return line;
+    }
+  }
+  return null;
 }
 
 function readAllLines(document: vscode.TextDocument): string[] {
