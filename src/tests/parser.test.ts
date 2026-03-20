@@ -239,6 +239,19 @@ describe('parseDraMark', () => {
     expect(cue.value).toBe('<<<');
   });
 
+  it('closes block-tech-cue when a payload line ends with >>>', () => {
+    const input = ['<<<', '灯光 GO>>>', '@A', '台词'].join('\n');
+    const result = parseDraMark(input);
+    const cue = result.tree.children[0] as { type: string; value: string };
+    const character = result.tree.children[1] as { type: string; name: string };
+
+    expect(result.warnings).toHaveLength(0);
+    expect(cue.type).toBe('block-tech-cue');
+    expect(cue.value).toBe('灯光 GO');
+    expect(character.type).toBe('character-block');
+    expect(character.name).toBe('A');
+  });
+
   it('keeps comment markers as literal payload inside block-tech-cue', () => {
     const input = ['<<<', '灯光 % 注', '%%', '注释', '%%', '>>>'].join('\n');
     const result = parseDraMark(input);

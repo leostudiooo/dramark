@@ -1024,10 +1024,24 @@ function consumeBlockTechCue(lines: string[], start: number): { value: string; c
     if (trimmed === '>>>') {
       return { value: payload.join('\n'), closed: true, nextIndex: i + 1 };
     }
+    if (trimmed.endsWith('>>>')) {
+      const linePayload = trimmed.slice(0, -3).trim();
+      if (linePayload.length > 0) {
+        payload.push(linePayload);
+      }
+      return { value: payload.join('\n'), closed: true, nextIndex: i + 1 };
+    }
     if (trimmed === '<<<') {
       if (hasPrimaryBlockTechCueCloseAhead(lines, i + 1)) {
         payload.push(lines[i]);
         continue;
+      }
+      return { value: payload.join('\n'), closed: true, nextIndex: i + 1 };
+    }
+    if (trimmed.endsWith('<<<')) {
+      const linePayload = trimmed.slice(0, -3).trim();
+      if (linePayload.length > 0) {
+        payload.push(linePayload);
       }
       return { value: payload.join('\n'), closed: true, nextIndex: i + 1 };
     }
