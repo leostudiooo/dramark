@@ -73,6 +73,7 @@ export interface DialogueContent {
 
 export type DialogueChild =
   | { type: 'text'; value: string }
+  | { type: 'break' }
   | { type: 'emphasis'; children: Array<{ type: 'text'; value: string }> }
   | { type: 'strong'; children: Array<{ type: 'text'; value: string }> }
   | { type: 'inline-action'; value: string }
@@ -118,6 +119,13 @@ export interface ColumnarLayout {
   left: TechCueBlock[];
   center: RenderBlock[];
   right: CommentRenderBlock[];
+  rows: ColumnarRow[];
+}
+
+export interface ColumnarRow {
+  left: TechCueBlock | null;
+  center: RenderBlock | null;
+  right: CommentRenderBlock | null;
 }
 
 export interface RenderContext {

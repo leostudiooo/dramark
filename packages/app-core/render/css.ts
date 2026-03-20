@@ -9,6 +9,7 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   
   return `
 /* DraMark Preview Styles */
+:root,
 .dramark-preview {
   --dm-bg: ${colors.background};
   --dm-sung-bg: ${colors.sungBackground};
@@ -35,6 +36,18 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   padding: 1rem;
 }
 
+.dm-layout-mobile {
+  display: none;
+}
+
+.dm-row-slot {
+  min-height: 1.5rem;
+}
+
+.dm-row-placeholder {
+  min-height: 1.5rem;
+}
+
 /* Three column layout (>960px) */
 @container preview (min-width: 960px) {
   .dramark-layout {
@@ -52,7 +65,7 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 
 /* Two column layout (>600px) */
 @container preview (min-width: 600px) and (max-width: 959px) {
-  .dramark-layout {
+  .dm-layout-desktop {
     grid-template-columns: 1fr 200px;
   }
   
@@ -60,26 +73,22 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
     display: none;
   }
   
-  .dramark-center .tech-cue-block {
-    display: block;
-    margin: 0.5rem 0;
+  .dm-layout-mobile {
+    display: none;
   }
 }
 
 /* Single column layout (<=600px) */
 @container preview (max-width: 599px) {
-  .dramark-layout {
-    grid-template-columns: 1fr;
-  }
-  
-  .dramark-left,
-  .dramark-right {
+  .dm-layout-desktop {
     display: none;
   }
-  
-  .dramark-center .tech-cue-block {
-    display: block;
-    margin: 0.5rem 0;
+
+  .dm-layout-mobile {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
   }
 }
 
@@ -121,6 +130,7 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 /* Dialogue Content */
 .dm-paragraph {
   margin: 0.5rem 0;
+  white-space: pre-wrap;
 }
 
 .dm-paragraph:first-child {
@@ -203,6 +213,7 @@ ${generateTechCueCSS()}
   font-size: 0.875rem;
   color: var(--dm-comment);
   font-style: italic;
+  white-space: pre-wrap;
   padding: 0.5rem;
   border-left: 2px solid var(--dm-border);
   margin: 0.5rem 0;
@@ -308,6 +319,24 @@ ${generateTechCueCSS()}
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.dm-config-content select {
+  min-width: 132px;
+  background: var(--dm-bg);
+  color: var(--dm-text);
+  border: 1px solid var(--dm-border);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+}
+
+.dm-config-content select option {
+  background: var(--dm-bg);
+  color: var(--dm-text);
+}
+
+.dm-config-content input[type="checkbox"] {
+  accent-color: var(--dm-character);
 }
 
 .dm-config-item {

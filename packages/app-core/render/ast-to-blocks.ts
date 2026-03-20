@@ -3,6 +3,7 @@ import type {
   CharacterRenderBlock,
   TechCueBlock,
   CommentRenderBlock,
+  SongContainerBlock,
   ColumnarLayout,
   RenderContext,
   DialogueContent,
@@ -10,7 +11,7 @@ import type {
 import { matchTechCue } from './tech-cue-colors.js';
 
 interface InlineChild {
-  type: 'text' | 'emphasis' | 'strong' | 'inline-action' | 'inline-song' | 'inline-tech-cue';
+  type: 'text' | 'break' | 'emphasis' | 'strong' | 'inline-action' | 'inline-song' | 'inline-tech-cue';
   value?: string;
   children?: Array<{ type: 'text'; value: string }>;
   payload?: string;
@@ -42,24 +43,69 @@ export function buildColumnarLayout(
   const left: TechCueBlock[] = [];
   const center: RenderBlock[] = [];
   const right: CommentRenderBlock[] = [];
+  const rows: ColumnarLayout['rows'] = [];
 
   for (const block of blocks) {
+    if (block.type === 'song-container') {
+      const separated = separateSongContainerComments(block);
+      center.push(separated.block);
+      rows.push({ left: null, center: separated.block, right: null });
+      for (const comment of separated.comments) {
+        if (context.config.showComments) {
+          right.push(comment);
+          rows.push({ left: null, center: null, right: comment });
+        }
+      }
+      continue;
+    }
+
     if (block.type === 'tech-cue') {
       if (block.variant === 'block' && context.config.showTechCues) {
         left.push(block);
+        rows.push({ left: block, center: null, right: null });
       } else if (block.variant === 'inline' && context.config.showTechCues) {
         center.push(block);
+        rows.push({ left: null, center: block, right: null });
       }
     } else if (block.type === 'comment') {
       if (context.config.showComments) {
         right.push(block);
+        rows.push({ left: null, center: null, right: block });
       }
     } else {
       center.push(block);
+      rows.push({ left: null, center: block, right: null });
     }
   }
 
-  return { left, center, right };
+  return { left, center, right, rows };
+}
+
+function separateSongContainerComments(block: SongContainerBlock): { block: SongContainerBlock; comments: CommentRenderBlock[] } {
+  const comments: CommentRenderBlock[] = [];
+  const children: RenderBlock[] = [];
+
+  for (const child of block.children) {
+    if (child.type === 'comment') {
+      comments.push(child);
+      continue;
+    }
+    if (child.type === 'song-container') {
+      const nested = separateSongContainerComments(child);
+      children.push(nested.block);
+      comments.push(...nested.comments);
+      continue;
+    }
+    children.push(child);
+  }
+
+  return {
+    block: {
+      ...block,
+      children,
+    },
+    comments,
+  };
 }
 
 function convertNode(node: unknown, context: RenderContext, performanceMode: 'spoken' | 'sung'): RenderBlock | null {
@@ -81,15 +127,15 @@ function convertNode(node: unknown, context: RenderContext, performanceMode: 'sp
       return convertCommentLine(typedNode, context, performanceMode);
     case 'comment-block':
       return convertCommentBlock(typedNode, context, performanceMode);
+    case 'paragraph':
+    case 'list':
+    case 'blockquote':
+      return convertStandaloneGlobalContent(typedNode, context, performanceMode);
     case 'thematicBreak':
       return { type: 'thematic-break', performanceMode };
     case 'heading':
       return convertHeading(typedNode, context, performanceMode);
     default:
-      // Global action or other content
-      if (typedNode.children) {
-        return convertGlobalAction(typedNode, context, performanceMode);
-      }
       return null;
   }
 }
@@ -147,7 +193,7 @@ function convertContentNode(node: unknown, context: RenderContext): ContentNodeR
         isTechCue: false,
         data: {
           type: 'paragraph',
-          children: convertInlineChildren(typedNode.children, context),
+          children: collectInlineChildren(node, context),
         } as DialogueContent,
       };
     case 'list':
@@ -155,7 +201,7 @@ function convertContentNode(node: unknown, context: RenderContext): ContentNodeR
         isTechCue: false,
         data: {
           type: 'list',
-          children: convertInlineChildren(typedNode.children, context),
+          children: collectInlineChildren(node, context),
         } as DialogueContent,
       };
     case 'blockquote':
@@ -163,7 +209,7 @@ function convertContentNode(node: unknown, context: RenderContext): ContentNodeR
         isTechCue: false,
         data: {
           type: 'blockquote',
-          children: convertInlineChildren(typedNode.children, context),
+          children: collectInlineChildren(node, context),
         } as DialogueContent,
       };
     case 'inline-action':
@@ -183,7 +229,10 @@ function convertContentNode(node: unknown, context: RenderContext): ContentNodeR
         } as InlineChild,
       };
     case 'inline-tech-cue': {
-      const payload = String(typedNode.payload || '');
+      if (!context.config.showTechCues) {
+        return null;
+      }
+      const payload = String(typedNode.payload || typedNode.value || '');
       const match = matchTechCue(payload, context.techColorMap);
       return {
         isTechCue: true,
@@ -193,21 +242,6 @@ function convertContentNode(node: unknown, context: RenderContext): ContentNodeR
     default:
       return null;
   }
-}
-
-function convertInlineChildren(children: unknown, context: RenderContext): InlineChild[] {
-  if (!Array.isArray(children)) {
-    return [];
-  }
-
-  const result: InlineChild[] = [];
-  for (const child of children) {
-    const converted = convertInlineChild(child, context);
-    if (converted) {
-      result.push(converted);
-    }
-  }
-  return result;
 }
 
 function convertInlineChild(node: unknown, context: RenderContext): InlineChild | null {
@@ -221,6 +255,8 @@ function convertInlineChild(node: unknown, context: RenderContext): InlineChild 
   switch (nodeType) {
     case 'text':
       return { type: 'text', value: String(typedNode.value || '') };
+    case 'break':
+      return { type: 'break' };
     case 'emphasis':
       return {
         type: 'emphasis',
@@ -236,13 +272,40 @@ function convertInlineChild(node: unknown, context: RenderContext): InlineChild 
     case 'inline-song':
       return { type: 'inline-song', value: String(typedNode.value || '') };
     case 'inline-tech-cue': {
-      const payload = String(typedNode.payload || '');
+      if (!context.config.showTechCues) {
+        return null;
+      }
+      const payload = String(typedNode.payload || typedNode.value || '');
       const match = matchTechCue(payload, context.techColorMap);
       return { type: 'inline-tech-cue', payload, color: match.color };
     }
     default:
       return null;
   }
+}
+
+function collectInlineChildren(node: unknown, context: RenderContext): InlineChild[] {
+  const collected: InlineChild[] = [];
+
+  function walk(current: unknown): void {
+    if (!current || typeof current !== 'object') {
+      return;
+    }
+    const converted = convertInlineChild(current, context);
+    if (converted !== null) {
+      collected.push(converted);
+      return;
+    }
+    const children = (current as Record<string, unknown>).children;
+    if (Array.isArray(children)) {
+      for (const child of children) {
+        walk(child);
+      }
+    }
+  }
+
+  walk(node);
+  return collected;
 }
 
 function extractTextChildren(children: unknown): Array<{ type: 'text'; value: string }> {
@@ -284,8 +347,10 @@ function convertBlockTechCue(
   context: RenderContext,
   performanceMode: 'spoken' | 'sung'
 ): TechCueBlock {
-  const payload = String(node.payload || '');
-  const header = node.header ? String(node.header) : undefined;
+  const payload = String(node.value || node.payload || '');
+  const header = node.header
+    ? String(node.header)
+    : (payload.trim().split(/\s+/u)[0] || undefined);
   const match = matchTechCue(payload, context.techColorMap);
 
   return {
@@ -294,6 +359,22 @@ function convertBlockTechCue(
     header,
     payload,
     color: match.color,
+    performanceMode,
+  };
+}
+
+function convertStandaloneGlobalContent(
+  node: Record<string, unknown>,
+  context: RenderContext,
+  performanceMode: 'spoken' | 'sung',
+): RenderBlock | null {
+  const result = convertContentNode(node, context);
+  if (!result || result.isTechCue) {
+    return null;
+  }
+  return {
+    type: 'global-action',
+    content: [result.data as DialogueContent],
     performanceMode,
   };
 }
@@ -335,29 +416,6 @@ function convertHeading(
   return {
     type: 'heading',
     depth,
-    content,
-    performanceMode,
-  };
-}
-
-function convertGlobalAction(
-  node: Record<string, unknown>,
-  context: RenderContext,
-  performanceMode: 'spoken' | 'sung'
-): RenderBlock {
-  const content: DialogueContent[] = [];
-
-  if (Array.isArray(node.children)) {
-    for (const child of node.children) {
-      const result = convertContentNode(child, context);
-      if (result && !result.isTechCue) {
-        content.push(result.data as DialogueContent);
-      }
-    }
-  }
-
-  return {
-    type: 'global-action',
     content,
     performanceMode,
   };

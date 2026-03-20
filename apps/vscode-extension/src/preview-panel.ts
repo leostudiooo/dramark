@@ -13,6 +13,9 @@ import { createPreviewHTML, createConfigPanelHTML } from '../../../packages/app-
 export class PreviewPanel {
   public static readonly viewType = 'dramark.preview';
   private panel: vscode.WebviewPanel | undefined;
+  private themeListener: vscode.Disposable | undefined;
+  private latestViewModel: ParseViewModel | null = null;
+  private configOpen = false;
   private config: PreviewConfig = {
     showTechCues: true,
     showComments: true,
@@ -24,6 +27,7 @@ export class PreviewPanel {
   constructor(private extensionUri: vscode.Uri) {}
 
   show(viewModel: ParseViewModel): void {
+    this.latestViewModel = viewModel;
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.Beside);
     } else {
@@ -36,54 +40,74 @@ export class PreviewPanel {
           localResourceRoots: [this.extensionUri],
         },
       );
-      this.panel.onDidDispose(() => { this.panel = undefined; });
+      this.panel.onDidDispose(() => {
+        this.panel = undefined;
+        this.themeListener?.dispose();
+        this.themeListener = undefined;
+      });
+      this.themeListener = vscode.window.onDidChangeActiveColorTheme(() => {
+        if (this.config.theme === 'auto') {
+          this.rerender();
+        }
+      });
       
       // Listen for messages from the webview
       this.panel.webview.onDidReceiveMessage((message) => {
         if (message.type === 'configChange') {
           this.config = { ...this.config, ...message.config };
-          // Re-render with new config
-          if (this.panel) {
-            this.panel.webview.html = this.renderHtml(viewModel);
-          }
+          this.rerender();
         } else if (message.type === 'toggleConfig') {
-          this.panel?.webview.postMessage({ type: 'toggleConfigPanel' });
+          this.configOpen = !this.configOpen;
+          this.rerender();
         }
       });
     }
 
-    this.panel.webview.html = this.renderHtml(viewModel);
+    this.rerender();
   }
 
   update(viewModel: ParseViewModel): void {
-    if (this.panel) {
-      this.panel.webview.html = this.renderHtml(viewModel);
-    }
+    this.latestViewModel = viewModel;
+    this.rerender();
   }
 
   dispose(): void {
+    this.themeListener?.dispose();
+    this.themeListener = undefined;
     this.panel?.dispose();
   }
 
+  private rerender(): void {
+    if (!this.panel || this.latestViewModel === null) {
+      return;
+    }
+    this.panel.webview.html = this.renderHtml(this.latestViewModel);
+  }
+
   private renderHtml(viewModel: ParseViewModel): string {
+    const effectiveTheme = this.resolveThemeMode();
+    const renderConfig = {
+      ...this.config,
+      theme: effectiveTheme,
+    };
     const techConfig = viewModel.config.tech ?? { mics: [] };
     const techColorMap = buildTechCueColorMap(techConfig);
     const context = {
       ast: viewModel.tree,
       techConfig,
-      config: this.config,
+      config: renderConfig,
       theme: defaultTheme,
       techColorMap,
     };
 
     const blocks = convertAstToRenderBlocks(context);
     const layout = buildColumnarLayout(blocks, context);
-    const previewHTML = createPreviewHTML({ layout, config: this.config });
-    const css = generateCSS(defaultTheme, this.config);
+    const previewHTML = createPreviewHTML({ layout, config: renderConfig });
+    const css = generateCSS(defaultTheme, renderConfig);
     const configHTML = createConfigPanelHTML({
       config: this.config,
       onChange: () => {}, // Handled by message passing
-      isOpen: false,
+      isOpen: this.configOpen,
       onToggle: () => {},
     });
 
@@ -98,15 +122,11 @@ export class PreviewPanel {
   /* VSCode-specific adjustments */
   body {
     font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
-    background: var(--vscode-editor-background, #ffffff);
-    color: var(--vscode-editor-foreground, #1a1a1a);
+    background: transparent;
+    color: inherit;
     padding: 16px;
   }
-  
-  .dramark-preview {
-    background: transparent;
-  }
-  
+
   /* Ensure config panel stays within bounds */
   .dm-config-panel {
     position: fixed;
@@ -116,8 +136,9 @@ export class PreviewPanel {
   }
   
   .dm-config-content {
-    background: var(--vscode-editor-background, #ffffff);
-    border: 1px solid var(--vscode-panel-border, #e0ddd5);
+    background: var(--dm-bg);
+    color: var(--dm-text);
+    border: 1px solid var(--dm-border);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 </style>
@@ -130,39 +151,46 @@ ${configHTML}
 (function() {
   const vscode = acquireVsCodeApi();
   
-  // Handle config panel toggle
-  document.querySelector('.dm-config-trigger').addEventListener('click', function() {
-    const content = document.querySelector('.dm-config-content');
-    if (content) {
-      content.style.display = content.style.display === 'none' ? 'block' : 'none';
-    }
-  });
+  // Request config panel toggle from extension host.
+  const trigger = document.querySelector('.dm-config-trigger');
+  if (trigger) {
+    trigger.addEventListener('click', function() {
+      vscode.postMessage({ type: 'toggleConfig' });
+    });
+  }
   
   // Handle config changes
   document.querySelectorAll('[data-config]').forEach(function(input) {
     input.addEventListener('change', function(e) {
-      const key = e.target.dataset.config;
-      const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
+        return;
+      }
+      const key = target.dataset.config;
+      if (!key) {
+        return;
+      }
+      const value = target.type === 'checkbox' ? target.checked : target.value;
       vscode.postMessage({
         type: 'configChange',
         config: { [key]: value }
       });
     });
   });
-  
-  // Listen for messages from extension
-  window.addEventListener('message', function(event) {
-    const message = event.data;
-    if (message.type === 'toggleConfigPanel') {
-      const trigger = document.querySelector('.dm-config-trigger');
-      if (trigger) {
-        trigger.click();
-      }
-    }
-  });
 })();
 </script>
 </body>
 </html>`;
+  }
+
+  private resolveThemeMode(): PreviewConfig['theme'] {
+    if (this.config.theme !== 'auto') {
+      return this.config.theme;
+    }
+    const kind = vscode.window.activeColorTheme.kind;
+    if (kind === vscode.ColorThemeKind.Light) {
+      return 'light';
+    }
+    return 'dark';
   }
 }

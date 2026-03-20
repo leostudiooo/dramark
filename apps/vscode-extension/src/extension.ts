@@ -20,7 +20,13 @@ const FRONTMATTER_COMPLETION_TRIGGERS = [
 ];
 
 export function activate(context: vscode.ExtensionContext): void {
-  const engine = new DocumentEngine({ debounceMs: 150 });
+  const engine = new DocumentEngine({
+    debounceMs: 150,
+    parserOptions: {
+      includeComments: true,
+      multipassDebug: true,
+    },
+  });
   const controller = new DocumentController(engine);
 
   engine.subscribe((snapshot) => {
@@ -60,7 +66,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const semanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider(
     DRAMARK_SELECTOR,
-    new DraMarkSemanticTokensProvider(),
+    new DraMarkSemanticTokensProvider(controller),
     DraMarkSemanticTokensProvider.legend,
   );
 

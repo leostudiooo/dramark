@@ -25,13 +25,23 @@
     "commands": [
       {
         "command": "dramark.showPreview",
-        "title": "DraMark: Show Preview"
+        "title": "DraMark: Show Preview",
+        "icon": "$(preview)"
       },
       {
         "command": "dramark.copyDiagnostics",
         "title": "DraMark: Copy Diagnostics"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "dramark.showPreview",
+          "when": "resourceLangId == dramark",
+          "group": "navigation@10"
+        }
+      ]
+    },
     "grammars": [
       {
         "language": "dramark",
