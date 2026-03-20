@@ -11,9 +11,6 @@
   "categories": [
     "Programming Languages"
   ],
-  "activationEvents": [
-    "onLanguage:dramark"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
