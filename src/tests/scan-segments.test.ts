@@ -163,6 +163,22 @@ describe('scanSegments — Phase 1 (Lexical Shield)', () => {
     expect(asBlockTechCue(segs[0]).closed).toBe(true);
   });
 
+  it('prefers >>> as block-tech-cue closing marker when both <<< and >>> exist', () => {
+    const lines = ['<<<', '<<<', '>>>'];
+    const segs = scanSegments(lines, 0);
+    expect(kinds(segs)).toEqual(['block-tech-cue']);
+    expect(asBlockTechCue(segs[0]).value).toBe('<<<');
+    expect(asBlockTechCue(segs[0]).closed).toBe(true);
+  });
+
+  it('keeps comment-like markers as raw payload inside block-tech-cue', () => {
+    const lines = ['<<<', '灯光 % 注', '%%', '注释', '%%', '>>>'];
+    const segs = scanSegments(lines, 0);
+    expect(kinds(segs)).toEqual(['block-tech-cue']);
+    expect(asBlockTechCue(segs[0]).value).toBe('灯光 % 注\n%%\n注释\n%%');
+    expect(asBlockTechCue(segs[0]).closed).toBe(true);
+  });
+
   it('does not treat >>> quote lines as DraMark directives', () => {
     const lines = ['>>> 引用'];
     const segs = scanSegments(lines, 0);

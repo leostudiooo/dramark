@@ -1016,13 +1016,29 @@ function consumeBlockTechCue(lines: string[], start: number): { value: string; c
 
   for (let i = start + 1; i < lines.length; i += 1) {
     const trimmed = lines[i].trim();
-    if (trimmed === '>>>' || trimmed === '<<<') {
+    if (trimmed === '>>>') {
+      return { value: payload.join('\n'), closed: true, nextIndex: i + 1 };
+    }
+    if (trimmed === '<<<') {
+      if (hasPrimaryBlockTechCueCloseAhead(lines, i + 1)) {
+        payload.push(lines[i]);
+        continue;
+      }
       return { value: payload.join('\n'), closed: true, nextIndex: i + 1 };
     }
     payload.push(lines[i]);
   }
 
   return { value: payload.join('\n'), closed: false, nextIndex: lines.length };
+}
+
+function hasPrimaryBlockTechCueCloseAhead(lines: string[], start: number): boolean {
+  for (let i = start; i < lines.length; i += 1) {
+    if (lines[i].trim() === '>>>') {
+      return true;
+    }
+  }
+  return false;
 }
 
 function parseMarkdownBlocks(markdown: string, options?: { inSongContext?: boolean }): Content[] {

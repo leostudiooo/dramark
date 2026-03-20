@@ -205,6 +205,26 @@ describe('parseDraMark', () => {
     expect(cue.value).toBe('LX\n内容');
   });
 
+  it('prefers >>> as block-tech-cue closer and keeps intermediate <<< as payload', () => {
+    const input = ['<<<', '<<<', '>>>'].join('\n');
+    const result = parseDraMark(input);
+    const cue = result.tree.children[0] as { type: string; value: string };
+
+    expect(result.warnings).toHaveLength(0);
+    expect(cue.type).toBe('block-tech-cue');
+    expect(cue.value).toBe('<<<');
+  });
+
+  it('keeps comment markers as literal payload inside block-tech-cue', () => {
+    const input = ['<<<', '灯光 % 注', '%%', '注释', '%%', '>>>'].join('\n');
+    const result = parseDraMark(input);
+    const cue = result.tree.children[0] as { type: string; value: string };
+
+    expect(result.warnings).toHaveLength(0);
+    expect(cue.type).toBe('block-tech-cue');
+    expect(cue.value).toBe('灯光 % 注\n%%\n注释\n%%');
+  });
+
   it('keeps inline tech cue marker text literal inside block-tech-cue payload', () => {
     const input = ['<<<', '<<LX01>>', '>>>'].join('\n');
     const result = parseDraMark(input);
