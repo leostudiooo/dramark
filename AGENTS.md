@@ -29,7 +29,36 @@ Two parser modes controlled by `parserMode` option:
 - **`legacy` (default)**: Custom `parseDraMark()` in `src/parser.ts` — a line-by-line state machine that produces the full AST (character blocks, song containers, translation pairs).
 - **`micromark`**: Micromark tokenizer extensions in `src/m2-extensions.ts` for inline markers only; block-level parsing handled by standard remark-parse.
 
-Key source files:
+### Core State Machine (legacy mode)
+
+The legacy parser maintains a 2D state at `src/parser.ts:44`:
+- **Performance Context**: `global` (stage directions) vs `character` (dialogue)
+- **Musical Context**: `spoken` vs `sung` (within `$$` containers)
+
+Key state transitions:
+- `@角色名` → enters character context
+- `---` or `***` → resets to global context
+- `$$` → toggles song container context
+
+### Multipass Architecture
+
+The plugin uses an intentional 3-4 pass pipeline:
+1. Micromark marking pass (inline lexical precedence, e.g. `<<...>>`)
+2. DraMark marking/protection/structure parse
+3. Micromark parse pass (CommonMark/mdast materialization)
+4. DraMark restore/de-protect pass (when placeholders are used)
+
+### AST Node Types
+
+Custom MDAST node types defined in `src/types.ts`:
+
+**Block-level**: `character-block`, `song-container`, `translation-pair`, `block-tech-cue`, `comment-line`, `comment-block`, `frontmatter`
+
+**Inline-level**: `inline-action` (`{动作}`), `inline-song` (`$唱词$`), `inline-tech-cue` (`<<cue>>`)
+
+Both inline markers support Unicode brackets: `｛｝` as alternative to `{}`.
+
+### Key Source Files
 
 | File | Purpose |
 |------|---------|
@@ -39,7 +68,7 @@ Key source files:
 | `src/inline-markers.ts` | Inline marker parsing (`{}`, `$...$`, `<<>>`) for legacy mode |
 | `src/m2-extensions.ts` | Micromark tokenizer extensions |
 | `src/errors.ts` | `DraMarkParseError` class, `defaultOptions()`, `warningToError()` |
-| `src/core/ | Higher-level utilities: config normalizer, diagnostics, view-model, outline |
+| `src/core/` | Higher-level utilities: config normalizer, diagnostics, view-model, outline |
 
 Tests live in `src/tests/`:
 
@@ -51,6 +80,12 @@ Tests live in `src/tests/`:
 | `edge-cases.test.ts` | Edge case coverage |
 | `scan-segments.test.ts` | Phase 1 lexical scan unit tests |
 | `core.test.ts` | Core module utilities |
+
+### Frontmatter & Translation
+
+- Frontmatter is extracted before parsing (`src/parser.ts:194-208`); raw YAML is preserved in `metadata.frontmatterRaw`
+- Translation mode is auto-enabled via frontmatter (`translation.enabled: true`) or via `translationEnabled` option
+- Translation pairs use `=` prefix for source text followed by target text lines; orphan `=` lines outside character context generate `TRANSLATION_OUTSIDE_CHARACTER` warnings
 
 ## Code Style
 
@@ -101,6 +136,10 @@ Tests live in `src/tests/`:
 ### General Guidelines
 - Do NOT add comments unless explicitly asked
 - Follow existing code patterns in neighboring files before introducing new ones
-- The `yarn` or `pnpm` lockfile (`pnpm-lock.yaml`) indicates `pnpm` is the package manager
+- The `pnpm-lock.yaml` lockfile indicates `pnpm` is the package manager
 - When adding dependencies, verify they are already used in the codebase or get explicit approval
 - Run `pnpm build` after making changes to verify type correctness
+- Comments: `%` for line comments, `%%` for block comments; only included in AST when `includeComments: true`
+- Escaping: backslash escapes `\@`, `\$`, `\%`, `\{`, `\}`, `\<`, `\>`, `\=`
+- Module resolution: `NodeNext` for ESM output; package is ESM-only (`"type": "module"`)
+- No Cursor rules or Copilot instructions are configured in this repo
