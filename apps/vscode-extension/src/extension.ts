@@ -3,6 +3,8 @@ import { DocumentEngine } from '../../../packages/app-core/index.js';
 import { DocumentController } from './document-controller.js';
 import { DiagnosticsManager } from './diagnostics.js';
 import { DraMarkCompletionProvider } from './completion-provider.js';
+import { DraMarkCodeLensProvider, DRAMARK_CODELENS_NOOP_COMMAND } from './codelens-provider.js';
+import { DraMarkDocumentSymbolProvider } from './document-symbol-provider.js';
 import { DraMarkFoldingProvider } from './folding-provider.js';
 import { DraMarkFormattingProvider } from './formatting-provider.js';
 import { PreviewPanel } from './preview-panel.js';
@@ -36,9 +38,19 @@ export function activate(context: vscode.ExtensionContext): void {
     new DraMarkFoldingProvider(),
   );
 
+  const symbolProvider = vscode.languages.registerDocumentSymbolProvider(
+    DRAMARK_SELECTOR,
+    new DraMarkDocumentSymbolProvider(),
+  );
+
   const formattingProvider = vscode.languages.registerDocumentFormattingEditProvider(
     DRAMARK_SELECTOR,
     new DraMarkFormattingProvider(),
+  );
+
+  const codelensProvider = vscode.languages.registerCodeLensProvider(
+    DRAMARK_SELECTOR,
+    new DraMarkCodeLensProvider(),
   );
 
   const semanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider(
@@ -70,6 +82,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.env.clipboard.writeText(text);
     vscode.window.showInformationMessage('Diagnostics copied to clipboard');
   });
+
+  const noOpCodeLens = vscode.commands.registerCommand(DRAMARK_CODELENS_NOOP_COMMAND, () => {});
 
   const openSub = vscode.workspace.onDidOpenTextDocument((doc) => {
     if (doc.languageId === 'dramark') {
@@ -103,10 +117,13 @@ export function activate(context: vscode.ExtensionContext): void {
     diagnostics,
     completionProvider,
     foldingProvider,
+    symbolProvider,
     formattingProvider,
+    codelensProvider,
     semanticTokensProvider,
     showPreview,
     copyDiagnostics,
+    noOpCodeLens,
     openSub,
     changeSub,
     closeSub,
