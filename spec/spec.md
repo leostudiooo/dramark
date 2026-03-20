@@ -186,7 +186,9 @@ CommentBlockState → TechCueBlock（块级）→ Translation → Character → 
 | `translation.source_lang` | string | 原文语言 |
 | `translation.target_lang` | string | 目标语言 |
 | `translation.render_mode` | string | 译配渲染模式（如 `bilingual`） |
-| `tech.mics` | array | 麦克风及技术设备信息 |
+| `tech.mics` | array | 麦克风及技术设备信息（保留数组结构） |
+| `tech.{category}` | object | 动态分类（除 mics 外），含 `color` 和 `entries` |
+| `tech.color` | string | 默认 tech cue 颜色（fallback） |
 
 ```yaml
 ---
@@ -214,7 +216,12 @@ tech:
   mics:
     - id: HM1
       label: 主麦
-      color: "#4B8BFF"
+  sfx:
+    color: "#66ccff"
+    entries:
+      - id: BGM_ENTER
+        desc: 入场音乐
+  color: "#888888"
 ---
 ```
 
@@ -224,6 +231,15 @@ tech:
 - 必须透传未知字段（forward-compatible）
 - 不应在语法层主动请求 `use_frontmatter_from` 指向的远程资源
 - 不负责严格业务 schema 校验或消费端呈现策略
+
+**Tech 配置结构**（v0.4.1 更新）：
+
+- `tech.mics` 为保留字段，使用数组结构定义麦克风等设备
+- `tech.{category}`（category ≠ mics）为动态分类，结构为 `{ color?: string; entries?: TechEntry[] }`
+- `tech.color` 为默认颜色，用于未匹配分类的 tech cue
+- TechEntry 结构：`{ id: string; label?: string; desc?: string }`
+
+匹配规则：取 tech cue payload 首词，优先匹配分类名，其次匹配 entry id，未匹配时使用 `tech.color` 或主题默认色。
 
 ### 4.1 `use_frontmatter_from` 合并优先级（应用层）
 
