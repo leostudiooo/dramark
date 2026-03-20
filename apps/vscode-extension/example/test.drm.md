@@ -1,18 +1,24 @@
 ---
 meta:
-  title: 在公园长椅上睡大觉 - 02 相遇小帕（塔帕柴）
-  author: 原创剧本
+  title: 在公园的长椅上睡大觉
+  author: 小橘猫_zzz
   locale: zh-CN
 casting:
   characters:
     - name: 小帕
       aliases: [帕]
+      mic: B1
     - name: 小塔
       aliases: [塔]
+      mic: B2
     - name: 小柴
       aliases: [柴]
+      mic: B3
 tech:
-  mics: []
+  mics: 
+    - id: B1
+    - id: B2
+    - id: B3
   sfx:
     - id: BGM_ENTER
       desc: 入场音乐
