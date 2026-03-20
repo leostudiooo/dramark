@@ -37,6 +37,7 @@ export interface TranslationConfig {
   enabled?: boolean;
   source_lang?: string;
   target_lang?: string;
+  render_mode?: string;
   render?: string;
   [key: string]: unknown;
 }

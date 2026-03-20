@@ -372,14 +372,8 @@ ${generateTechCueCSS()}
   transition: transform 0.2s;
 }
 
-.dm-config-trigger .codicon {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.dm-config-trigger .codicon-settings-gear::before {
-  content: "\\ea6c";
-  font-family: codicon;
+.dm-config-trigger svg {
+  display: block;
 }
 
 .dm-config-trigger:hover {

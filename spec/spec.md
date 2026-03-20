@@ -185,7 +185,7 @@ CommentBlockState → TechCueBlock（块级）→ Translation → Character → 
 | `translation.enabled` | boolean | 是否开启译配模式 |
 | `translation.source_lang` | string | 原文语言 |
 | `translation.target_lang` | string | 目标语言 |
-| `translation.render_mode` | string | 译配渲染模式（如 `bilingual`） |
+| `translation.render_mode` | string | 可选的译配渲染提示（如 `bilingual`）；主要用于无头/导出场景，交互式前端可覆盖 |
 | `tech.mics` | array | 麦克风及技术设备信息（保留数组结构） |
 | `tech.{category}` | object | 动态分类（除 mics 外），含 `color` 和 `entries` |
 | `tech.color` | string | 默认 tech cue 颜色（fallback） |
@@ -231,6 +231,7 @@ tech:
 - 必须透传未知字段（forward-compatible）
 - 不应在语法层主动请求 `use_frontmatter_from` 指向的远程资源
 - 不负责严格业务 schema 校验或消费端呈现策略
+- `translation.render_mode` 不得作为语法解析前置条件；缺省时应由消费端使用默认渲染策略
 
 **Tech 配置结构**（v0.4.1 更新）：
 
@@ -1194,6 +1195,7 @@ enum LexMode {
 **v0.3.1.1 → v0.4.0 兼容性**：
 
 - `translation.render` 调整为 `translation.render_mode`；应用层可提供别名兼容
+- `translation.render_mode` 为可选提示字段而非必填约束；交互式前端/扩展可由运行时设置覆盖，headless/导出链路可优先采用该字段
 - 旧写法 `@角色名 台词正文` 不再被视为合法角色声明，应降级为普通文本并给出 warning
 - 新增 `use_frontmatter_from` 为可选扩展字段；语法层不主动拉取外部文档
 - 应用层若启用外部 Frontmatter，建议采用“external 基线 + local 覆盖”的确定性合并

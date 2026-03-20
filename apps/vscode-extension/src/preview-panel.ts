@@ -8,7 +8,7 @@ import {
   generateCSS,
   defaultTheme,
 } from '../../../packages/app-core/index.js';
-import { createPreviewHTML, createConfigPanelHTML } from '../../../packages/app-core/index.js';
+import { createPreviewHTML } from '../../../packages/app-core/index.js';
 
 export class PreviewPanel {
   public static readonly viewType = 'dramark.preview';
@@ -104,12 +104,7 @@ export class PreviewPanel {
     const layout = buildColumnarLayout(blocks, context);
     const previewHTML = createPreviewHTML({ layout, config: renderConfig });
     const css = generateCSS(defaultTheme, renderConfig);
-    const configHTML = createConfigPanelHTML({
-      config: this.config,
-      onChange: () => {}, // Handled by message passing
-      isOpen: this.configOpen,
-      onToggle: () => {},
-    });
+    const configHTML = this.createConfigPanelHTML();
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -192,5 +187,67 @@ ${configHTML}
       return 'light';
     }
     return 'dark';
+  }
+
+  private createConfigPanelHTML(): string {
+    const { config, configOpen } = this;
+    
+    // Lucide Settings icon SVG
+    const settingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>`;
+    
+    const configContent = configOpen ? `
+      <div class="dm-config-content">
+        <div class="dm-config-item">
+          <span class="dm-config-label">Tech Cues</span>
+          <label class="dm-switch">
+            <input type="checkbox" data-config="showTechCues" ${config.showTechCues ? 'checked' : ''}>
+            <span class="dm-switch-slider"></span>
+          </label>
+        </div>
+        
+        <div class="dm-config-item">
+          <span class="dm-config-label">Comments</span>
+          <label class="dm-switch">
+            <input type="checkbox" data-config="showComments" ${config.showComments ? 'checked' : ''}>
+            <span class="dm-switch-slider"></span>
+          </label>
+        </div>
+        
+        <div class="dm-config-item">
+          <span class="dm-config-label">Translation</span>
+          <select data-config="translationMode">
+            <option value="source-only" ${config.translationMode === 'source-only' ? 'selected' : ''}>Source Only</option>
+            <option value="target-only" ${config.translationMode === 'target-only' ? 'selected' : ''}>Target Only</option>
+            <option value="bilingual" ${config.translationMode === 'bilingual' ? 'selected' : ''}>Bilingual</option>
+          </select>
+        </div>
+        
+        <div class="dm-config-item">
+          <span class="dm-config-label">Layout</span>
+          <select data-config="translationLayout">
+            <option value="stack" ${config.translationLayout === 'stack' ? 'selected' : ''}>Stack</option>
+            <option value="side-by-side" ${config.translationLayout === 'side-by-side' ? 'selected' : ''}>Side by Side</option>
+          </select>
+        </div>
+        
+        <div class="dm-config-item">
+          <span class="dm-config-label">Theme</span>
+          <select data-config="theme">
+            <option value="auto" ${config.theme === 'auto' ? 'selected' : ''}>Auto</option>
+            <option value="light" ${config.theme === 'light' ? 'selected' : ''}>Light</option>
+            <option value="dark" ${config.theme === 'dark' ? 'selected' : ''}>Dark</option>
+          </select>
+        </div>
+      </div>
+    ` : '';
+    
+    return `
+      <div class="dm-config-panel">
+        <button class="dm-config-trigger" aria-label="配置" aria-expanded="${configOpen}">
+          ${settingsIcon}
+        </button>
+        ${configContent}
+      </div>
+    `;
   }
 }

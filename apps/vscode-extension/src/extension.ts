@@ -23,6 +23,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const engine = new DocumentEngine({
     debounceMs: 150,
     parserOptions: {
+      translationEnabled: true,
       includeComments: true,
       multipassDebug: true,
     },
