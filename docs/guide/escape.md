@@ -20,26 +20,26 @@
 
 ### 保留 @ 符号
 
-```markdown
+```dramark
 这是一个反斜杠 \@ 字符。 % 显示为 @，不触发角色声明
 ```
 
 ### 代码中的符号
 
-```markdown
+```dramark
 C++ 模板：vector\<int\> % 显示为 <int>，不触发 Tech Cue
 位移操作：1 \<\< 8 % 显示为 <<，不触发 Tech Cue
 ```
 
 ### 保留百分号
 
-```markdown
+```dramark
 利润下降了 20\% % 显示为 20%，不是注释
 ```
 
 ### 保留美元符号
 
-```markdown
+```dramark
 价格是 \$50 % 显示为 $50，不是行内唱段
 ```
 
@@ -47,7 +47,7 @@ C++ 模板：vector\<int\> % 显示为 <int>，不触发 Tech Cue
 
 在代码块内，所有 DraMark 标记本身就失效，不需要转义：
 
-````markdown
+````dramark
 ```cpp
 // 这里不需要转义
 vector<vector<int>> matrix;  // 正常显示

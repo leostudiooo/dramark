@@ -4,7 +4,7 @@
 
 ## 示例 1：经典对白
 
-```markdown
+```dramark
 ---
 meta:
   title: 哈姆雷特（节选）
@@ -57,7 +57,7 @@ meta:
 
 ## 示例 2：现代话剧
 
-```markdown
+```dramark
 ---
 meta:
   title: 等待戈多（节选）
@@ -106,7 +106,7 @@ meta:
 
 ## 示例 3：独角戏
 
-```markdown
+```dramark
 ---
 meta:
   title: 献给阿尔吉侬的花束（独白）
@@ -148,7 +148,7 @@ meta:
 
 ## 示例 4：多角色场景
 
-```markdown
+```dramark
 ---
 meta:
   title: 雷雨（节选）

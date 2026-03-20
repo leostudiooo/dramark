@@ -21,7 +21,7 @@ DraMark 中存在两种表演模式：
 
 **关闭**：独占一行的 `!!`
 
-```markdown
+```dramark
 $$
 @Samuel Seabury
 Heed not the rabble who scream
@@ -40,7 +40,7 @@ $$
 
 ### 1. 唱段中插入短念白
 
-```markdown
+```dramark
 $$
 @Samuel Seabury
 Heed not the rabble who scream
@@ -57,7 +57,7 @@ $$
 
 ### 2. 唱段中插入长念白场景
 
-```markdown
+```dramark
 $$
 @Aaron Burr
 No one else was in the room where it happened
@@ -103,7 +103,7 @@ $$
 
 ## 完整示例
 
-```markdown
+```dramark
 $$
 @小塔
 这怎么聊

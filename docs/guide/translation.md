@@ -20,7 +20,7 @@ translation:
 
 **语法**：`=␠<原文>`（等号后必须跟一个空格）
 
-```markdown
+```dramark
 @冉阿让
 = Who am I?
 我是谁？
@@ -37,7 +37,7 @@ TranslationBlock 包含：
 
 译文可以包含多段落、列表等复杂结构：
 
-```markdown
+```dramark
 @角色
 = First line
 第一行译文
@@ -66,7 +66,7 @@ TranslationBlock 包含：
 
 **语法**：独占一行的 `=`
 
-```markdown
+```dramark
 @冉阿让
 = Who am I?
 我是谁？
@@ -88,7 +88,7 @@ TranslationBlock 包含：
 
 ## 完整示例
 
-```markdown
+```dramark
 ---
 meta:
   title: 译配示例

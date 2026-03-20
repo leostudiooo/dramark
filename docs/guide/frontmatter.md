@@ -4,7 +4,7 @@ DraMark 文档可由 YAML Frontmatter 块开头，用于提供剧本配置数据
 
 ## 基本结构
 
-```markdown
+```dramark
 ---
 meta:
   title: 作品标题

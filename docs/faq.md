@@ -28,14 +28,14 @@ DraMark 是文本格式，你可以：
 
 可以。推荐使用引号包裹：
 
-```markdown
+```dramark
 @"冉 阿让"
 台词内容
 ```
 
 也可以不加引号（首尾空白会被裁剪）：
 
-```markdown
+```dramark
 @  冉 阿让
 台词内容
 ```
@@ -44,7 +44,7 @@ DraMark 是文本格式，你可以：
 
 使用转义：`\@`
 
-```markdown
+```dramark
 @角色
 我的邮箱是 user\@example.com
 ```
@@ -53,7 +53,7 @@ DraMark 是文本格式，你可以：
 
 可以，不会退出唱段：
 
-```markdown
+```dramark
 $$
 @角色A
 唱词...
@@ -97,7 +97,7 @@ const result = await unified()
 
 不会，代码保护区内所有 DraMark 语法均失效：
 
-````markdown
+````dramark
 ```cpp
 vector<vector<int>> matrix;  // 不会触发 Tech Cue
 ```

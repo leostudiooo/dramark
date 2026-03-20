@@ -4,7 +4,7 @@
 
 ## 示例 1：独唱
 
-```markdown
+```dramark
 ---
 meta:
   title: 独白
@@ -33,7 +33,7 @@ $$
 
 ## 示例 2：对唱
 
-```markdown
+```dramark
 $$
 $$ 对峙
 
@@ -64,7 +64,7 @@ $$
 
 ## 示例 3：群唱
 
-```markdown
+```dramark
 $$
 $$ 革命之歌
 
@@ -96,7 +96,7 @@ $$
 
 ## 示例 4：说唱/念白混合
 
-```markdown
+```dramark
 $$
 $$ Cabinet Battle
 
@@ -124,7 +124,7 @@ $$
 
 ## 示例 5：重唱
 
-```markdown
+```dramark
 $$
 $$ One Day More
 

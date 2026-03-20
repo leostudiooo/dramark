@@ -81,7 +81,7 @@ while 栈顶块与当前指令不兼容:
 
 在 CommonMark 的围栏代码块和行内代码内部，所有 DraMark 特殊语法均失效：
 
-````markdown
+````dramark
 ```cpp
 // 这里的 @、$$、<< >> 都是普通文本
 vector<vector<int>> matrix;  // 不触发 Tech Cue
@@ -107,7 +107,7 @@ vector<vector<int>> matrix;  // 不触发 Tech Cue
 
 如果出现在 CommonMark 嵌套容器（如引用块、列表项）内部，它们会**失效并降级为普通文本**：
 
-```markdown
+```dramark
 > 这是一个引用块
 > ---
 > 这里的 --- 不会触发场景分隔
