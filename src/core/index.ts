@@ -8,9 +8,9 @@ export type {
   NormalizationResult,
   OutlineItem,
   ParseViewModel,
+  TechCategory,
   TechConfig,
   TechEntry,
-  TechKeywordEntry,
   TranslationConfig,
 } from './types.js';
 

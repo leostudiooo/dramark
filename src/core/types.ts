@@ -43,21 +43,21 @@ export interface TranslationConfig {
 
 export interface TechEntry {
   id: string;
+  label?: string;
+  desc?: string;
   [key: string]: unknown;
 }
 
-export interface TechKeywordEntry {
-  token: string;
-  label: string;
+export interface TechCategory {
+  color?: string;
+  entries?: TechEntry[];
   [key: string]: unknown;
 }
 
 export interface TechConfig {
   mics: TechEntry[];
-  sfx: TechEntry[];
-  lx: TechEntry[];
-  keywords: TechKeywordEntry[];
-  [key: string]: unknown;
+  color?: string;
+  [category: string]: TechEntry[] | TechCategory | string | undefined;
 }
 
 export interface DocumentConfig {
