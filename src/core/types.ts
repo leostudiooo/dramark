@@ -48,6 +48,12 @@ export interface TechEntry {
   [key: string]: unknown;
 }
 
+export interface TechKeywordEntry {
+  token: string;
+  label: string;
+  [key: string]: unknown;
+}
+
 export interface TechCategory {
   color?: string;
   entries?: TechEntry[];
@@ -56,8 +62,9 @@ export interface TechCategory {
 
 export interface TechConfig {
   mics: TechEntry[];
+  keywords?: TechKeywordEntry[];
   color?: string;
-  [category: string]: TechEntry[] | TechCategory | string | undefined;
+  [category: string]: TechEntry[] | TechCategory | TechKeywordEntry[] | string | undefined;
 }
 
 export interface DocumentConfig {
