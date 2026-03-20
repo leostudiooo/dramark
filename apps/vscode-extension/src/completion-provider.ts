@@ -12,34 +12,34 @@ const COMPLETION_KIND_MAP: Record<string, vscode.CompletionItemKind> = {
 type FrontmatterCompletionSpec = {
   label: string;
   detail: string;
-  insertText: vscode.SnippetString;
+  insertText: string;
 };
 
 const FRONTMATTER_ROOT_KEYS: FrontmatterCompletionSpec[] = [
   {
     label: 'meta',
     detail: 'Document metadata',
-    insertText: new vscode.SnippetString('meta:\n  $0'),
+    insertText: 'meta:',
   },
   {
     label: 'casting',
     detail: 'Character and group configuration',
-    insertText: new vscode.SnippetString('casting:\n  $0'),
+    insertText: 'casting:',
   },
   {
     label: 'translation',
     detail: 'Translation configuration',
-    insertText: new vscode.SnippetString('translation:\n  $0'),
+    insertText: 'translation:',
   },
   {
     label: 'tech',
     detail: 'Technical resources dictionary',
-    insertText: new vscode.SnippetString('tech:\n  $0'),
+    insertText: 'tech:',
   },
   {
     label: 'use_frontmatter_from',
     detail: 'Load external frontmatter baseline',
-    insertText: new vscode.SnippetString('use_frontmatter_from: ${1:https://example.com/frontmatter.yaml}'),
+    insertText: 'use_frontmatter_from: ',
   },
 ];
 
@@ -48,173 +48,173 @@ const FRONTMATTER_CHILD_KEYS: Record<string, FrontmatterCompletionSpec[]> = {
     {
       label: 'title',
       detail: 'Document title',
-      insertText: new vscode.SnippetString('title: ${1:Title}'),
+      insertText: 'title: ',
     },
     {
       label: 'author',
       detail: 'Author name',
-      insertText: new vscode.SnippetString('author: ${1:Author Name}'),
+      insertText: 'author: ',
     },
     {
       label: 'locale',
       detail: 'Locale, e.g. zh-CN',
-      insertText: new vscode.SnippetString('locale: ${1:zh-CN}'),
+      insertText: 'locale: ',
     },
     {
       label: 'version',
       detail: 'Document version',
-      insertText: new vscode.SnippetString('version: ${1:0.4.1}'),
+      insertText: 'version: ',
     },
   ],
   casting: [
     {
       label: 'characters',
       detail: 'Character definitions',
-      insertText: new vscode.SnippetString('characters:\n  - name: ${1:Character Name}'),
+      insertText: 'characters:',
     },
     {
       label: 'groups',
       detail: 'Character groups',
-      insertText: new vscode.SnippetString('groups:\n  ${1:ensemble}:\n    members: [${2:Character Name}]'),
+      insertText: 'groups:',
     },
   ],
   translation: [
     {
       label: 'enabled',
       detail: 'Enable translation mode',
-      insertText: new vscode.SnippetString('enabled: ${1|true,false|}'),
+      insertText: 'enabled: ',
     },
     {
       label: 'source_lang',
       detail: 'Source language',
-      insertText: new vscode.SnippetString('source_lang: ${1:en}'),
+      insertText: 'source_lang: ',
     },
     {
       label: 'target_lang',
       detail: 'Target language',
-      insertText: new vscode.SnippetString('target_lang: ${1:zh-CN}'),
+      insertText: 'target_lang: ',
     },
     {
       label: 'render_mode',
       detail: 'Rendering mode',
-      insertText: new vscode.SnippetString('render_mode: ${1|bilingual,source-only,target-only|}'),
+      insertText: 'render_mode: ',
     },
   ],
   tech: [
     {
       label: 'mics',
       detail: 'Microphone resources',
-      insertText: new vscode.SnippetString('mics:\n  - id: ${1:HM1}'),
+      insertText: 'mics:',
     },
     {
       label: 'sfx',
       detail: 'SFX resources',
-      insertText: new vscode.SnippetString('sfx:\n  - id: ${1:SFX_ID}'),
+      insertText: 'sfx:',
     },
     {
       label: 'lx',
       detail: 'Lighting resources',
-      insertText: new vscode.SnippetString('lx:\n  - id: ${1:LX01}'),
+      insertText: 'lx:',
     },
     {
       label: 'keywords',
       detail: 'Tech keyword dictionary',
-      insertText: new vscode.SnippetString('keywords:\n  - token: ${1:blackout}\n    label: ${2:Blackout}'),
+      insertText: 'keywords:',
     },
   ],
   characters: [
     {
       label: 'name',
       detail: 'Character display name',
-      insertText: new vscode.SnippetString('name: ${1:Character Name}'),
+      insertText: 'name: ',
     },
     {
       label: 'id',
       detail: 'Optional unique id for disambiguation',
-      insertText: new vscode.SnippetString('id: ${1:role_id}'),
+      insertText: 'id: ',
     },
     {
       label: 'actor',
       detail: 'Actor name',
-      insertText: new vscode.SnippetString('actor: ${1:Actor Name}'),
+      insertText: 'actor: ',
     },
     {
       label: 'mic',
       detail: 'Default microphone id',
-      insertText: new vscode.SnippetString('mic: ${1:HM1}'),
+      insertText: 'mic: ',
     },
     {
       label: 'aliases',
       detail: 'Alternative names',
-      insertText: new vscode.SnippetString('aliases: [${1:Alias}]'),
+      insertText: 'aliases: []',
     },
   ],
   mics: [
     {
       label: 'id',
       detail: 'Mic id',
-      insertText: new vscode.SnippetString('id: ${1:HM1}'),
+      insertText: 'id: ',
     },
     {
       label: 'label',
       detail: 'Display label',
-      insertText: new vscode.SnippetString('label: ${1:Main Mic}'),
+      insertText: 'label: ',
     },
     {
       label: 'color',
       detail: 'Hex color string',
-      insertText: new vscode.SnippetString('color: ${1:#4B8BFF}'),
+      insertText: 'color: ',
     },
   ],
   sfx: [
     {
       label: 'id',
       detail: 'SFX id',
-      insertText: new vscode.SnippetString('id: ${1:SFX_ID}'),
+      insertText: 'id: ',
     },
     {
       label: 'file',
       detail: 'Audio file path',
-      insertText: new vscode.SnippetString('file: ${1:file.mp3}'),
+      insertText: 'file: ',
     },
     {
       label: 'desc',
       detail: 'Description',
-      insertText: new vscode.SnippetString('desc: ${1:Description}'),
+      insertText: 'desc: ',
     },
   ],
   lx: [
     {
       label: 'id',
       detail: 'Lighting id',
-      insertText: new vscode.SnippetString('id: ${1:LX01}'),
+      insertText: 'id: ',
     },
     {
       label: 'desc',
       detail: 'Description',
-      insertText: new vscode.SnippetString('desc: ${1:Description}'),
+      insertText: 'desc: ',
     },
     {
       label: 'color',
       detail: 'Hex color string',
-      insertText: new vscode.SnippetString('color: ${1:#E6EEFF}'),
+      insertText: 'color: ',
     },
   ],
   keywords: [
     {
       label: 'token',
       detail: 'Keyword token',
-      insertText: new vscode.SnippetString('token: ${1:blackout}'),
+      insertText: 'token: ',
     },
     {
       label: 'label',
       detail: 'Display label',
-      insertText: new vscode.SnippetString('label: ${1:Blackout}'),
+      insertText: 'label: ',
     },
     {
       label: 'color',
       detail: 'Hex color string',
-      insertText: new vscode.SnippetString('color: ${1:#111111}'),
+      insertText: 'color: ',
     },
   ],
 };
@@ -230,12 +230,16 @@ export class DraMarkCompletionProvider implements vscode.CompletionItemProvider 
       return collectFrontmatterCompletions(document, position);
     }
 
+    const linePrefix = document.lineAt(position).text.substring(0, position.character);
+    if (!linePrefix.includes('@') && !linePrefix.includes('<')) {
+      return undefined;
+    }
+
     const viewModel = this.controller.getViewModel(document.uri.toString());
     if (!viewModel) {
       return undefined;
     }
 
-    const linePrefix = document.lineAt(position).text.substring(0, position.character);
     const context = resolveCompletionContext(linePrefix);
 
     if (context.trigger === 'none') {
@@ -333,14 +337,14 @@ function resolveListKeyContext(linePrefix: string): { shouldPrefixSpace: boolean
 }
 
 function applyListPrefixSpacing(
-  insertText: vscode.SnippetString,
+  insertText: string,
   context: { shouldPrefixSpace: boolean } | null,
-): vscode.SnippetString {
+): string {
   if (!context || !context.shouldPrefixSpace) {
     return insertText;
   }
 
-  return new vscode.SnippetString(` ${insertText.value}`);
+  return ` ${insertText}`;
 }
 
 function inferYamlPath(document: vscode.TextDocument, line: number): string[] {

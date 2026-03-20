@@ -15,6 +15,8 @@ const DRAMARK_SELECTOR: vscode.DocumentSelector = { language: 'dramark' };
 const FRONTMATTER_COMPLETION_TRIGGERS = [
   ':',
   '-',
+  '_',
+  ...'abcdefghijklmnopqrstuvwxyz',
 ];
 
 export function activate(context: vscode.ExtensionContext): void {
