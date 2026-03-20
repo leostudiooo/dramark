@@ -174,6 +174,47 @@ describe('parseDraMark', () => {
     expect(techCue?.value).toBe('LX01 GO');
   });
 
+  it('parses >>> quote line as CommonMark blockquote outside block-tech-cue', () => {
+    const result = parseDraMark('>>> 引用');
+    const first = result.tree.children[0] as { type: string };
+
+    expect(result.warnings).toHaveLength(0);
+    expect(first.type).toBe('blockquote');
+  });
+
+  it('closes block-tech-cue before parsing adjacent >>> quote lines', () => {
+    const input = ['<<<', 'LX', '>>>', '>>> 引用'].join('\n');
+    const result = parseDraMark(input);
+
+    const cue = result.tree.children[0] as { type: string; value: string };
+    const quote = result.tree.children[1] as { type: string };
+
+    expect(result.warnings).toHaveLength(0);
+    expect(cue.type).toBe('block-tech-cue');
+    expect(cue.value).toBe('LX');
+    expect(quote.type).toBe('blockquote');
+  });
+
+  it('supports block-tech-cue header form with <<< as closing marker', () => {
+    const input = ['<<< LX', '内容', '<<<'].join('\n');
+    const result = parseDraMark(input);
+    const cue = result.tree.children[0] as { type: string; value: string };
+
+    expect(result.warnings).toHaveLength(0);
+    expect(cue.type).toBe('block-tech-cue');
+    expect(cue.value).toBe('LX\n内容');
+  });
+
+  it('keeps inline tech cue marker text literal inside block-tech-cue payload', () => {
+    const input = ['<<<', '<<LX01>>', '>>>'].join('\n');
+    const result = parseDraMark(input);
+    const cue = result.tree.children[0] as { type: string; value: string };
+
+    expect(result.warnings).toHaveLength(0);
+    expect(cue.type).toBe('block-tech-cue');
+    expect(cue.value).toBe('<<LX01>>');
+  });
+
   it('parses inline-spoken inside song container instead of inline-song', () => {
     const input = ['$$', '@A', '这句 $不应嵌套$ 仍是普通唱段文本', '$$'].join('\n');
 

@@ -61,6 +61,21 @@ describe('remarkDraMark plugin', () => {
     expect(allTypes).not.toContain('inline-tech-cue');
   });
 
+  it('does not create inline-tech-cue inside fenced code sanctuary', async () => {
+    const processor = unified().use(remarkParse).use(remarkDraMark);
+    const file = new VFile({ value: '```\n<<LX01 GO>>\n```' });
+    const tree = processor.parse(file) as { children: Array<{ type: string; value?: string; children?: unknown[] }> };
+
+    await processor.run(tree, file);
+
+    const allNodes = flatten(tree);
+    const allTypes = allNodes.map((node) => node.type);
+    const codeNode = allNodes.find((node) => node.type === 'code') as { type: string; value?: string } | undefined;
+
+    expect(allTypes).not.toContain('inline-tech-cue');
+    expect(codeNode?.value).toContain('<<LX01 GO>>');
+  });
+
   it('does not overwrite tree.children in micromark-integrated mode', async () => {
     const processor = unified().use(remarkParse).use(remarkDraMark);
     const file = new VFile({ value: '@A\n普通 markdown 行' });

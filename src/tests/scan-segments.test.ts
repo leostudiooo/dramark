@@ -147,6 +147,29 @@ describe('scanSegments — Phase 1 (Lexical Shield)', () => {
     expect(asBlockTechCue(segs[0]).closed).toBe(true);
   });
 
+  it('keeps inline-tech-cue text inside block-tech-cue payload as raw text', () => {
+    const lines = ['<<<', '<<LX01>>', '>>>'];
+    const segs = scanSegments(lines, 0);
+    expect(kinds(segs)).toEqual(['block-tech-cue']);
+    expect(asBlockTechCue(segs[0]).value).toBe('<<LX01>>');
+    expect(asBlockTechCue(segs[0]).closed).toBe(true);
+  });
+
+  it('supports multi-line block-tech-cue header with <<< closing marker', () => {
+    const lines = ['<<< LX', '内容', '<<<'];
+    const segs = scanSegments(lines, 0);
+    expect(kinds(segs)).toEqual(['block-tech-cue']);
+    expect(asBlockTechCue(segs[0]).value).toBe('LX\n内容');
+    expect(asBlockTechCue(segs[0]).closed).toBe(true);
+  });
+
+  it('does not treat >>> quote lines as DraMark directives', () => {
+    const lines = ['>>> 引用'];
+    const segs = scanSegments(lines, 0);
+    expect(kinds(segs)).toEqual(['content']);
+    expect(asContent(segs[0]).lines).toEqual(['>>> 引用']);
+  });
+
   it('correctly sequences mixed segments in a typical scene', () => {
     const lines = [
       '# Scene 1',
