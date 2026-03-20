@@ -5,6 +5,8 @@
 
 专为戏剧、影视及音乐剧设计的纯文本标记语言，助力剧本创作、排练和演出的全流程。
 
+文件扩展名：`.dra.md`（推荐）, `.dramark`, `.drm`
+
 ![VS Code 插件渲染预览](https://github.com/user-attachments/assets/580e7ed2-d38c-4e26-8014-b6baaf3f21e4)
 
 ## 亮点
