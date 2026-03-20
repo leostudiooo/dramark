@@ -11,6 +11,7 @@ export type {
   TechCategory,
   TechConfig,
   TechEntry,
+  TechKeywordEntry,
   TranslationConfig,
 } from './types.js';
 
