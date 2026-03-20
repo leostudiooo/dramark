@@ -56,7 +56,7 @@ tech:
 $$ 小帕饿饿歌
 @小帕
 = 哪里会有夜宵呢
-Where to find some a bite tonight?
+Where to find a bite tonight?
 = 哪里有好吃的呢
 Where's the tasty in my sight?
 = 到了夜里总是会突然肚子饿
