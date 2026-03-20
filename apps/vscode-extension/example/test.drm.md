@@ -24,19 +24,23 @@ tech:
     - id: B3
     - id: B4
   sfx:
-    - id: BGM_ENTER
-      desc: 入场音乐
-    - id: BGM_PARK_NIGHT
-      desc: 夜晚公园主题
-    - id: SFX_THUD
-      desc: 手刀敲击声
+    color: "#66ccff"
+    entries:
+      - id: BGM_ENTER
+        desc: 入场音乐
+      - id: BGM_PARK_NIGHT
+        desc: 夜晚公园主题
+      - id: SFX_THUD
+        desc: 手刀敲击声
   lx:
-    - id: SPOT_PARK
-      desc: 公园环境光
-    - id: SPOT_XIAOTA
-      desc: 小塔独光
-    - id: SPOT_DUO
-      desc: 双人光区
+    color: "#ff66cc"
+    entries:
+      - id: SPOT_PARK
+        desc: 公园环境光
+      - id: SPOT_XIAOTA
+        desc: 小塔独光
+      - id: SPOT_DUO
+        desc: 双人光区
 ---
 
 # 02 相遇小帕
