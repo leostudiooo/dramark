@@ -10,6 +10,7 @@ export interface DocumentSnapshot {
 }
 
 export type EngineMessage =
+  | { type: 'document/open'; uri: string; sourceText: string }
   | { type: 'document/update'; uri: string; version: number; sourceText: string }
   | { type: 'document/close'; uri: string }
   | { type: 'snapshot/push'; snapshot: DocumentSnapshot }
