@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createParseViewModel } from '../../../src/core/index.js';
+import { DocumentEngine } from '../../../packages/app-core/index.js';
 import type { OutlineItem } from '../../../src/core/index.js';
 import type { DraMarkRootContent } from '../../../src/types.js';
 import './styles.css';
@@ -44,19 +44,38 @@ $我听见风在唱$
 $$
 `;
 
+const DOC_URI = 'dramark://editor/current';
+
 function App(): React.JSX.Element {
+  const engineRef = React.useRef<DocumentEngine | null>(null);
+  if (engineRef.current === null) {
+    engineRef.current = new DocumentEngine({ debounceMs: 180 });
+  }
+
+  const initialSnapshot = React.useMemo(
+    () => {
+      const engine = engineRef.current!;
+      engine.openDocument(DOC_URI, INITIAL_TEXT);
+      return engine.getSnapshot(DOC_URI)!;
+    },
+    [],
+  );
+
   const [sourceText, setSourceText] = React.useState(INITIAL_TEXT);
   const [activeLine, setActiveLine] = React.useState<number | null>(null);
-  const [viewModel, setViewModel] = React.useState(() => createParseViewModel(INITIAL_TEXT));
+  const [viewModel, setViewModel] = React.useState(initialSnapshot.viewModel);
 
   React.useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setViewModel(createParseViewModel(sourceText));
-    }, 180);
+    const engine = engineRef.current!;
+    return engine.subscribe((snapshot) => {
+      if (snapshot.uri === DOC_URI) {
+        setViewModel(snapshot.viewModel);
+      }
+    });
+  }, []);
 
-    return () => {
-      window.clearTimeout(timer);
-    };
+  React.useEffect(() => {
+    engineRef.current!.updateDocument(DOC_URI, sourceText);
   }, [sourceText]);
 
   return (
