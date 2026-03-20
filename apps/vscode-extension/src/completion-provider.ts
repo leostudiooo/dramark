@@ -227,7 +227,7 @@ export class DraMarkCompletionProvider implements vscode.CompletionItemProvider 
     position: vscode.Position,
   ): vscode.CompletionItem[] | undefined {
     if (isInsideFrontmatter(document, position)) {
-      return collectFrontmatterCompletions(document, position);
+      return undefined;
     }
 
     const linePrefix = document.lineAt(position).text.substring(0, position.character);
@@ -300,106 +300,4 @@ function getFrontmatterRange(
   }
 
   return null;
-}
-
-function collectFrontmatterCompletions(
-  document: vscode.TextDocument,
-  position: vscode.Position,
-): vscode.CompletionItem[] {
-  const linePrefix = document.lineAt(position).text.substring(0, position.character);
-  const path = inferYamlPath(document, position.line);
-  const currentScope = path[path.length - 1];
-  const specs = currentScope ? (FRONTMATTER_CHILD_KEYS[currentScope] ?? FRONTMATTER_ROOT_KEYS) : FRONTMATTER_ROOT_KEYS;
-  const listKeyContext = resolveListKeyContext(linePrefix);
-
-  const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z_][A-Za-z0-9_-]*/u);
-  const range = wordRange ?? new vscode.Range(position, position);
-
-  return specs.map((spec) => {
-    const item = new vscode.CompletionItem(spec.label, vscode.CompletionItemKind.Field);
-    item.detail = spec.detail;
-    item.insertText = applyListPrefixSpacing(spec.insertText, listKeyContext);
-    item.filterText = spec.label;
-    item.range = range;
-    return item;
-  });
-}
-
-function resolveListKeyContext(linePrefix: string): { shouldPrefixSpace: boolean } | null {
-  const match = linePrefix.match(/^\s*-(\s*)([A-Za-z_][A-Za-z0-9_-]*)?$/u);
-  if (!match) {
-    return null;
-  }
-
-  return {
-    shouldPrefixSpace: match[1].length === 0,
-  };
-}
-
-function applyListPrefixSpacing(
-  insertText: string,
-  context: { shouldPrefixSpace: boolean } | null,
-): string {
-  if (!context || !context.shouldPrefixSpace) {
-    return insertText;
-  }
-
-  return ` ${insertText}`;
-}
-
-function inferYamlPath(document: vscode.TextDocument, line: number): string[] {
-  const range = getFrontmatterRange(document);
-  if (!range) {
-    return [];
-  }
-
-  const stack: Array<{ indent: number; key: string }> = [];
-
-  for (let i = range.startLine + 1; i < line; i += 1) {
-    const text = document.lineAt(i).text;
-    const trimmed = text.trim();
-    if (trimmed.length === 0 || trimmed.startsWith('#')) {
-      continue;
-    }
-
-    const listKeyMatch = text.match(/^(\s*)-\s*([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/u);
-    if (listKeyMatch) {
-      const indent = listKeyMatch[1].length + 2;
-      const key = listKeyMatch[2];
-      const value = listKeyMatch[3].trim();
-      while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
-        stack.pop();
-      }
-      if (value.length === 0) {
-        stack.push({ indent, key });
-      }
-      continue;
-    }
-
-    const keyMatch = text.match(/^(\s*)([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/u);
-    if (!keyMatch) {
-      continue;
-    }
-
-    const indent = keyMatch[1].length;
-    const key = keyMatch[2];
-    const value = keyMatch[3].trim();
-    while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
-      stack.pop();
-    }
-    if (value.length === 0) {
-      stack.push({ indent, key });
-    }
-  }
-
-  const currentIndent = countLeadingSpaces(document.lineAt(line).text);
-  return stack.filter((entry) => entry.indent < currentIndent).map((entry) => entry.key);
-}
-
-function countLeadingSpaces(line: string): number {
-  let i = 0;
-  while (i < line.length && line[i] === ' ') {
-    i += 1;
-  }
-  return i;
 }

@@ -12,12 +12,6 @@ import { DraMarkSemanticTokensProvider } from './semantic-tokens-provider.js';
 import { registerYamlSchema } from './yaml-schema.js';
 
 const DRAMARK_SELECTOR: vscode.DocumentSelector = { language: 'dramark' };
-const FRONTMATTER_COMPLETION_TRIGGERS = [
-  ':',
-  '-',
-  '_',
-  ...'abcdefghijklmnopqrstuvwxyz',
-];
 
 export function activate(context: vscode.ExtensionContext): void {
   const engine = new DocumentEngine({
@@ -42,7 +36,6 @@ export function activate(context: vscode.ExtensionContext): void {
     new DraMarkCompletionProvider(controller),
     '@',
     '<',
-    ...FRONTMATTER_COMPLETION_TRIGGERS,
   );
 
   const foldingProvider = vscode.languages.registerFoldingRangeProvider(
