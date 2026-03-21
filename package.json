@@ -33,7 +33,7 @@
     "test": "vitest",
     "test:run": "vitest run"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "remark",
     "dramark",
