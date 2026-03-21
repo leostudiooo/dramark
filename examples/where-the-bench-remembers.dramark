@@ -62,7 +62,7 @@ The stores are closed, I tried the door
 = 公园里也没有人
 The park is empty, searched the floor
 = 我该去哪里找好吃的夜宵呢
-How can I find my late night bite that I long for?
+Where can I turn to find the snack I am craving more?
 
 ---
 小帕发现了躺着的小塔。
@@ -163,9 +163,9 @@ LX: SPOT_DUO 灯光变化同时打亮二人。
 小帕搬起椅子到小塔另一侧。
 
 @小塔 @小帕
-回想她 轻灵的动作｜你为什么不说话
-她 俏皮地诉说｜你从哪里来的呀
-我饿了 饿了 饿了｜嘟嘟 小塔 咘咘
+回想她 轻灵的动作｜$你为什么不说话$
+她 俏皮地诉说｜$你从哪里来的呀$
+我饿了 饿了 饿了｜$嘟嘟 小塔 咘咘$
 然后 我就被咬了｜{打断} $搭理我一下！$
 $$
 
