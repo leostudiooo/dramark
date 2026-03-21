@@ -1,6 +1,6 @@
 # 给大语言模型 (Large Language Models, LLMs) 的语法指南
 
-[纯文本版](https://github.com/leostudiooo/dramark/blob/main/docs/guide/llm-syntax-guide.md)
+[纯文本版](https://raw.githubusercontent.com/leostudiooo/dramark/refs/heads/main/docs/guide/llm-syntax-guide.md)
 
 本指南基于 [DraMark Language Specification](https://github.com/leostudiooo/dramark/blob/main/spec/spec.md)（v0.4.1，2026-03-19），面向需要让 LLM 生成 DraMark 文本的场景。
 
