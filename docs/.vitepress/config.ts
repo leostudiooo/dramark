@@ -74,7 +74,7 @@ export default defineConfig({
     },
     
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/leostudiooo/dramark' }
+      { icon: 'github', link: 'https://github.com/dramark-md/dramark' }
     ],
     
     footer: {

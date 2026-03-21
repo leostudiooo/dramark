@@ -182,8 +182,8 @@ ${2:译文}
 ## 相关链接
 
 - [DraMark 文档](https://dramark.烫烫烫的锟斤拷.top/)
-- [GitHub 仓库](https://github.com/leostudiooo/dramark)
-- [问题反馈](https://github.com/leostudiooo/dramark/issues)
+- [GitHub 仓库](https://github.com/dramark-md/dramark)
+- [问题反馈](https://github.com/dramark-md/dramark/issues)
 
 ## 许可证
 

@@ -4,7 +4,7 @@
   "description": "DraMark — Drama Markdown language support",
   "repository": {
     "type": "git",
-    "url": "https://github.com/leostudiooo/dramark.git"
+    "url": "https://github.com/dramark-md/dramark.git"
   },
   "version": "0.0.1",
   "license": "MIT",

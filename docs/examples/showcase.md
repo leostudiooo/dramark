@@ -1,6 +1,6 @@
 # 完整剧本示例
 
-以下是使用 DraMark 编写的完整剧本——[《在公园的长椅上睡大觉》第二幕](https://github.com/leostudiooo/dramark/blob/main/examples/where-the-bench-remembers.dramark)。
+以下是使用 DraMark 编写的完整剧本——[《在公园的长椅上睡大觉》第二幕](https://github.com/dramark-md/dramark/blob/main/examples/where-the-bench-remembers.dramark)。
 
 感谢 [@小橘猫_zzz](https://space.bilibili.com/33539494) 老师提供的授权和大力支持！
 

@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/leostudiooo/dramark.git"
+    "url": "https://github.com/dramark-md/dramark.git"
   },
   "bugs": {
-    "url": "https://github.com/leostudiooo/dramark/issues"
+    "url": "https://github.com/dramark-md/dramark/issues"
   },
-  "homepage": "https://github.com/leostudiooo/dramark#readme",
+  "homepage": "https://github.com/dramark-md/dramark#readme",
   "scripts": {
     "build": "tsc",
     "build:web": "pnpm --dir apps/web build",
