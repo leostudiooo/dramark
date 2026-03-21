@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: 查看示例
       link: /examples/showcase
+    - theme: alt
+      text: 🤖 给 LLM 的指南
+      link: /guide/llm-syntax-guide
 
 features:
   - icon: ⌨️
