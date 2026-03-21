@@ -43,36 +43,28 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   display: none;
 }
 
-/* Row container */
+/* Row container - always 3 columns */
+/* gap = 0.5rem (间距) + 0.6rem (外扩背景) = 1.1rem */
 .dm-row {
   display: grid;
-  gap: 0.75rem;
+  gap: 1.1rem;
   align-items: start;
-}
-
-/* Single column (no sidebars) */
-.dramark-preview[data-columns="1"] .dm-row {
-  grid-template-columns: 1fr;
-}
-
-/* Two columns */
-.dramark-preview[data-columns="2"][data-has-left="true"] .dm-row {
-  grid-template-columns: 200px 1fr;
-}
-
-.dramark-preview[data-columns="2"][data-has-right="true"] .dm-row {
-  grid-template-columns: 1fr 200px;
-}
-
-/* Three columns */
-.dramark-preview[data-columns="3"] .dm-row {
   grid-template-columns: 200px 1fr 200px;
 }
 
-/* Hide empty side columns */
-.dm-row[data-has-left="false"] .dm-row-left,
-.dm-row[data-has-right="false"] .dm-row-right {
-  display: none;
+/* When no left sidebar at document level, collapse left column */
+.dramark-preview[data-has-left="false"] .dm-row {
+  grid-template-columns: 0 1fr 200px;
+}
+
+/* When no right sidebar at document level, collapse right column */
+.dramark-preview[data-has-right="false"] .dm-row {
+  grid-template-columns: 200px 1fr 0;
+}
+
+/* When no sidebars */
+.dramark-preview[data-has-left="false"][data-has-right="false"] .dm-row {
+  grid-template-columns: 0 1fr 0;
 }
 
 /* Row sections */
@@ -88,8 +80,10 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   min-width: 0;
 }
 
+/* Empty placeholders still take up grid space but are invisible */
 .dm-row-empty {
   min-height: 1.35rem;
+  visibility: hidden;
 }
 
 /* Hide comments in center when right column is shown */
@@ -99,22 +93,33 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 
 /* Responsive: Two column layout (600px-959px) - prioritize right column */
 @container preview (min-width: 600px) and (max-width: 959px) {
-  /* When both sidebars present, show center+right only */
+  /* Default: show all three columns */
+  .dramark-preview .dm-row {
+    grid-template-columns: 200px 1fr 200px;
+  }
+  
+  /* When both sidebars present, hide left column */
   .dramark-preview[data-columns="3"] .dm-row {
-    grid-template-columns: 1fr 200px;
+    grid-template-columns: 0 1fr 200px;
   }
 
   .dramark-preview[data-columns="3"] .dm-row-left {
-    display: none !important;
+    visibility: hidden;
   }
 
-  /* Adjust two column layouts */
-  .dramark-preview[data-columns="2"][data-has-left="true"] .dm-row {
-    grid-template-columns: 200px 1fr;
+  /* No left sidebar */
+  .dramark-preview[data-has-left="false"] .dm-row {
+    grid-template-columns: 0 1fr 200px;
   }
 
-  .dramark-preview[data-columns="2"][data-has-right="true"] .dm-row {
-    grid-template-columns: 1fr 200px;
+  /* No right sidebar */
+  .dramark-preview[data-has-right="false"] .dm-row {
+    grid-template-columns: 200px 1fr 0;
+  }
+  
+  /* Neither sidebar */
+  .dramark-preview[data-has-left="false"][data-has-right="false"] .dm-row {
+    grid-template-columns: 0 1fr 0;
   }
 }
 

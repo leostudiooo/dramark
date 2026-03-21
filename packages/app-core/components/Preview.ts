@@ -41,14 +41,23 @@ function renderDesktopRow(
   hasLeft: boolean,
   hasRight: boolean
 ): string {
-  const leftHtml = hasLeft ? renderRowLeft(row.left) : '';
-  const centerHtml = renderRowCenter(row.center, config);
-  const rightHtml = hasRight ? renderRowRight(row.right) : '';
-  
   // 如果整行都是空的，跳过
   if (!row.left && !row.center && !row.right) {
     return '';
   }
+  
+  // 始终生成三个单元格（即使内容为空，也生成空占位符），确保中间栏位置固定
+  const leftHtml = hasLeft
+    ? (row.left ? `<div class="dm-row-left">${renderTechCueBlock(row.left)}</div>` : '<div class="dm-row-left dm-row-empty" aria-hidden="true"></div>')
+    : '<div class="dm-row-left dm-row-empty" aria-hidden="true"></div>';
+  
+  const centerHtml = row.center
+    ? `<div class="dm-row-center">${renderBlock(row.center, config)}</div>`
+    : '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
+  
+  const rightHtml = hasRight
+    ? (row.right ? `<div class="dm-row-right">${renderCommentBlock(row.right)}</div>` : '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>')
+    : '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>';
   
   return `
     <div class="dm-row" data-has-left="${!!row.left}" data-has-center="${!!row.center}" data-has-right="${!!row.right}">
@@ -59,25 +68,11 @@ function renderDesktopRow(
   `;
 }
 
-function renderRowLeft(block: TechCueBlock | null): string {
-  if (block === null) {
-    return '<div class="dm-row-left dm-row-empty" aria-hidden="true"></div>';
-  }
-  return `<div class="dm-row-left">${renderTechCueBlock(block)}</div>`;
-}
-
 function renderRowCenter(block: RenderBlock | null, config: PreviewConfig): string {
   if (block === null) {
     return '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
   }
   return `<div class="dm-row-center">${renderBlock(block, config)}</div>`;
-}
-
-function renderRowRight(block: CommentRenderBlock | null): string {
-  if (block === null) {
-    return '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>';
-  }
-  return `<div class="dm-row-right">${renderCommentBlock(block)}</div>`;
 }
 
 function renderRowForMobile(
