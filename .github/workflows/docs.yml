@@ -12,7 +12,7 @@ jobs:
        with:
          node-version: 20
      - run: npm install --global pnpm
-     - run: pnpm docs:build
+     - run: pnpm build:docs
      - name: Deploy to GitHub Pages
        uses: peaceiris/actions-gh-pages@v3
        with:
