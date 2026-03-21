@@ -46,7 +46,7 @@ export default defineConfig({
           text: '进阶',
           items: [
             { text: '代码保护区', link: '/guide/code-sanctuary' },
-            { text: 'LLM 语法指南', link: '/guide/llm-syntax-guide' },
+            { text: '给 LLM 的语法指南', link: '/guide/llm-syntax-guide' },
             { text: '编辑器优化', link: '/guide/editor' },
           ]
         }
