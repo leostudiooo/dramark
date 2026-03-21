@@ -120,4 +120,4 @@ DraMark 使用块级结构组织剧本内容：
 
 查看 [快速入门指南](/guide/getting-started) 开始使用！
 
-推荐安装 [VSCode DraMark 扩展](https://marketplace.visualstudio.com/items?itemName=Leo.dramark) 获得最佳编写体验。
+推荐安装 [VSCode DraMark 扩展](https://marketplace.visualstudio.com/items?itemName=LeoLi.dramark) 获得最佳编写体验。

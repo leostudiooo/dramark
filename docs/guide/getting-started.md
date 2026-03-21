@@ -164,4 +164,4 @@ LX: SPOT_DUO 灯光变化同时打亮二人。
 
 ## 编辑器
 
-推荐使用 [VSCode DraMark 扩展](https://marketplace.visualstudio.com/items?itemName=Leo.dramark) 进行编写和预览。Web 编辑器正在开发中。
+推荐使用 [VSCode DraMark 扩展](https://marketplace.visualstudio.com/items?itemName=LeoLi.dramark) 进行编写和预览。Web 编辑器正在开发中。

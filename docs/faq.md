@@ -8,7 +8,7 @@ DraMark 是 CommonMark 的超集。所有普通 Markdown 文件都是合法的 D
 
 ### Q: 用什么编辑器写 DraMark？
 
-推荐使用 [VSCode DraMark 扩展](https://marketplace.visualstudio.com/items?itemName=Leo.dramark)，支持语法高亮和实时预览。Web 编辑器也正在开发中。
+推荐使用 [VSCode DraMark 扩展](https://marketplace.visualstudio.com/items?itemName=LeoLi.dramark)，支持语法高亮和实时预览。Web 编辑器也正在开发中。
 
 任何支持 Markdown 的编辑器也可以用来编写 DraMark 文件。
 

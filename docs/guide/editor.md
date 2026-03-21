@@ -2,7 +2,7 @@
 
 ## VSCode 扩展
 
-🥳 DraMark 的 VS Code 扩展已上线 [Marketplace](https://marketplace.visualstudio.com/items?itemName=Leo.dramark)！
+🥳 DraMark 的 VS Code 扩展已上线 [Marketplace](https://marketplace.visualstudio.com/items?itemName=LeoLi.dramark)！
 
 功能包括：
 - 语法高亮（角色名、唱段、技术提示、注释等）
