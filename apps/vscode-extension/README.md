@@ -181,7 +181,7 @@ ${2:译文}
 
 ## 相关链接
 
-- [DraMark 文档](https://dramark.烫烫烫的锟斤拷.top/)
+- [DraMark 文档](https://dramark.dev/)
 - [GitHub 仓库](https://github.com/dramark-md/dramark)
 - [问题反馈](https://github.com/dramark-md/dramark/issues)
 
