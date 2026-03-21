@@ -18,6 +18,9 @@ hero:
     - theme: alt
       text: 🤖 给 LLM/AI Agent 的指南
       link: /guide/llm-syntax-guide
+    - theme: brand
+      text: VS Code 插件
+      link: https://marketplace.visualstudio.com/items?itemName=LeoLi.dramark
 
 features:
   - icon: ⌨️
@@ -33,11 +36,12 @@ features:
     title: 技术标记
     details: 支持灯光、音响等技术提示的原生标记，助力剧本与舞台设计的无缝对接
   - icon: 📝
-    title: CommonMark 兼容
-    details: 完整的 Markdown 支持，可使用加粗、斜体、列表等标准语法
+    title: Markdown 方言
+    details: 完整的 CommonMark 支持，可使用加粗、斜体、列表等标准语法
   - icon: 🔌
-    title: VSCode 扩展
-    details: 提供 VSCode 扩展，支持语法高亮、实时预览和译配模式切换
+    title: VS Code 扩展
+    details: 提供 VS Code 扩展，支持语法高亮、实时预览和译配模式切换
+    link: https://marketplace.visualstudio.com/items?itemName=LeoLi.dramark
 ---
 
 ## 一个简单的示例
