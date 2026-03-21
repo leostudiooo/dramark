@@ -78,6 +78,7 @@ export type DialogueChild =
   | { type: 'break' }
   | { type: 'emphasis'; children: Array<{ type: 'text'; value: string }> }
   | { type: 'strong'; children: Array<{ type: 'text'; value: string }> }
+  | { type: 'image'; url: string; alt?: string; title?: string }
   | { type: 'inline-action'; value: string }
   | { type: 'inline-song'; value: string }
   | { type: 'inline-spoken'; value: string }

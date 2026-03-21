@@ -15,6 +15,7 @@ export class PreviewPanel {
   private panel: vscode.WebviewPanel | undefined;
   private themeListener: vscode.Disposable | undefined;
   private latestViewModel: ParseViewModel | null = null;
+  private latestDocumentUri: vscode.Uri | null = null;
   private configOpen = false;
   private config: PreviewConfig = {
     showTechCues: true,
@@ -26,18 +27,21 @@ export class PreviewPanel {
 
   constructor(private extensionUri: vscode.Uri) {}
 
-  show(viewModel: ParseViewModel): void {
+  show(documentUri: vscode.Uri, viewModel: ParseViewModel): void {
     this.latestViewModel = viewModel;
+    this.latestDocumentUri = documentUri;
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.Beside);
     } else {
+      const workspaceRoots = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri);
+      const roots = [this.extensionUri, ...workspaceRoots];
       this.panel = vscode.window.createWebviewPanel(
         PreviewPanel.viewType,
         'DraMark Preview',
         vscode.ViewColumn.Beside,
         {
           enableScripts: true,
-          localResourceRoots: [this.extensionUri],
+          localResourceRoots: roots,
         },
       );
       this.panel.onDidDispose(() => {
@@ -59,6 +63,8 @@ export class PreviewPanel {
         } else if (message.type === 'toggleConfig') {
           this.configOpen = !this.configOpen;
           this.rerender();
+        } else if (message.type === 'printError') {
+          vscode.window.showErrorMessage(String(message.error || 'Failed to open print dialog in preview.'));
         }
       });
     }
@@ -66,9 +72,19 @@ export class PreviewPanel {
     this.rerender();
   }
 
-  update(viewModel: ParseViewModel): void {
+  update(documentUri: vscode.Uri, viewModel: ParseViewModel): void {
     this.latestViewModel = viewModel;
+    this.latestDocumentUri = documentUri;
     this.rerender();
+  }
+
+  exportPdf(): void {
+    if (!this.panel) {
+      vscode.window.showInformationMessage('Open DraMark Preview first, then export PDF.');
+      return;
+    }
+    this.panel.reveal(vscode.ViewColumn.Beside);
+    this.panel.webview.postMessage({ type: 'exportPdf' });
   }
 
   dispose(): void {
@@ -81,10 +97,10 @@ export class PreviewPanel {
     if (!this.panel || this.latestViewModel === null) {
       return;
     }
-    this.panel.webview.html = this.renderHtml(this.latestViewModel);
+    this.panel.webview.html = this.renderHtml(this.latestViewModel, this.latestDocumentUri);
   }
 
-  private renderHtml(viewModel: ParseViewModel): string {
+  private renderHtml(viewModel: ParseViewModel, documentUri: vscode.Uri | null): string {
     const effectiveTheme = this.resolveThemeMode();
     const renderConfig = {
       ...this.config,
@@ -105,12 +121,14 @@ export class PreviewPanel {
     const previewHTML = createPreviewHTML({ layout, config: renderConfig });
     const css = generateCSS(defaultTheme, renderConfig);
     const configHTML = this.createConfigPanelHTML();
+    const baseHref = this.buildBaseHref(documentUri);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+${baseHref.length > 0 ? `<base href="${baseHref}">` : ''}
 <style>
   ${css}
   
@@ -172,10 +190,34 @@ ${configHTML}
       });
     });
   });
+
+  window.addEventListener('message', function(event) {
+    const message = event.data;
+    if (!message || message.type !== 'exportPdf') {
+      return;
+    }
+    try {
+      window.print();
+    } catch (err) {
+      vscode.postMessage({
+        type: 'printError',
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
 })();
 </script>
 </body>
 </html>`;
+  }
+
+  private buildBaseHref(documentUri: vscode.Uri | null): string {
+    if (!this.panel || !documentUri || documentUri.scheme !== 'file') {
+      return '';
+    }
+    const dirUri = vscode.Uri.joinPath(documentUri, '..');
+    const base = this.panel.webview.asWebviewUri(dirUri).toString();
+    return base.endsWith('/') ? base : `${base}/`;
   }
 
   private resolveThemeMode(): PreviewConfig['theme'] {

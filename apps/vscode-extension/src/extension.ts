@@ -71,9 +71,13 @@ export function activate(context: vscode.ExtensionContext): void {
     if (editor && editor.document.languageId === 'dramark') {
       const viewModel = controller.getViewModel(editor.document.uri.toString());
       if (viewModel) {
-        preview.show(viewModel);
+        preview.show(editor.document.uri, viewModel);
       }
     }
+  });
+
+  const exportPdf = vscode.commands.registerCommand('dramark.exportPdf', () => {
+    preview.exportPdf();
   });
 
   const copyDiagnostics = vscode.commands.registerCommand('dramark.copyDiagnostics', () => {
@@ -101,7 +105,7 @@ export function activate(context: vscode.ExtensionContext): void {
       controller.updateDocument(event.document.uri.toString(), event.document.getText());
       const viewModel = controller.getViewModel(event.document.uri.toString());
       if (viewModel) {
-        preview.update(viewModel);
+        preview.update(event.document.uri, viewModel);
       }
     }
   });
@@ -127,6 +131,7 @@ export function activate(context: vscode.ExtensionContext): void {
     codelensProvider,
     semanticTokensProvider,
     showPreview,
+    exportPdf,
     copyDiagnostics,
     noOpCodeLens,
     openSub,

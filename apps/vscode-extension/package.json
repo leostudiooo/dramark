@@ -43,6 +43,11 @@
         "icon": "$(preview)"
       },
       {
+        "command": "dramark.exportPdf",
+        "title": "DraMark: Export Preview to PDF",
+        "icon": "$(export)"
+      },
+      {
         "command": "dramark.copyDiagnostics",
         "title": "DraMark: Copy Diagnostics"
       }

@@ -42,6 +42,12 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   display: none;
 }
 
+/* Hide side columns via display:contents so they don't occupy grid tracks */
+.dramark-left:empty,
+.dramark-right:empty {
+  display: contents;
+}
+
 .dm-row-slot {
   min-height: 1.35rem;
 }
@@ -52,31 +58,80 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 
 /* Three column layout (>960px) */
 @container preview (min-width: 960px) {
-  .dramark-layout {
+  .dramark-preview[data-columns="3"] .dm-layout-desktop {
     grid-template-columns: 200px 1fr 200px;
   }
-  
-  .dramark-left {
+
+  .dramark-preview[data-columns="3"] .dramark-center {
+    padding: 0 1.5rem;
+  }
+
+  .dramark-preview[data-columns="2"][data-has-left="true"] .dm-layout-desktop {
+    grid-template-columns: 200px 1fr;
+  }
+
+  .dramark-preview[data-columns="2"][data-has-right="true"] .dm-layout-desktop {
+    grid-template-columns: 1fr 200px;
+  }
+
+  .dramark-preview[data-columns="1"] .dm-layout-desktop {
+    grid-template-columns: 1fr;
+  }
+
+  .dramark-preview[data-has-left="true"] .dramark-left {
     display: block;
   }
-  
-  .dramark-right {
+
+  .dramark-preview[data-has-left="false"] .dramark-left {
+    display: none;
+  }
+
+  .dramark-preview[data-has-right="true"] .dramark-right {
     display: block;
+  }
+
+  .dramark-preview[data-has-right="false"] .dramark-right {
+    display: none;
   }
 }
 
-/* Two column layout (>600px) */
+/* Two column layout (>600px) - prioritize right column (comments) over left */
 @container preview (min-width: 600px) and (max-width: 959px) {
-  .dm-layout-desktop {
+  /* When both sidebars present, use center+right, hide left */
+  .dramark-preview[data-columns="3"] .dm-layout-desktop {
     grid-template-columns: 1fr 200px;
   }
-  
-  .dramark-left {
+
+  .dramark-preview[data-columns="3"] .dramark-left {
+    display: none !important;
+  }
+
+  .dramark-preview[data-columns="2"][data-has-left="true"] .dm-layout-desktop {
+    grid-template-columns: 200px 1fr;
+  }
+
+  .dramark-preview[data-columns="2"][data-has-right="true"] .dm-layout-desktop {
+    grid-template-columns: 1fr 200px;
+  }
+
+  .dramark-preview[data-columns="1"] .dm-layout-desktop {
+    grid-template-columns: 1fr;
+  }
+
+  .dramark-preview[data-has-left="false"] .dramark-left {
     display: none;
   }
-  
-  .dm-layout-mobile {
+
+  .dramark-preview[data-has-left="true"] .dramark-left {
+    display: block;
+  }
+
+  .dramark-preview[data-has-right="false"] .dramark-right {
     display: none;
+  }
+
+  .dramark-preview[data-has-right="true"] .dramark-right {
+    display: block;
   }
 }
 
@@ -174,6 +229,14 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   background: rgba(196, 168, 106, 0.1);
   padding: 0 0.25rem;
   border-radius: 2px;
+}
+
+.dm-inline-image {
+  max-width: min(100%, 560px);
+  height: auto;
+  display: block;
+  margin: 0.45rem 0;
+  border-radius: 4px;
 }
 
 .dm-inline-spoken {

@@ -17,9 +17,12 @@ export interface PreviewProps {
 
 export function createPreviewHTML(props: PreviewProps): string {
   const { layout, config } = props;
+  const hasLeft = config.showTechCues && layout.left.length > 0;
+  const hasRight = config.showComments && layout.right.length > 0;
+  const columnCount = hasLeft && hasRight ? 3 : hasLeft || hasRight ? 2 : 1;
 
   return `
-    <div class="dramark-preview" data-theme="${config.theme}">
+    <div class="dramark-preview" data-theme="${config.theme}" data-columns="${columnCount}" data-has-left="${hasLeft}" data-has-right="${hasRight}">
       <div class="dramark-layout dm-layout-desktop">
         <div class="dramark-left">
           ${layout.rows.map((row) => renderRowLeft(row.left)).join('')}
@@ -200,6 +203,12 @@ function renderInlineChildren(children: DialogueChild[] | unknown): string {
         return `<span class="dm-inline-action">{${escapeHtml(child.value || '')}}</span>`;
       case 'inline-song':
         return `<span class="dm-inline-song">${escapeHtml(child.value || '')}</span>`;
+      case 'image': {
+        const url = escapeHtml(child.url || '');
+        const alt = escapeHtml(child.alt || '');
+        const titleAttr = child.title ? ` title="${escapeHtml(child.title)}"` : '';
+        return `<img class="dm-inline-image" src="${url}" alt="${alt}"${titleAttr} loading="lazy" />`;
+      }
       case 'inline-spoken':
         return `<span class="dm-inline-spoken">${escapeHtml(child.value || '')}</span>`;
       case 'inline-tech-cue':

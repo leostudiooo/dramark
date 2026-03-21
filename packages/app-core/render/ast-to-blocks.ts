@@ -11,9 +11,12 @@ import type {
 import { matchTechCue } from './tech-cue-colors.js';
 
 interface InlineChild {
-  type: 'text' | 'break' | 'emphasis' | 'strong' | 'inline-action' | 'inline-song' | 'inline-spoken' | 'inline-tech-cue';
+  type: 'text' | 'break' | 'emphasis' | 'strong' | 'image' | 'inline-action' | 'inline-song' | 'inline-spoken' | 'inline-tech-cue';
   value?: string;
   children?: Array<{ type: 'text'; value: string }>;
+  url?: string;
+  alt?: string;
+  title?: string;
   payload?: string;
   color?: string;
 }
@@ -47,9 +50,15 @@ export function buildColumnarLayout(
 
   for (const block of blocks) {
     if (block.type === 'song-container') {
-      const separated = separateSongContainerComments(block);
+      const separated = separateSongContainerSideBlocks(block);
       center.push(separated.block);
       rows.push({ left: null, center: separated.block, right: null });
+      for (const techCue of separated.techCues) {
+        if (context.config.showTechCues) {
+          left.push(techCue);
+          rows.push({ left: techCue, center: null, right: null });
+        }
+      }
       for (const comment of separated.comments) {
         if (context.config.showComments) {
           right.push(comment);
@@ -81,18 +90,28 @@ export function buildColumnarLayout(
   return { left, center, right, rows };
 }
 
-function separateSongContainerComments(block: SongContainerBlock): { block: SongContainerBlock; comments: CommentRenderBlock[] } {
+function separateSongContainerSideBlocks(block: SongContainerBlock): {
+  block: SongContainerBlock;
+  techCues: TechCueBlock[];
+  comments: CommentRenderBlock[];
+} {
+  const techCues: TechCueBlock[] = [];
   const comments: CommentRenderBlock[] = [];
   const children: RenderBlock[] = [];
 
   for (const child of block.children) {
+    if (child.type === 'tech-cue' && child.variant === 'block') {
+      techCues.push(child);
+      continue;
+    }
     if (child.type === 'comment') {
       comments.push(child);
       continue;
     }
     if (child.type === 'song-container') {
-      const nested = separateSongContainerComments(child);
+      const nested = separateSongContainerSideBlocks(child);
       children.push(nested.block);
+      techCues.push(...nested.techCues);
       comments.push(...nested.comments);
       continue;
     }
@@ -104,6 +123,7 @@ function separateSongContainerComments(block: SongContainerBlock): { block: Song
       ...block,
       children,
     },
+    techCues,
     comments,
   };
 }
@@ -291,6 +311,13 @@ function convertInlineChild(node: unknown, context: RenderContext): InlineChild 
       return { type: 'inline-action', value: String(typedNode.value || '') };
     case 'inline-song':
       return { type: 'inline-song', value: String(typedNode.value || '') };
+    case 'image':
+      return {
+        type: 'image',
+        url: String(typedNode.url || ''),
+        alt: extractTextContent(typedNode.alt ?? typedNode.children),
+        title: typeof typedNode.title === 'string' ? typedNode.title : undefined,
+      };
     case 'inline-spoken':
       return { type: 'inline-spoken', value: String(typedNode.value || '') };
     case 'inline-tech-cue': {
