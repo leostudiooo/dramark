@@ -29,9 +29,10 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   container-name: preview;
 }
 
-/* Layout */
+/* Layout - Row-based */
 .dramark-layout {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   padding: 2rem;
   max-width: 1200px;
@@ -42,106 +43,78 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   display: none;
 }
 
-/* Hide side columns via display:contents so they don't occupy grid tracks */
-.dramark-left:empty,
-.dramark-right:empty {
-  display: contents;
+/* Row container */
+.dm-row {
+  display: grid;
+  gap: 0.75rem;
+  align-items: start;
 }
 
-.dm-row-slot {
-  min-height: 1.35rem;
+/* Single column (no sidebars) */
+.dramark-preview[data-columns="1"] .dm-row {
+  grid-template-columns: 1fr;
 }
 
-.dm-row-placeholder {
-  min-height: 1.35rem;
+/* Two columns */
+.dramark-preview[data-columns="2"][data-has-left="true"] .dm-row {
+  grid-template-columns: 200px 1fr;
 }
 
-.dramark-preview[data-has-right="true"] .dm-layout-desktop .dramark-center .dm-comment {
+.dramark-preview[data-columns="2"][data-has-right="true"] .dm-row {
+  grid-template-columns: 1fr 200px;
+}
+
+/* Three columns */
+.dramark-preview[data-columns="3"] .dm-row {
+  grid-template-columns: 200px 1fr 200px;
+}
+
+/* Hide empty side columns */
+.dm-row[data-has-left="false"] .dm-row-left,
+.dm-row[data-has-right="false"] .dm-row-right {
   display: none;
 }
 
-/* Three column layout (>960px) */
-@container preview (min-width: 960px) {
-  .dramark-preview[data-columns="3"] .dm-layout-desktop {
-    grid-template-columns: 200px 1fr 200px;
-  }
-
-  .dramark-preview[data-columns="3"] .dramark-center {
-    padding: 0 0.5rem;
-  }
-
-  .dramark-preview[data-columns="2"][data-has-left="true"] .dm-layout-desktop {
-    grid-template-columns: 200px 1fr;
-  }
-
-  .dramark-preview[data-columns="2"][data-has-right="true"] .dm-layout-desktop {
-    grid-template-columns: 1fr 200px;
-  }
-
-  .dramark-preview[data-columns="1"] .dm-layout-desktop {
-    grid-template-columns: 1fr;
-  }
-
-  .dramark-preview[data-has-left="true"] .dramark-left {
-    display: block;
-  }
-
-  .dramark-preview[data-has-left="false"] .dramark-left {
-    display: none;
-  }
-
-  .dramark-preview[data-has-right="true"] .dramark-right {
-    display: block;
-  }
-
-  .dramark-preview[data-has-right="false"] .dramark-right {
-    display: none;
-  }
-
+/* Row sections */
+.dm-row-left {
+  min-width: 0;
 }
 
-/* Two column layout (>600px) - prioritize right column (comments) over left */
-@container preview (min-width: 600px) and (max-width: 959px) {
-  /* Add horizontal padding to center column for spacing */
-  .dramark-preview .dramark-center {
-    padding: 0 0.5rem;
-  }
+.dm-row-center {
+  min-width: 0;
+}
 
-  /* When both sidebars present, use center+right, hide left */
-  .dramark-preview[data-columns="3"] .dm-layout-desktop {
+.dm-row-right {
+  min-width: 0;
+}
+
+.dm-row-empty {
+  min-height: 1.35rem;
+}
+
+/* Hide comments in center when right column is shown */
+.dramark-preview[data-has-right="true"] .dm-row-center .dm-comment {
+  display: none;
+}
+
+/* Responsive: Two column layout (600px-959px) - prioritize right column */
+@container preview (min-width: 600px) and (max-width: 959px) {
+  /* When both sidebars present, show center+right only */
+  .dramark-preview[data-columns="3"] .dm-row {
     grid-template-columns: 1fr 200px;
   }
 
-  .dramark-preview[data-columns="3"] .dramark-left {
+  .dramark-preview[data-columns="3"] .dm-row-left {
     display: none !important;
   }
 
-  .dramark-preview[data-columns="2"][data-has-left="true"] .dm-layout-desktop {
+  /* Adjust two column layouts */
+  .dramark-preview[data-columns="2"][data-has-left="true"] .dm-row {
     grid-template-columns: 200px 1fr;
   }
 
-  .dramark-preview[data-columns="2"][data-has-right="true"] .dm-layout-desktop {
+  .dramark-preview[data-columns="2"][data-has-right="true"] .dm-row {
     grid-template-columns: 1fr 200px;
-  }
-
-  .dramark-preview[data-columns="1"] .dm-layout-desktop {
-    grid-template-columns: 1fr;
-  }
-
-  .dramark-preview[data-has-left="false"] .dramark-left {
-    display: none;
-  }
-
-  .dramark-preview[data-has-left="true"] .dramark-left {
-    display: block;
-  }
-
-  .dramark-preview[data-has-right="false"] .dramark-right {
-    display: none;
-  }
-
-  .dramark-preview[data-has-right="true"] .dramark-right {
-    display: block;
   }
 }
 

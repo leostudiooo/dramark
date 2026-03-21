@@ -48,67 +48,148 @@ export function buildColumnarLayout(
   const right: CommentRenderBlock[] = [];
   const rows: ColumnarLayout['rows'] = [];
 
-  for (const block of blocks) {
+  // 第一遍：收集所有独立的 side blocks 并分配它们的位置
+  const pendingSideBlocks: Array<
+    | { side: 'left'; block: TechCueBlock }
+    | { side: 'right'; block: CommentRenderBlock }
+  > = [];
+
+  function flushPendingSideBlocks(
+    anchorRowIndex: number,
+    attachTo: 'before' | 'after'
+  ): void {
+    // 独立的 side blocks 应该对齐到上下节点之间的缝
+    // 这里我们简单地将它们作为独立行添加
+    for (const item of pendingSideBlocks) {
+      if (item.side === 'left') {
+        left.push(item.block);
+        rows.push({ left: item.block, center: null, right: null });
+      } else {
+        right.push(item.block);
+        rows.push({ left: null, center: null, right: item.block });
+      }
+    }
+    pendingSideBlocks.length = 0;
+  }
+
+  for (let i = 0; i < blocks.length; i += 1) {
+    const block = blocks[i];
+
     if (block.type === 'song-container') {
+      flushPendingSideBlocks(i, 'before');
+
       const separated = separateSongContainerSideBlocks(block);
-      center.push(separated.block);
       const visibleTechCues = context.config.showTechCues ? separated.techCues : [];
       const visibleComments = context.config.showComments ? separated.comments : [];
-      const firstLeft = visibleTechCues.length > 0 ? visibleTechCues[0] : null;
-      const firstRight = visibleComments.length > 0 ? visibleComments[0] : null;
-      rows.push({ left: firstLeft, center: separated.block, right: firstRight });
 
-      if (firstLeft) {
-        left.push(firstLeft);
-      }
-      if (firstRight) {
-        right.push(firstRight);
-      }
+      // Song container 作为主锚点
+      center.push(separated.block);
 
-      for (let i = 1; i < visibleTechCues.length; i += 1) {
-        const techCue = visibleTechCues[i];
+      // 收集所有属于这个 song container 的 side blocks
+      const rowLeft: TechCueBlock[] = [];
+      const rowRight: CommentRenderBlock[] = [];
+
+      for (const techCue of visibleTechCues) {
         left.push(techCue);
-        rows.push({ left: techCue, center: null, right: null });
+        rowLeft.push(techCue);
       }
-      for (let i = 1; i < visibleComments.length; i += 1) {
-        const comment = visibleComments[i];
+      for (const comment of visibleComments) {
         right.push(comment);
-        rows.push({ left: null, center: null, right: comment });
+        rowRight.push(comment);
       }
+
+      // 创建行：第一个 side block 与 center 同行，其余的独立成行
+      if (rowLeft.length > 0 || rowRight.length > 0) {
+        rows.push({
+          left: rowLeft[0] ?? null,
+          center: separated.block,
+          right: rowRight[0] ?? null,
+        });
+
+        // 剩余的 side blocks 各自成行
+        const maxExtra = Math.max(rowLeft.length - 1, rowRight.length - 1);
+        for (let j = 1; j <= maxExtra; j += 1) {
+          rows.push({
+            left: rowLeft[j] ?? null,
+            center: null,
+            right: rowRight[j] ?? null,
+          });
+        }
+      } else {
+        rows.push({ left: null, center: separated.block, right: null });
+      }
+
       continue;
     }
 
     if (block.type === 'character') {
+      flushPendingSideBlocks(i, 'before');
+
+      // Character 作为主锚点
       center.push(block);
-      if (context.config.showComments && block.comments.length > 0) {
-        const [firstComment, ...restComments] = block.comments;
-        right.push(firstComment);
-        rows.push({ left: null, center: block, right: firstComment });
-        for (const comment of restComments) {
-          right.push(comment);
-          rows.push({ left: null, center: null, right: comment });
+
+      // 内联 comments 应该与 character 对齐到同一行
+      const visibleComments = context.config.showComments ? block.comments : [];
+      for (const comment of visibleComments) {
+        right.push(comment);
+      }
+
+      if (visibleComments.length > 0) {
+        rows.push({
+          left: null,
+          center: block,
+          right: visibleComments[0],
+        });
+
+        // 剩余的 comments 各自成行（但仍属于这个 character 的右侧）
+        for (let j = 1; j < visibleComments.length; j += 1) {
+          rows.push({
+            left: null,
+            center: null,
+            right: visibleComments[j],
+          });
         }
       } else {
         rows.push({ left: null, center: block, right: null });
       }
-    } else if (block.type === 'tech-cue') {
-      if (block.variant === 'block' && context.config.showTechCues) {
-        left.push(block);
-        rows.push({ left: block, center: null, right: null });
-      } else if (block.variant === 'inline' && context.config.showTechCues) {
+
+      continue;
+    }
+
+    if (block.type === 'tech-cue' && block.variant === 'block') {
+      if (context.config.showTechCues) {
+        // 独立的 tech-cue：暂存，等待下一个 center 锚点或作为独立行
+        pendingSideBlocks.push({ side: 'left', block });
+      }
+      continue;
+    }
+
+    if (block.type === 'tech-cue' && block.variant === 'inline') {
+      if (context.config.showTechCues) {
+        flushPendingSideBlocks(i, 'before');
+        // inline tech-cue 作为主内容
         center.push(block);
         rows.push({ left: null, center: block, right: null });
       }
-    } else if (block.type === 'comment') {
-      if (context.config.showComments) {
-        right.push(block);
-        rows.push({ left: null, center: null, right: block });
-      }
-    } else {
-      center.push(block);
-      rows.push({ left: null, center: block, right: null });
+      continue;
     }
+
+    if (block.type === 'comment') {
+      if (context.config.showComments) {
+        // 独立的 comment：暂存，等待下一个 center 锚点或作为独立行
+        pendingSideBlocks.push({ side: 'right', block });
+      }
+      continue;
+    }
+
+    // 其他 block（global-action, heading, thematic-break 等）作为主锚点
+    flushPendingSideBlocks(i, 'before');
+    center.push(block);
+    rows.push({ left: null, center: block, right: null });
   }
+
+  // 处理最后剩余的 side blocks
+  flushPendingSideBlocks(blocks.length, 'after');
 
   return { left, center, right, rows };
 }
@@ -124,16 +205,17 @@ function separateSongContainerSideBlocks(block: SongContainerBlock): {
 
   for (const child of block.children) {
     if (child.type === 'tech-cue' && child.variant === 'block') {
+      // 提取到侧栏，不再保留在 children 中
       techCues.push(child);
-      children.push(child);
       continue;
     }
     if (child.type === 'comment') {
+      // 提取到侧栏，不再保留在 children 中
       comments.push(child);
-      children.push(child);
       continue;
     }
     if (child.type === 'character') {
+      // character 的 comments 仍然需要提取，但 character 本身保留
       if (child.comments.length > 0) {
         comments.push(...child.comments);
       }

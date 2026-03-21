@@ -24,15 +24,7 @@ export function createPreviewHTML(props: PreviewProps): string {
   return `
     <div class="dramark-preview" data-theme="${config.theme}" data-columns="${columnCount}" data-has-left="${hasLeft}" data-has-right="${hasRight}">
       <div class="dramark-layout dm-layout-desktop">
-        <div class="dramark-left">
-          ${layout.rows.map((row) => renderRowLeft(row.left)).join('')}
-        </div>
-        <div class="dramark-center">
-          ${layout.rows.map((row) => renderRowCenter(row.center, config)).join('')}
-        </div>
-        <div class="dramark-right">
-          ${layout.rows.map((row) => renderRowRight(row.right)).join('')}
-        </div>
+        ${layout.rows.map((row) => renderDesktopRow(row, config, hasLeft, hasRight)).join('')}
       </div>
       <div class="dramark-layout dm-layout-mobile">
         <div class="dramark-center">
@@ -43,25 +35,49 @@ export function createPreviewHTML(props: PreviewProps): string {
   `;
 }
 
+function renderDesktopRow(
+  row: { left: TechCueBlock | null; center: RenderBlock | null; right: CommentRenderBlock | null },
+  config: PreviewConfig,
+  hasLeft: boolean,
+  hasRight: boolean
+): string {
+  const leftHtml = hasLeft ? renderRowLeft(row.left) : '';
+  const centerHtml = renderRowCenter(row.center, config);
+  const rightHtml = hasRight ? renderRowRight(row.right) : '';
+  
+  // 如果整行都是空的，跳过
+  if (!row.left && !row.center && !row.right) {
+    return '';
+  }
+  
+  return `
+    <div class="dm-row" data-has-left="${!!row.left}" data-has-center="${!!row.center}" data-has-right="${!!row.right}">
+      ${leftHtml}
+      ${centerHtml}
+      ${rightHtml}
+    </div>
+  `;
+}
+
 function renderRowLeft(block: TechCueBlock | null): string {
   if (block === null) {
-    return '<div class="dm-row-placeholder" aria-hidden="true"></div>';
+    return '<div class="dm-row-left dm-row-empty" aria-hidden="true"></div>';
   }
-  return `<div class="dm-row-slot">${renderTechCueBlock(block)}</div>`;
+  return `<div class="dm-row-left">${renderTechCueBlock(block)}</div>`;
 }
 
 function renderRowCenter(block: RenderBlock | null, config: PreviewConfig): string {
   if (block === null) {
-    return '<div class="dm-row-placeholder" aria-hidden="true"></div>';
+    return '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
   }
-  return `<div class="dm-row-slot">${renderBlock(block, config)}</div>`;
+  return `<div class="dm-row-center">${renderBlock(block, config)}</div>`;
 }
 
 function renderRowRight(block: CommentRenderBlock | null): string {
   if (block === null) {
-    return '<div class="dm-row-placeholder" aria-hidden="true"></div>';
+    return '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>';
   }
-  return `<div class="dm-row-slot">${renderCommentBlock(block)}</div>`;
+  return `<div class="dm-row-right">${renderCommentBlock(block)}</div>`;
 }
 
 function renderRowForMobile(
