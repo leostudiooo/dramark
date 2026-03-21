@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "DraMark"
-  text: "戏剧剧本标记语言"
+  text: "戏码"
   tagline: 为戏剧、影视及音乐剧剧本创作设计的纯文本标记语言（开发中）
   image:
     src: /logo.svg

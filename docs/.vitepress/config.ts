@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   title: 'DraMark',
-  titleTemplate: '戏剧剧本标记语言',
+  titleTemplate: '戏码',
   description: 'DraMark - 专为戏剧、影视及音乐剧剧本创作设计的 Markdown 方言',
   
   lastUpdated: true,

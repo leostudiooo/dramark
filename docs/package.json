@@ -1,7 +1,7 @@
 {
   "name": "dramark-docs",
   "version": "1.0.0",
-  "description": "DraMark 文档站点 - 戏剧剧本标记语言",
+  "description": "DraMark 文档 - 戏码",
   "type": "module",
   "scripts": {
     "dev": "vitepress dev",
