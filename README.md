@@ -9,7 +9,7 @@
 
 ![VS Code 插件渲染预览](https://github.com/user-attachments/assets/580e7ed2-d38c-4e26-8014-b6baaf3f21e4)
 
-🥳 第一版可用的 VS Code 插件已上线 Marketplace 和 Release 0.0.1！
+🥳 第一版可用的 VS Code 插件已上线 [Marketplace](https://marketplace.visualstudio.com/items?itemName=LeoLi.dramark) 和 Release 0.0.1！
 
 ## 亮点
 
