@@ -63,6 +63,7 @@ export interface CharacterRenderBlock extends BaseRenderBlock {
   context?: string;
   content: DialogueContent[];
   techCues: Array<{ payload: string; color?: string }>;
+  comments: CommentRenderBlock[];
   performanceMode: PerformanceMode;
 }
 

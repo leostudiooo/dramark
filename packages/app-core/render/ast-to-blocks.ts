@@ -68,7 +68,16 @@ export function buildColumnarLayout(
       continue;
     }
 
-    if (block.type === 'tech-cue') {
+    if (block.type === 'character') {
+      center.push(block);
+      rows.push({ left: null, center: block, right: null });
+      if (context.config.showComments) {
+        for (const comment of block.comments) {
+          right.push(comment);
+          rows.push({ left: null, center: null, right: comment });
+        }
+      }
+    } else if (block.type === 'tech-cue') {
       if (block.variant === 'block' && context.config.showTechCues) {
         left.push(block);
         rows.push({ left: block, center: null, right: null });
@@ -106,6 +115,13 @@ function separateSongContainerSideBlocks(block: SongContainerBlock): {
     }
     if (child.type === 'comment') {
       comments.push(child);
+      continue;
+    }
+    if (child.type === 'character') {
+      if (child.comments.length > 0) {
+        comments.push(...child.comments);
+      }
+      children.push({ ...child, comments: [] });
       continue;
     }
     if (child.type === 'song-container') {
@@ -172,9 +188,19 @@ function convertCharacterBlock(
   
   const content: CharacterRenderBlock['content'] = [];
   const techCues: CharacterRenderBlock['techCues'] = [];
+  const comments: CharacterRenderBlock['comments'] = [];
 
   if (Array.isArray(node.children)) {
     for (const child of node.children) {
+      const childNode = child as Record<string, unknown>;
+      if (childNode?.type === 'comment-line') {
+        comments.push(convertCommentLine(childNode, context, performanceMode));
+        continue;
+      }
+      if (childNode?.type === 'comment-block') {
+        comments.push(convertCommentBlock(childNode, context, performanceMode));
+        continue;
+      }
       const result = convertContentNode(child, context);
       if (result) {
         if (result.isTechCue) {
@@ -192,6 +218,7 @@ function convertCharacterBlock(
     context: contextStr,
     content,
     techCues,
+    comments,
     performanceMode,
   };
 }

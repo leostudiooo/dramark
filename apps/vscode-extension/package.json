@@ -74,7 +74,9 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "watch": "node build.mjs --watch"
+    "watch": "node build.mjs --watch",
+    "package:vsix": "npm run build && vsce package",
+    "package:vsix:out": "npm run build && vsce package -o dist/dramark.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",

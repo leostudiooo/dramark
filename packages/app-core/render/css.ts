@@ -97,6 +97,11 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 
 /* Two column layout (>600px) - prioritize right column (comments) over left */
 @container preview (min-width: 600px) and (max-width: 959px) {
+  /* Add horizontal padding to center column for spacing */
+  .dramark-preview .dramark-center {
+    padding: 0 1.5rem;
+  }
+
   /* When both sidebars present, use center+right, hide left */
   .dramark-preview[data-columns="3"] .dm-layout-desktop {
     grid-template-columns: 1fr 200px;

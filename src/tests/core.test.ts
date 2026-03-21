@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { buildOutline, createParseViewModel, mapParserWarningsToDiagnostics, normalizeFrontmatter } from '../core/index.js';
 import { parseDraMark } from '../parser.js';
+import {
+  buildColumnarLayout,
+  buildTechCueColorMap,
+  convertAstToRenderBlocks,
+  defaultTheme,
+} from '../../packages/app-core/index.js';
 
 describe('core/normalizeFrontmatter', () => {
   it('normalizes known namespaces and preserves unknown keys in extras', () => {
@@ -106,5 +112,55 @@ describe('core/buildOutline', () => {
     expect(outline[0].label).toBe('第一幕');
     expect(outline[1].label).toBe('哈姆雷特');
     expect(outline[3].label).toBe('奥菲莉娅');
+  });
+});
+
+describe('render/comment layout', () => {
+  it('keeps song character comments in right column without dropping dialogue', () => {
+    const input = ['$$', '@A', '唱词主体 % 注释文本', '$$'].join('\n');
+    const parsed = parseDraMark(input, { includeComments: true });
+    const context = {
+      ast: parsed.tree,
+      techConfig: { mics: [] },
+      config: {
+        showTechCues: true,
+        showComments: true,
+        translationMode: 'bilingual' as const,
+        translationLayout: 'side-by-side' as const,
+        theme: 'light' as const,
+      },
+      theme: defaultTheme,
+      techColorMap: buildTechCueColorMap({ mics: [] }),
+    };
+
+    const blocks = convertAstToRenderBlocks(context);
+    const layout = buildColumnarLayout(blocks, context);
+
+    expect(layout.center.some((block) => block.type === 'song-container')).toBe(true);
+    expect(layout.right.some((block) => block.type === 'comment' && block.content.includes('注释文本'))).toBe(true);
+  });
+
+  it('hides comment column content when showComments=false but keeps center content', () => {
+    const input = ['$$', '@A', '唱词主体 % 注释文本', '$$'].join('\n');
+    const parsed = parseDraMark(input, { includeComments: true });
+    const context = {
+      ast: parsed.tree,
+      techConfig: { mics: [] },
+      config: {
+        showTechCues: true,
+        showComments: false,
+        translationMode: 'bilingual' as const,
+        translationLayout: 'side-by-side' as const,
+        theme: 'light' as const,
+      },
+      theme: defaultTheme,
+      techColorMap: buildTechCueColorMap({ mics: [] }),
+    };
+
+    const blocks = convertAstToRenderBlocks(context);
+    const layout = buildColumnarLayout(blocks, context);
+
+    expect(layout.center.some((block) => block.type === 'song-container')).toBe(true);
+    expect(layout.right).toHaveLength(0);
   });
 });

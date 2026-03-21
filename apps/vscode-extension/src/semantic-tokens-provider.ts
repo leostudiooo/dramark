@@ -129,7 +129,7 @@ function highlightSegmentLine(
       return;
     }
     case 'comment-block':
-      builder.push(line, 0, 2, 4, 0);
+      highlightCommentBlockRegion(builder, lines, line);
       return;
     case 'block-tech-cue':
       builder.push(line, 0, 3, 0, 0);
@@ -224,6 +224,28 @@ function highlightComment(builder: vscode.SemanticTokensBuilder, line: number, t
   const idx = findCommentIndex(text);
   if (idx >= 0) {
     builder.push(line, idx, text.length - idx, 4, 0);
+  }
+}
+
+function highlightCommentBlockRegion(
+  builder: vscode.SemanticTokensBuilder,
+  lines: string[],
+  startLine: number,
+): void {
+  let endLine = lines.length - 1;
+  for (let line = startLine + 1; line < lines.length; line += 1) {
+    if ((lines[line] ?? '').trim() === '%%') {
+      endLine = line;
+      break;
+    }
+  }
+
+  for (let line = startLine; line <= endLine; line += 1) {
+    const text = lines[line] ?? '';
+    if (text.length === 0) {
+      continue;
+    }
+    builder.push(line, 0, text.length, 4, 0);
   }
 }
 

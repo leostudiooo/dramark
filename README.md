@@ -135,6 +135,8 @@ $$
 
 - `pnpm test:run`：运行解析器与插件测试
 - `pnpm build`：构建核心包
+- `pnpm build:vscode`：构建 VS Code 扩展
+- `pnpm build:vscode:vsix`：打包 VSIX（调用扩展目录 `package:vsix`）
 - `pnpm dev:web`：启动 Web MVP 开发服务
 - `pnpm build:web`：构建 Web MVP
 

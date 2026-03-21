@@ -27,6 +27,7 @@
     "build": "tsc",
     "build:web": "pnpm --dir apps/web build",
     "build:vscode": "pnpm --dir apps/vscode-extension build",
+    "build:vscode:vsix": "pnpm --dir apps/vscode-extension package:vsix",
     "build:docs": "pnpm --dir docs build",
     "dev:web": "pnpm --dir apps/web dev",
     "dev:docs": "pnpm --dir docs dev",
