@@ -1,6 +1,6 @@
 # DraMark for VS Code
 
-[DraMark](https://dramark.dev) (Drama Markdown) 的官方 VS Code 扩展，为戏剧、影视及音乐剧剧本创作提供语法高亮、智能提示和预览支持。
+[DraMark](https://docs.dramark.dev) (Drama Markdown) 的官方 VS Code 扩展，为戏剧、影视及音乐剧剧本创作提供语法高亮、智能提示和预览支持。
 
 ## 功能特性
 
@@ -181,7 +181,7 @@ ${2:译文}
 
 ## 相关链接
 
-- [DraMark 文档](https://dramark.dev/)
+- [DraMark 文档](https://docs.dramark.dev/)
 - [GitHub 仓库](https://github.com/dramark-md/dramark)
 - [问题反馈](https://github.com/dramark-md/dramark/issues)
 

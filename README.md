@@ -7,7 +7,7 @@
 
 文件扩展名：`.dra.md`, `.dramark`, `.drm` （推荐前两种）
 
-文档：[https://dramark.dev](https://dramark.dev)
+文档：[https://docs.dramark.dev](https://docs.dramark.dev)
 
 ![VS Code 插件渲染预览](https://github.com/user-attachments/assets/580e7ed2-d38c-4e26-8014-b6baaf3f21e4)
 
