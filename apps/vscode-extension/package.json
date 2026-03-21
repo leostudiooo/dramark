@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://github.com/leostudiooo/dramark.git"
   },
-  
+  "version": "0.0.1",
   "license": "MIT",
   "publisher": "LeoLi",
   "engines": {

@@ -87,12 +87,12 @@ $$
 
 ### 基本设置
 
-| 设置 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `dramark.enableIMETricks` | boolean | `true` | 启用输入法自动替换 |
-| `dramark.preview.renderMode` | string | `"bilingual"` | 预览渲染模式 |
-| `dramark.preview.showTechCues` | boolean | `true` | 预览中显示技术提示 |
-| `dramark.diagnostics.enabled` | boolean | `true` | 启用诊断提示 |
+| 设置                           | 类型    | 默认值        | 说明               |
+| ------------------------------ | ------- | ------------- | ------------------ |
+| `dramark.enableIMETricks`      | boolean | `true`        | 启用输入法自动替换 |
+| `dramark.preview.renderMode`   | string  | `"bilingual"` | 预览渲染模式       |
+| `dramark.preview.showTechCues` | boolean | `true`        | 预览中显示技术提示 |
+| `dramark.diagnostics.enabled`  | boolean | `true`        | 启用诊断提示       |
 
 ### 渲染模式
 
@@ -155,10 +155,10 @@ ${2:译文}
 
 ## 键盘快捷键
 
-| 快捷键 | 命令 |
-|--------|------|
-| `Ctrl+Shift+V` | 打开侧边预览 |
-| `Ctrl+K V` | 打开预览标签 |
+| 快捷键                              | 命令             |
+| ----------------------------------- | ---------------- |
+| `Ctrl+Shift+V`                      | 打开侧边预览     |
+| `Ctrl+K V`                          | 打开预览标签     |
 | `Ctrl+Shift+P` → "DraMark: Preview" | 命令面板打开预览 |
 
 ## 语言支持
@@ -185,9 +185,10 @@ ${2:译文}
 - [GitHub 仓库](https://github.com/leostudiooo/dramark)
 - [问题反馈](https://github.com/leostudiooo/dramark/issues)
 
-
 ## 许可证
 
 MIT © DraMark Contributors
+
+注：本扩展依赖仓库中的核心引擎模块（Apache-2.0），具体分层见仓库根目录 README。
 
 注：本扩展依赖仓库中的核心引擎模块（Apache-2.0），具体分层见仓库根目录 README。

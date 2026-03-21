@@ -1,0 +1,10 @@
+DraMark Notices
+Copyright 2026 DraMark Contributors
+
+This repository is licensed by directory:
+- Core parser and shared engine code: Apache License 2.0
+- VS Code extension: MIT License
+- Web application: GNU Affero General Public License v3.0
+- Specification and documentation text: Creative Commons Attribution 4.0 International
+
+For exact boundaries, see the repository README.
