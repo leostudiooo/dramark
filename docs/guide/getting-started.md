@@ -3,11 +3,17 @@
 本指南将帮助你在 5 分钟内开始使用 DraMark 编写剧本。
 
 ## 什么是 DraMark？
+> DraMark: **Dra**ma **Mark**down  
+> 中文名“戏码”寓意剧本创作的“代码”，同时也暗含“一场戏”的意思，强调其作为剧本创作工具的核心定位。
 
-DraMark（Drama Markdown）是一门专为戏剧、影视及音乐剧剧本创作设计的纯文本标记语言。它是 [CommonMark](https://commonmark.org/) 的结构扩展方言，这意味着：
+DraMark 是一门专为戏剧、影视及音乐剧剧本创作设计的纯文本标记语言。它是 [CommonMark](https://commonmark.org/) 的结构扩展方言，这意味着：
 
 - 所有标准 Markdown 语法都可用（加粗、斜体、列表等）
 - 学习曲线平缓，如果你会写 Markdown，就能快速上手 DraMark
+
+文件扩展名：`.dra.md`, `.dramark`, `.drm` （推荐前两种）
+
+![VS Code 插件渲染预览](https://github.com/user-attachments/assets/580e7ed2-d38c-4e26-8014-b6baaf3f21e4)
 
 ## 基础语法速览
 
