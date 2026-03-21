@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "DraMark"
   text: "戏码"
-  tagline: 为戏剧、影视及音乐剧剧本创作设计的纯文本标记语言（开发中）
+  tagline: 为戏剧、影视及音乐剧剧本创作设计的纯文本标记语言 (Public Beta)
   image:
     src: /logo.svg
     alt: DraMark
@@ -16,7 +16,7 @@ hero:
       text: 查看示例
       link: /examples/showcase
     - theme: alt
-      text: 🤖 给 LLM 的指南
+      text: 🤖 给 LLM/AI Agent 的指南
       link: /guide/llm-syntax-guide
 
 features:
