@@ -411,15 +411,26 @@ ${generateTechCueCSS()}
   flex: 1;
   font-style: italic;
   color: var(--dm-text-muted);
+  min-width: 0;
 }
 
 .dm-translation-target {
   flex: 1;
+  min-width: 0;
 }
 
-@container preview (max-width: 600px) {
+/* Translation responsive: based on parent container width, not page width */
+.dm-row-center,
+.dm-layout-mobile,
+.dm-layout-tablet-inner .dm-row-center {
+  container-type: inline-size;
+  container-name: translation-container;
+}
+
+@container translation-container (max-width: 480px) {
   .dm-translation[data-layout="side-by-side"] {
     flex-direction: column;
+    gap: 0.25rem;
   }
 }
 
