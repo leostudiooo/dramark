@@ -2,159 +2,195 @@
 
 以下是几个音乐剧风格的 DraMark 片段示例。
 
-## 示例 1：独唱
+## 示例 1：元杂剧唱段
 
 ```dramark
 ---
 meta:
-  title: 独白
+  title: 窦娥冤·滚绣球
+  author: 关汉卿
 ---
 
-# 第三场 深夜
+# 第三折
 
-<<LX: SPOT_SOLO GO>>
+<<LX: COLD>>
 
-$$ 星空下的独白
+公堂上，窦娥被押赴刑场。
 
-@艾琳娜
-= On my own, pretending he's beside me
-独自一人，假装他还在我身边
-= All alone, I walk with him till morning
-独自漫步，与他相伴直到黎明
-= Without him, I feel his arms around me
-没有他，我却感受他的臂弯
-= And when I lose my way I close my eyes and he has found me
-当我迷失，闭上眼，他便会找到我
+$$ 滚绣球
+@窦娥
+有日月朝暮悬，有鬼神掌着生死权。
+天地也！只合把清浊分辨，
+可怎生糊突了盗跖、颜渊？
+为善的更贫穷命更短，
+造恶的享富贵又寿延。
+天地也！做得个怕硬欺软，
+却原来也这般顺水推船！
+地也，你不分好歹何为地！
+天也，你错勘贤愚枉做天！
 $$
 
-<<LX: SPOT_SOLO FADE>>
+<<LX: DIM>>
+
+@窦娥
+{哭泣}
+只落得两泪涟涟。
 ```
 
-## 示例 2：对唱
+## 示例 2：梵文诗剧
 
 ```dramark
-$$ 对峙
+---
+meta:
+  title: अभिज्ञानशाकुन्तलम् — प्रथमोऽङ्कः
+  author: कालिदासः
+  locale: sa
+---
 
-@杰克
-Why are you doing this?
+# प्रथमोऽङ्कः
 
-@露丝
-Because it's the right thing to do!
+<<LX: FOREST>>
 
-@杰克
-But at what cost?
-
-@露丝
-{走近}
-At any cost.
-
-@杰克 @露丝
-= We stand together
-我们站在一起
-= Through stormy weather
-穿越风雨
-= Our love will guide us
-爱会指引我们
-= Nothing can divide us
-没有什么能将我们分离
+$$ वनस्थानकथा
+@काण्वः
+वैखानसाः, समिदाहरणाय प्रस्थिता वयम् ।
+एष खलु कण्वस्य कुलपतेरनुमालिनीतीरमाश्रमो दृश्यते ।
 $$
-```
 
-## 示例 3：群唱
+@शकुन्तला
+{सखीभिः सह}
+इत इतः सख्यौ ।
+{अनसूयायाः सह}
+अतिपिनद्धेन वल्कलेन प्रियंवदया नियन्त्रितास्मि ।
+शिथिलय तावदेतत् ।
 
-```dramark
-$$ 革命之歌
-
-@安灼拉
-Do you hear the people sing?
-
-@学生们
-Singing the song of angry men!
-
-@安灼拉
-It is the music of a people
-
-@全体
-Who will not be slaves again!
-
-!!
-@格朗泰尔
-{举杯}
-Here's to the revolution!
-!!
-
-@安灼拉 @学生们
-When the beating of your heart
-Echoes the beating of the drums
-There is a life about to start
-When tomorrow comes!
+$$ प्रियान्वयाद्विषयः
+@विदूषकः
+{निःश्वस्य}
+भो दिनं, एतस्य मृगयाशीलस्य रमणीयवयस्यभावेन गृविन्नोऽहम् ।
 $$
+
+@शकुन्तला
+{संस्कृते}
+अहो रमणीयं वनं ।
+नवकुसुमयौवना वनज्योत्स्ना स्निग्घपल्लवतयोपभोगक्षमः सहकारः ।
 ```
 
-## 示例 4：说唱/念白混合
+## 示例 3：日本能剧
 
 ```dramark
-$$ Cabinet Battle
+---
+meta:
+  title: 敦盛·第四幕
+  author: 世阿弥
+  locale: ja
+---
 
-@杰斐逊
-{嘲讽地}
-What did I miss?
+# 第四幕 草剃崎之战
 
-@汉密尔顿
-Thirty-two, seven-minute speeches
-And not one solution!
+<<LX: MOONLIGHT>>
 
-@杰斐逊
-You've created another financial disaster!
+战场上，源氏与平氏对峙。敦盛被包围。
 
-!!
-@华盛顿
-Gentlemen!
-!!
+$$ 敦盛之舞
+@敦盛【語】
+人生五十年、
+下天のうちを比ぶれば、
+梦幻のごとくなり。
+@敦盛【唱】
+一度得有生にいだしば、
+岂（あに）灭すること无からんや。
 
-@汉密尔顿
-$Alexander Hamilton!$
-我的政策拯救了国家！
+@@
+众人肃穆。
+
+@敦盛【抜刀す】
+平氏の武者よ、
+今夜の月こそ、
+我ら二人の诀别なれ。
 $$
 ```
 
-## 示例 5：重唱
+## 示例 4：朝鲜盘索里
 
 ```dramark
-$$ One Day More
+---
+meta:
+  title: 춘향가 — 이별
+  author: 판소리 전통
+  locale: ko
+---
 
-@冉阿让
-One day more
-Another day, another destiny
+# 춘향과 몽룡 이별
 
-@沙威
-One day more
-Another day, another destiny
+<<LX: SOFT>>
 
-@珂赛特
-I did not live until today
+춘향과 몽룡이 광한루 앞에서, 아쉬워하며 작별한다.
 
-@马吕斯
-One more day all on my own
+$$ 이별가
+@춘향
+삼월 봄빛이 무한 좋으니
+이 몸의 마음은 근심스럽도다
+이제 작별하면 소식 끊어지리니
+어느 날 다시 만나보리오
 
-@爱潘妮
-{独自}
-One more day with him not caring
+!!
+@몽룡
+춘향아, 너는 걱정 마라.
+내 과거 보는 날이 오면
+반드시 너를 데리러 오리라.
+!!
 
-@安灼拉
-One more day before the storm
+@춘향
+공자께서 허물치 않으신다면
+이 몸은 평생 잊지 않겠나이다
+바위와 빗물이 변해도 변치 않으리
+<<LX: MOON>>
+$$
+```
 
-@全体
-Do I follow where she goes?
-At the barricades of freedom
-Shall I join my brothers there?
-When our ranks begin to form
-Do I stay and do I dare?
+## 示例 5：古希腊悲剧
 
-Will you take your place with me?
+```dramark
+---
+meta:
+  title: Οἰδίπους Τύραννος
+  author: Σοφοκλῆς
+  locale: grc
+---
 
-@全体
-The time is now
-The day is here!
+# πρόλογος
+
+<<LX: TEMPLE>>
+
+Θῆβαι. πρὸ τοῦ ἀνακτόρου.
+
+$$ παιὰν τῆς πόλεως
+@χορός
+στεναγμοῖσι καὶ γόοις πλουτίζεται
+πόλις γάρ, ὥσπερ καὐτὸς εἰσορᾷς, ἄγαν
+ἤδη σαλεύει κἀνακουφίσαι κάρα
+βυθῶν ἔτ᾽ οὐχ οἵα τε φοινίου σάλου.
+$$
+
+@Οἰδίπους
+ὦ παῖδες, οἰκτροί, γνωτὰ κοὐκ ἄγνωτά μοι
+προσήλθεθ᾽ ἱμείροντες· εὖ γὰρ οἶδ᾽ ὅτι
+νοσεῖτε πάντες, καὶ νοσοῦντες, ὡς ἐγὼ
+οὐκ ἔστιν ὑμῶν ὅστις ἐξ ἴσου νοσεῖ.
+
+@Κρέων
+Λέγοιμ᾽ ἂν οἷ᾽ ἤκουσα τοῦ θεοῦ πάρα·
+Ἄνωγεν ἡμᾶς Φοῖβος ἐμφανῶς ἄναξ
+μίασμα χώρας ὡς τεθραμμένον χθονὶ
+ἐν τῇδ᾽, ἐλαύνειν μηδ᾽ ἀνήκεστον τρέφειν.
+
+<<LX: DIM>>
+
+$$ ὅρκος τοῦ βασιλέως
+@Οἰδίπους
+ἴθ᾽, ὦ βροτῶν ἄριστ᾽, ἀνόρθωσον πόλιν.
+ἴθ᾽, εὐλαβήθηθ᾽· ὡς σὲ νῦν μὲν ἥδε γῆ
+σωτῆρα κλῄζει τῆς πάρος προθυμίας.
 $$
 ```

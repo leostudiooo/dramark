@@ -88,18 +88,18 @@ $$
 正确：
 
 ```dramark
-@冉阿让
-= Who am I?
-我是谁？
-= Can I conceal myself?
-我能否隐瞒真相？
+@窦娥
+= 有日月朝暮悬，有鬼神掌着生死权
+ 有 sun and moon turn in their courses, ghosts and spirits hold the power of life and death
+= 天地也！只合把清浊分辨
+ Heaven and earth! Should clearly distinguish good from evil
 ```
 
 错误示例：
 
 ```dramark
-@冉阿让
-=Who am I?   % 错：等号后缺空格，不是译配起始
+@窦娥
+=有日月朝暮悬   % 错：等号后缺空格，不是译配起始
 ```
 
 显式退出译配：

@@ -1,0 +1,31 @@
+---
+meta:
+  title: Tartuffe — Acte III, Scène II
+  author: Molière
+  locale: fr
+---
+
+# Acte III, Scène II — Le salon d'Orgon.
+
+<<LX: INTERIOR>>
+
+@TARTUFFE
+Quoique pécheur, je ne suis pourtant pas un sot;
+Quand un homme se trouve aux pieds de vos attraits,
+Il sent son coeur mourir, et ne peut plus rien faire.
+
+@ELMIRE
+Mais, Monsieur...
+{Tartuffe s'agenouille}
+
+@TARTUFFE
+Ah! je sais que ma voix au ciel est entendue.
+Vous êtes pour moi si indulgent, et je vous en bénis.
+
+<<LX: SPOT_ON TARTUFFE>>
+
+@TARTUFFE
+Madame, je sais ce que je dis,
+Et ma ferveur n'est pas suspecte aux saints cieux.
+Vous êtes, je l'avoue, un objet précieux
+Dont votre amant n'a pas le bonheur d'être aimé.
