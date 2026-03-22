@@ -6,7 +6,7 @@ import {
   buildTechCueColorMap,
   convertAstToRenderBlocks,
   defaultTheme,
-} from '../../packages/app-core/index.js';
+} from '../../apps/core/index.js';
 
 describe('core/normalizeFrontmatter', () => {
   it('normalizes known namespaces and preserves unknown keys in extras', () => {

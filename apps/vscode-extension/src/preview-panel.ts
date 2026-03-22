@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import type { ParseViewModel } from '../../../src/core/index.js';
-import type { PreviewConfig } from '../../../packages/app-core/index.js';
+import type { PreviewConfig } from '../../../apps/core/index.js';
 import {
   buildTechCueColorMap,
   convertAstToRenderBlocks,
   buildColumnarLayout,
   generateCSS,
   defaultTheme,
-} from '../../../packages/app-core/index.js';
-import { createPreviewHTML } from '../../../packages/app-core/index.js';
+} from '../../../apps/core/index.js';
+import { createPreviewHTML } from '../../../apps/core/index.js';
 
 export class PreviewPanel {
   public static readonly viewType = 'dramark.preview';

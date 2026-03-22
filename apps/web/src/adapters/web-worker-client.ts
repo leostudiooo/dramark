@@ -1,4 +1,4 @@
-import type { DocumentSnapshot, EngineMessage } from '../../../packages/app-core/index.js';
+import type { DocumentSnapshot, EngineMessage } from '../../../apps/core/index.js';
 
 export type WorkerSnapshotListener = (snapshot: DocumentSnapshot) => void;
 

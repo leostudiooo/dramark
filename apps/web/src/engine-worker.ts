@@ -1,5 +1,5 @@
-import { DocumentEngine } from '../../../packages/app-core/index.js';
-import type { EngineMessage } from '../../../packages/app-core/index.js';
+import { DocumentEngine } from '../../../apps/core/index.js';
+import type { EngineMessage } from '../../../apps/core/index.js';
 
 const engine = new DocumentEngine({ debounceMs: 180 });
 

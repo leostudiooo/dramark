@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DocumentEngine } from '../../../packages/app-core/index.js';
+import { DocumentEngine } from '../../../apps/core/index.js';
 import { DocumentController } from './document-controller.js';
 import { DiagnosticsManager } from './diagnostics.js';
 import { DraMarkCompletionProvider } from './completion-provider.js';

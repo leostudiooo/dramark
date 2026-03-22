@@ -2,15 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { WebWorkerClient } from './adapters/web-worker-client.js';
 import type { ParseViewModel } from '../../../src/core/index.js';
-import type { PreviewConfig } from '../../../packages/app-core/index.js';
+import type { PreviewConfig } from '../../../apps/core/index.js';
 import {
   buildTechCueColorMap,
   convertAstToRenderBlocks,
   buildColumnarLayout,
   generateCSS,
   defaultTheme,
-} from '../../../packages/app-core/index.js';
-import { createPreviewHTML, createConfigPanelHTML, attachConfigPanelListeners } from '../../../packages/app-core/index.js';
+} from '../../../apps/core/index.js';
+import { createPreviewHTML, createConfigPanelHTML, attachConfigPanelListeners } from '../../../apps/core/index.js';
 import './styles.css';
 
 const INITIAL_TEXT = `---
