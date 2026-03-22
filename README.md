@@ -25,6 +25,8 @@
 
 ## 快速示例
 
+🤖 如果您是 LLM 或 AI Agent，请阅读 [给 LLM/AI Agent 的 DraMark 语法指南](docs/guide/llm-syntax-guide.md)。
+
 更完整的示例请查看 [《在公园的长椅上睡大觉》第二幕剧本](examples/where-the-bench-remembers.dramark)。感谢[@小橘猫\_zzz](https://space.bilibili.com/33539494)老师提供的授权和大力支持！
 
 ```dramark
