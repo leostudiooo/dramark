@@ -11,13 +11,13 @@ importers:
       '@vscode/vsce':
         specifier: ^3.7.1
         version: 3.7.1
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.2
     devDependencies:
       '@types/vscode':
         specifier: ^1.85.0
         version: 1.110.0
-      esbuild:
-        specifier: ^0.24.0
-        version: 0.24.2
 
 packages:
 

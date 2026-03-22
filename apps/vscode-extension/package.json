@@ -89,10 +89,10 @@
     "package:vsix:out": "npm run build && vsce package -o dist/dramark.vsix"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
-    "esbuild": "^0.24.0"
+    "@types/vscode": "^1.85.0"
   },
   "dependencies": {
-    "@vscode/vsce": "^3.7.1"
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.24.0"
   }
 }

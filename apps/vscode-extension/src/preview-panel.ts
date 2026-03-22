@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
+import * as path from 'node:path';
+import * as esbuild from 'esbuild';
 import type { ParseViewModel } from '../../../src/core/index.js';
 import type { PreviewConfig } from '../../../apps/core/index.js';
 import {
   buildTechCueColorMap,
   buildStandaloneExportHtml,
-  getStandaloneRendererJs,
   convertAstToRenderBlocks,
   buildColumnarLayout,
   generateCSS,
@@ -109,6 +110,7 @@ export class PreviewPanel {
     const astJson = JSON.stringify(this.latestViewModel.tree);
     const techConfigJson = JSON.stringify(techConfig);
     const configJson = JSON.stringify(renderConfig);
+    const rendererJs = await this.buildStandaloneRendererBundle();
     
     const exportHtml = buildStandaloneExportHtml({
       astJson,
@@ -116,7 +118,7 @@ export class PreviewPanel {
       initialConfigJson: configJson,
       initialTheme: effectiveTheme,
       previewCss,
-      rendererJs: getStandaloneRendererJs(),
+      rendererJs,
       config: this.config,
       configOpen: this.configOpen,
     });
@@ -145,6 +147,34 @@ export class PreviewPanel {
     } catch (err) {
       vscode.window.showErrorMessage(`Failed to export HTML: ${String(err)}`);
     }
+  }
+
+  private async buildStandaloneRendererBundle(): Promise<string> {
+    const runtimeEntryPath = path.resolve(this.extensionUri.fsPath, '..', 'core', 'standalone-runtime.ts');
+    const entryCode = [
+      `import { renderStandalone } from ${JSON.stringify(runtimeEntryPath)};`,
+      'globalThis.DraMarkRenderer = { render: renderStandalone };',
+    ].join('\n');
+
+    const result = await esbuild.build({
+      stdin: {
+        contents: entryCode,
+        resolveDir: path.dirname(runtimeEntryPath),
+        sourcefile: 'dramark-export-runtime-entry.ts',
+        loader: 'ts',
+      },
+      bundle: true,
+      write: false,
+      format: 'iife',
+      platform: 'browser',
+      target: 'es2020',
+    });
+
+    const output = result.outputFiles?.[0]?.text;
+    if (!output) {
+      throw new Error('Failed to bundle standalone renderer.');
+    }
+    return output;
   }
 
   dispose(): void {
