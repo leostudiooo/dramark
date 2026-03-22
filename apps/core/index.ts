@@ -9,6 +9,7 @@ export { resolveCompletionContext, collectCompletions } from './completions.js';
 export type { CompletionItem, CompletionContext } from './completions.js';
 
 export type { DocumentSnapshot, EngineMessage } from './protocol.js';
+export { buildStandaloneExportHtml } from './export-standalone-html.js';
 
 // Render module
 export * from './render/index.js';

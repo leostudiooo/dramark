@@ -3,6 +3,7 @@ import type { ParseViewModel } from '../../../src/core/index.js';
 import type { PreviewConfig } from '../../../apps/core/index.js';
 import {
   buildTechCueColorMap,
+  buildStandaloneExportHtml,
   convertAstToRenderBlocks,
   buildColumnarLayout,
   generateCSS,
@@ -108,7 +109,16 @@ export class PreviewPanel {
     const techConfigJson = JSON.stringify(techConfig);
     const configJson = JSON.stringify(renderConfig);
     
-    const exportHtml = this.buildStandaloneExportHtml(astJson, techConfigJson, configJson, effectiveTheme, previewCss);
+    const exportHtml = buildStandaloneExportHtml({
+      astJson,
+      techConfigJson,
+      initialConfigJson: configJson,
+      initialTheme: effectiveTheme,
+      previewCss,
+      rendererJs: this.getStandaloneRendererJs(),
+      config: this.config,
+      configOpen: this.configOpen,
+    });
 
     // Save dialog
     const defaultUri = this.latestDocumentUri.with({
