@@ -222,6 +222,45 @@ export class PreviewPanel {
     background: var(--dm-sung-bg);
   }
 
+  /* Container Query Support */
+  .dramark-preview {
+    container-type: inline-size;
+    container-name: preview;
+  }
+
+  /* Responsive: Two column layout (600px-959px) - prioritize right column */
+  @container preview (min-width: 600px) and (max-width: 959px) {
+    .dramark-preview .dm-row {
+      grid-template-columns: 200px 1fr 200px;
+    }
+
+    .dramark-preview[data-has-left="false"] .dm-row {
+      grid-template-columns: 0 1fr 200px;
+    }
+
+    .dramark-preview[data-has-right="false"] .dm-row {
+      grid-template-columns: 200px 1fr 0;
+    }
+
+    .dramark-preview[data-has-left="false"][data-has-right="false"] .dm-row {
+      grid-template-columns: 0 1fr 0;
+    }
+  }
+
+  /* Single column layout (<=600px) */
+  @container preview (max-width: 599px) {
+    .dm-layout-desktop {
+      display: none;
+    }
+
+    .dm-layout-mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+    }
+  }
+
   /* Switch Component */
   .dm-switch {
     position: relative;
@@ -397,6 +436,144 @@ ${configHTML}
   
   // Initialize
   updateConfig();
+  
+  // Handle responsive layout: move side-only blocks to center on narrow screens
+  // Matches CSS container query breakpoints:
+  // - >=960px: 3 columns
+  // - 600-959px: 2 columns (prioritize right)
+  // - <600px: 1 column
+  function handleResponsiveLayout() {
+    const preview = document.querySelector('.dramark-preview');
+    if (!preview) return;
+    
+    // Get container width (matches @container preview)
+    const containerWidth = preview.getBoundingClientRect().width;
+    const isWide = containerWidth >= 960;
+    const isMedium = containerWidth >= 600 && containerWidth < 960;
+    const isNarrow = containerWidth < 600;
+    const preview = document.querySelector('.dramark-preview');
+    const hasLeft = preview?.getAttribute('data-has-left') === 'true';
+    const hasRight = preview?.getAttribute('data-has-right') === 'true';
+    
+    const hasLeft = preview.getAttribute('data-has-left') === 'true';
+    const hasRight = preview.getAttribute('data-has-right') === 'true';
+    
+    // Determine which sidebars are visible based on container width and config
+    // >=960px: 3 columns - show all visible sidebars
+    // 600-959px: 2 columns - hide left sidebar (CSS prioritizes right)
+    // <600px: 1 column - hide both sidebars
+    const showLeftColumn = isWide && hasLeft;
+    const showRightColumn = (isWide || isMedium) && hasRight;
+    
+    // Process each row
+    document.querySelectorAll('.dm-row').forEach(row => {
+      const leftCell = row.querySelector('.dm-row-left');
+      const centerCell = row.querySelector('.dm-row-center');
+      const rightCell = row.querySelector('.dm-row-right');
+      
+      if (!centerCell) return;
+      
+      const hasLeftContent = leftCell && !leftCell.classList.contains('dm-row-empty') && leftCell.children.length > 0;
+      const hasCenterContent = centerCell && !centerCell.classList.contains('dm-row-empty') && centerCell.children.length > 0;
+      const hasRightContent = rightCell && !rightCell.classList.contains('dm-row-empty') && rightCell.children.length > 0;
+      
+      // Function to ensure content is cloned to center
+      const ensureClonedToCenter = (sourceCell) => {
+        if (!centerCell.dataset.clonedFrom?.includes(sourceCell.className)) {
+          Array.from(sourceCell.children).forEach(child => {
+            const clone = child.cloneNode(true);
+            clone.dataset.cloned = 'true';
+            centerCell.appendChild(clone);
+          });
+          const clonedFrom = centerCell.dataset.clonedFrom || '';
+          centerCell.dataset.clonedFrom = clonedFrom + ' ' + sourceCell.className;
+        }
+      };
+      
+      // Clear cloned content when not needed
+      const clearClonedContent = () => {
+        centerCell.querySelectorAll('[data-cloned="true"]').forEach(el => el.remove());
+        delete centerCell.dataset.clonedFrom;
+      };
+      
+      // Case 1: Only left content, no center content
+      if (hasLeftContent && !hasCenterContent) {
+        if (!showLeftColumn) {
+          // Left column hidden, show in center
+          ensureClonedToCenter(leftCell);
+          leftCell.style.display = 'none';
+          centerCell.style.display = '';
+        } else {
+          // Left column visible
+          clearClonedContent();
+          leftCell.style.display = '';
+          centerCell.style.display = 'none';
+        }
+      }
+      
+      // Case 2: Only right content, no center content
+      if (hasRightContent && !hasCenterContent) {
+        if (!showRightColumn) {
+          // Right column hidden, show in center
+          ensureClonedToCenter(rightCell);
+          rightCell.style.display = 'none';
+          centerCell.style.display = '';
+        } else {
+          // Right column visible
+          clearClonedContent();
+          rightCell.style.display = '';
+          centerCell.style.display = 'none';
+        }
+      }
+      
+      // Case 3: Both left and right content, no center content
+      if (hasLeftContent && hasRightContent && !hasCenterContent) {
+        if (!showLeftColumn && !showRightColumn) {
+          // Both columns hidden, show both in center
+          ensureClonedToCenter(leftCell);
+          ensureClonedToCenter(rightCell);
+          leftCell.style.display = 'none';
+          rightCell.style.display = 'none';
+          centerCell.style.display = '';
+        } else if (!showLeftColumn) {
+          // Only left hidden
+          clearClonedContent();
+          ensureClonedToCenter(leftCell);
+          leftCell.style.display = 'none';
+          rightCell.style.display = '';
+          centerCell.style.display = '';
+        } else if (!showRightColumn) {
+          // Only right hidden
+          clearClonedContent();
+          ensureClonedToCenter(rightCell);
+          leftCell.style.display = '';
+          rightCell.style.display = 'none';
+          centerCell.style.display = '';
+        } else {
+          // Both visible
+          clearClonedContent();
+          leftCell.style.display = '';
+          rightCell.style.display = '';
+          centerCell.style.display = 'none';
+        }
+      }
+    });
+  }
+  
+  // Use ResizeObserver to watch container size changes
+  const preview = document.querySelector('.dramark-preview');
+  if (preview && window.ResizeObserver) {
+    const resizeObserver = new ResizeObserver((entries) => {
+      handleResponsiveLayout();
+    });
+    resizeObserver.observe(preview);
+  } else {
+    // Fallback to window resize
+    window.addEventListener('resize', handleResponsiveLayout);
+  }
+  
+  // Initial call
+  handleResponsiveLayout();
 })();
 </script>
 </body>

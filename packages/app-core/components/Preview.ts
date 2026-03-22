@@ -26,11 +26,50 @@ export function createPreviewHTML(props: PreviewProps): string {
       <div class="dramark-layout dm-layout-desktop">
         ${layout.rows.map((row) => renderDesktopRow(row, config, hasLeft, hasRight)).join('')}
       </div>
+      <div class="dramark-layout dm-layout-tablet">
+        ${renderTabletLayout(layout, config)}
+      </div>
       <div class="dramark-layout dm-layout-mobile">
         <div class="dramark-center">
           ${layout.rows.map((row) => renderRowForMobile(row, config)).join('')}
         </div>
       </div>
+    </div>
+  `;
+}
+
+function renderTabletLayout(layout: ColumnarLayout, config: PreviewConfig): string {
+  // 两栏布局：每行保持对齐，但左栏内容移到 center 内部
+  const rowsHtml = layout.rows.map((row) => {
+    // center 列：如果有左栏内容，放在 center 内容之前
+    const centerParts: string[] = [];
+    if (row.left !== null) {
+      centerParts.push(renderTechCueBlock(row.left));
+    }
+    if (row.center !== null) {
+      centerParts.push(renderBlock(row.center, config));
+    }
+    
+    const centerHtml = centerParts.length > 0
+      ? `<div class="dm-row-center">${centerParts.join('')}</div>`
+      : '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
+    
+    // right 列：保持不变
+    const rightHtml = row.right !== null
+      ? `<div class="dm-row-right">${renderCommentBlock(row.right)}</div>`
+      : '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>';
+    
+    return `
+      <div class="dm-row" data-has-left="${!!row.left}" data-has-center="${!!row.center}" data-has-right="${!!row.right}">
+        ${centerHtml}
+        ${rightHtml}
+      </div>
+    `;
+  }).join('');
+  
+  return `
+    <div class="dramark-layout dm-layout-tablet-inner">
+      ${rowsHtml}
     </div>
   `;
 }

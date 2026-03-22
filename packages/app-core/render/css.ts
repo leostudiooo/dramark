@@ -43,6 +43,68 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   display: none;
 }
 
+.dm-layout-tablet {
+  display: none;
+}
+
+/* Two column layout (600px-959px): show tablet layout */
+@container preview (min-width: 600px) and (max-width: 959px) {
+  .dm-layout-desktop {
+    display: none;
+  }
+  
+  .dm-layout-tablet {
+    display: block;
+  }
+  
+  .dm-layout-mobile {
+    display: none;
+  }
+  
+  /* Tablet layout: 2 columns (center + right), left content merged into center */
+  .dm-layout-tablet-inner .dm-row {
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+    grid-template-columns: 1fr 200px;
+  }
+  
+  .dm-layout-tablet-inner .dm-row-center {
+    min-width: 0;
+  }
+  
+  .dm-layout-tablet-inner .dm-row-right {
+    min-width: 0;
+  }
+  
+  .dm-layout-tablet-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+}
+
+/* Single column layout (<600px): show mobile layout */
+@container preview (max-width: 599px) {
+  .dm-layout-desktop {
+    display: none;
+  }
+  
+  .dm-layout-tablet {
+    display: none;
+  }
+  
+  .dm-layout-mobile {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+}
+
 /* Row container - always 3 columns */
 /* gap = 0.5rem (间距) + 0.6rem (外扩背景) = 1.1rem */
 .dm-row {
@@ -91,51 +153,7 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   display: none;
 }
 
-/* Responsive: Two column layout (600px-959px) - prioritize right column */
-@container preview (min-width: 600px) and (max-width: 959px) {
-  /* Default: show all three columns */
-  .dramark-preview .dm-row {
-    grid-template-columns: 200px 1fr 200px;
-  }
-  
-  /* When both sidebars present, hide left column */
-  .dramark-preview[data-columns="3"] .dm-row {
-    grid-template-columns: 0 1fr 200px;
-  }
 
-  .dramark-preview[data-columns="3"] .dm-row-left {
-    visibility: hidden;
-  }
-
-  /* No left sidebar */
-  .dramark-preview[data-has-left="false"] .dm-row {
-    grid-template-columns: 0 1fr 200px;
-  }
-
-  /* No right sidebar */
-  .dramark-preview[data-has-right="false"] .dm-row {
-    grid-template-columns: 200px 1fr 0;
-  }
-  
-  /* Neither sidebar */
-  .dramark-preview[data-has-left="false"][data-has-right="false"] .dm-row {
-    grid-template-columns: 0 1fr 0;
-  }
-}
-
-/* Single column layout (<=600px) */
-@container preview (max-width: 599px) {
-  .dm-layout-desktop {
-    display: none;
-  }
-
-  .dm-layout-mobile {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-    padding: 1rem;
-  }
-}
 
 /* Character Block */
 .dm-character {

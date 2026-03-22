@@ -294,23 +294,13 @@ function convertCharacterBlock(
       if (childNode?.type === 'comment-line') {
         const converted = convertCommentLine(childNode, context, performanceMode);
         comments.push(converted);
-        content.push({
-          type: 'comment',
-          children: [],
-          targetText: converted.content,
-          commentVariant: converted.variant,
-        });
+        // Comments go to side panel only, not in content flow
         continue;
       }
       if (childNode?.type === 'comment-block') {
         const converted = convertCommentBlock(childNode, context, performanceMode);
         comments.push(converted);
-        content.push({
-          type: 'comment',
-          children: [],
-          targetText: converted.content,
-          commentVariant: converted.variant,
-        });
+        // Comments go to side panel only, not in content flow
         continue;
       }
       const result = convertContentNode(child, context);
