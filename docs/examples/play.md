@@ -2,197 +2,152 @@
 
 以下是话剧风格的 DraMark 片段示例。
 
-## 示例 1：经典对白
+## 示例 1：经典悲剧
 
 ```dramark
 ---
 meta:
-  title: 哈姆雷特（节选）
+  title: 哈姆雷特（第三幕第一场）
   author: 威廉·莎士比亚
+  locale: en
 ---
 
-# 第一幕 第二场 城堡中的大厅
+# Act III, Scene I — Elsinore. The castle.
 
-<<LX: WARM_UP>>
+<<LX: MOONLIGHT>>
 
-国王、王后、哈姆雷特、波洛涅斯、雷欧提斯等人上。
+@HAMLET
+To be, or not to be, that is the question:
+Whether 'tis nobler in the mind to suffer
+The slings and arrows of outrageous fortune,
+Or to take arms against a sea of troubles
+And by opposing end them. To die—to sleep,
+No more; and by a sleep to say we end
+The heart-ache and the thousand natural shocks
+That flesh is heir to: 'tis a consummation
+Devoutly to be wish'd.
 
-@国王
-虽然哈姆雷特丧父悲痛
-在天性中流露，寡人亦当
-体念后生遭际。然卿须知
-先王曾屡建奇功...
+<<LX: DIM>>
 
-@哈姆雷特
-{旁白}
-太过分，太过分！
-
-@国王
-...故朕以母后婚配，
-实为社稷安稳之计。
-
-@哈姆雷特
-{独白}
-脆弱，你的名字是女人！
-父亲去世未足二月，
-送葬之鞋犹新...
-
----
-
-平台。夜间。
-
-@哈姆雷特
-{拔剑}
-生存还是毁灭，
-这是一个值得考虑的问题。
-
-<<SFX: THUNDER>>
-
-{雷声}
-默然忍受命运的暴虐毒箭，
-或是挺身反抗人世无涯的苦难，
-通过斗争把它们扫清，
-这两种行为，哪一种更高贵？
+@HAMLET
+To die, to sleep;
+To sleep, perchance to dream—ay, there's the rub:
+For in that sleep of death what dreams may come,
+When we have shuffled off this mortal coil,
+Must give us pause.
 ```
 
-## 示例 2：现代话剧
+## 示例 2：元杂剧
 
 ```dramark
 ---
 meta:
-  title: 等待戈多（节选）
-  author: 萨缪尔·贝克特
+  title: 西厢记·惊艳
+  author: 王实甫
+---
+
+# 第一本·张君瑞闹道场
+
+<<LX: SOFT>>
+
+普救寺中，张生偶遇崔莺莺。
+
+@张生
+小生姓张，名珙，字君瑞，本贯西洛人也。
+只因应举来到蒲州，游了普救寺，忽见小姐。
+小姐千娇百媚，小生魂灵儿都没了。
+
+@红娘
+你是谁家子弟？穿这等直裰，枉死城中魑魅。
+这里是佛殿，无人瞻睹。小生乃借住读书。你是何人？到此何干？
+
+@张生
+小生西洛人氏，姓张名珙，字君瑞。
+因为应举，路过此处。闻知小姐待字闺中，特来拜访。
+
+@红娘
+噤声！你来这里有甚事故？
+```
+
+## 示例 3：古典喜剧
+
+```dramark
+---
+meta:
+  title: Tartuffe — Acte III, Scène II
+  author: Molière
+  locale: fr
+---
+
+# Acte III, Scène II — Le salon d'Orgon.
+
+<<LX: INTERIOR>>
+
+@TARTUFFE
+Quoique pécheur, je ne suis pourtant pas un sot;
+Quand un homme se trouve aux pieds de vos attraits,
+Il sent son coeur mourir, et ne peut plus rien faire.
+
+@ELMIRE
+Mais, Monsieur...
+{Tartuffe s'agenouille}
+
+@TARTUFFE
+Ah! je sais que ma voix au ciel est entendue.
+Vous êtes pour moi si indulgent, et je vous en bénis.
+
+<<LX: SPOT_ON TARTUFFE>>
+
+@TARTUFFE
+Madame, je sais ce que je dis,
+Et ma ferveur n'est pas suspecte aux saints cieux.
+Vous êtes, je l'avoue, un objet précieux
+Dont votre amant n'a pas le bonheur d'être aimé.
+```
+
+## 示例 4：现代戏剧
+
+```dramark
+---
+meta:
+  title: 海鸥（第一幕）
+  author: 契诃夫
+  locale: ru
 ---
 
 # 第一幕
 
-<<LX: DIM>>
+<<LX: LAKE_VIEW>>
 
-乡间一条路。一棵树。黄昏。
+一座湖边。别墅的花园。一条路通向别墅后面的剧场。
 
-@弗拉季米尔
-{不断地往上跳，想看得更远些}
-没什么好看的。
+@КОНСТАНТИН
+{Положив на стол пачку рукописей}
+Мама, я написал пьесу. Ты должна её услышать.
+Она новая, не похожая на всё, что было.
 
-@爱斯特拉冈
-{也往上跳}
-我们走吗？
+@АРКАДИНА
+{Обнимая его}
+Новая пьеса от моего сына!
 
-@弗拉季米尔
-再等会儿。
+<<LX: WARM>>
 
-@爱斯特拉冈
-{坐下}
-我累死了。
+@КОНСТАНТИН
+{Читая из рукописи}
+«Душа человека устала. Мир холоден и безмолвен.
+Тени скользят по земле, и в каждой тени
+Дремлет какое-то семя тьмы...»
 
-!!
-沉默。长久的沉默。
-!!
+@НИНА
+{Тихо}
+Как странно... Как грустно...
 
-@弗拉季米尔
-{突然激动起来}
-咱们不能走！
+@КОНСТАНТИН
+Нина!
+{Увидев её, удивлён}
+Ты здесь?
 
-@爱斯特拉冈
-为什么？
-
-@弗拉季米尔
-我们在等待戈多。
-
-@爱斯特拉冈
-{绝望地}
-啊！是啊！
-```
-
-## 示例 3：独角戏
-
-```dramark
----
-meta:
-  title: 献给阿尔吉侬的花束（独白）
----
-
-# 手术后的第 57 天
-
-<<LX: SINGLE_SPOT>>
-
-@查理
-{面向观众}
-我现在才明白，
-智慧和教育是两回事。
-我曾经以为，
-如果我变聪明了，
-人们就会喜欢我。
-
-{停顿}
-
-但阿尔吉侬——
-那只老鼠——
-它证明了一件事：
-聪明的代价
-可能是孤独。
-
-{拿出日记本}
-
-我今天又看到了
-那个在窗户上
-看着面包店的男孩。
-
-他看起来那么快乐。
-
-{轻声}
-那么无知。
-
-<<LX: FADE_OUT>>
-```
-
-## 示例 4：多角色场景
-
-```dramark
----
-meta:
-  title: 雷雨（节选）
-  author: 曹禺
----
-
-# 第二幕 周家客厅
-
-<<LX: INTERIOR>> <<SFX: RAIN_OUTSIDE>>
-
-@蘩漪
-{从楼上下来，脸色苍白}
-四凤呢？
-
-@周朴园
-{抬头}
-有事？
-
-@蘩漪
-{冷笑}
-没事就不能问？
-
-@周朴园
-{放下报纸}
-你又怎么了？
-
-@蘩漪
-我怎么样？
-
-{走近}
-你倒问问你自己！
-
-!!
-窗外雷声隆隆。
-!!
-
-@周朴园
-{站起来}
-你冷静点！
-
-@蘩漪
-{突然爆发}
-我冷静了十八年！
-十八年！
-
-<<SFX: THUNDER_LOUD>>
-```
+@НИНА
+{Улыбаясь}
+Я пришла рано. Озеро сегодня прекрасно.
+Хотела увидеть рассвет.

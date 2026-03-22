@@ -25,66 +25,68 @@
 
 ## 快速示例
 
+🤖 如果您是 LLM 或 AI Agent，请阅读 [给 LLM/AI Agent 的 DraMark 语法指南](docs/guide/llm-syntax-guide.md)。
+
 更完整的示例请查看 [《在公园的长椅上睡大觉》第二幕剧本](examples/where-the-bench-remembers.dramark)。感谢[@小橘猫\_zzz](https://space.bilibili.com/33539494)老师提供的授权和大力支持！
 
 ```dramark
 ---
 meta:
-  title: 悲惨世界 (Les Misérables)
-  author: 维克多·雨果 (Victor Hugo)
+  title: 牡丹亭·游园惊梦
+  author: 汤显祖 (1550-1616)
   locale: zh-CN
-translation:
-  enabled: true
-  source_lang: en
-  target_lang: zh-CN
-  render_mode: bilingual
+  translation:
+    enabled: true
+    source_lang: zh-CN
+    target_lang: en
+    render_mode: bilingual
 casting:
   characters:
-    - name: 冉阿让
-      actor: 张三
-      mic: HM1
-      aliases: ["24601"]
-  groups:
-    principals:
-      members: [冉阿让]
+    - name: 杜丽娘
+      mic: M1
+    - name: 春香
+      mic: M2
+    - name: 柳梦梅
+      mic: M3
 tech:
   mics:
-    - id: HM1
-      label: Hamlet 主麦
-      color: "#4B8BFF"
+    - id: M1
+      label: 丽娘主麦
+    - id: M2
+      label: 春香主麦
+    - id: M3
+      label: 柳梦梅主麦
   sfx:
-    - id: SND_THUNDER
-      file: thunder.mp3
-      desc: 雷声
+    - id: BGM_GARDEN
+      desc: 花园背景音乐
   lx:
-    - id: LX01
-      desc: 冷白顶光
+    - id: LX_MOON
+      desc: 月光效果
       color: "#E6EEFF"
-  keywords:
-    - token: blackout
-      label: 黑场
-      color: "#111111"
 ---
 
-@冉阿让
-= Who am I?
-我是谁？
-= Can I conceal myself for evermore?
-我能否永远把我自己隐藏？
-假装我不再是过去的那个我？
+@杜丽娘
+= 原来姹紫嫣红开遍
+  What a riot of crimson and violet bloom!
+= 似这般都付与断井颓垣
+  Yet all this splendor goes to waste, abandoned in the ruined garden wall.
+= 良辰美景奈何天
+  Such a fair dawn, such gentle skies—
+= 赏心乐事谁家院
+  Yet where, I ask, is joy to be found?
 
 ---
 
-警长贾维尔猛地推开了大门。
+@@
 
-@贾维尔[怒吼]
-你跑不掉了！{拔剑}
+花园中，春光烂漫。杜丽娘携春香游园。
 
-$$
-@珂赛特
-= In my life, there is so much I do not understand.
-人生中有太多我不明白的事——
-$$
+@春香
+小姐，你看这园中景色，好不热闹！
+
+@杜丽娘
+{缓步前行，若有所思}
+春香，我往日不知春色如许……
 ```
 
 ## 核心语法速查

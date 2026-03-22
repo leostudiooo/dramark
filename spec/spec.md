@@ -194,33 +194,39 @@ CommentBlockState → TechCueBlock（块级）→ Translation → Character → 
 ---
 use_frontmatter_from: https://example.com/show/frontmatter.yaml
 meta:
-  title: 悲惨世界 (Les Misérables)
-  author: Claude-Michel Schonberg
+  title: 牡丹亭·游园惊梦
+  author: 汤显祖
   locale: zh-CN
   version: 0.4.0
 casting:
   characters:
-    - name: "冉 阿让"
+    - name: 杜丽娘
       actor: 张三
-      mic: HM1
-      aliases: [24601]
-  groups:
-    - name: 学生群像
-      members: [安灼拉, 公白飞]
+      mic: M1
+    - name: 春香
+      actor: 李四
+      mic: M2
+    - name: 柳梦梅
+      actor: 王五
+      mic: M3
 translation:
   enabled: true
-  source_lang: en
-  target_lang: zh-CN
+  source_lang: zh-CN
+  target_lang: en
   render_mode: bilingual
 tech:
   mics:
-    - id: HM1
-      label: 主麦
+    - id: M1
+      label: 丽娘主麦
+    - id: M2
+      label: 春香主麦
+    - id: M3
+      label: 柳梦梅主麦
   sfx:
     color: "#66ccff"
     entries:
-      - id: BGM_ENTER
-        desc: 入场音乐
+      - id: BGM_GARDEN
+        desc: 花园背景音乐
   color: "#888888"
 ---
 ```
@@ -364,12 +370,13 @@ close: CommentBlockState, TechCueBlock, TranslationBlock, CharacterBlock
 ### 6.2 状态重置示例
 
 ```dramark
-@冉阿让
-我该何去何从？
+@KONSTANTIN
+The soul of man is weary.
+The world is cold and silent.
 
 ---
 
-就在此时，警长沙威猛地推开了大门。（⚠️ 已回到 GlobalBlock）
+就在此时，尼娜走进了花园。（⚠️ 已回到 GlobalBlock）
 ```
 
 ## 7. 唱段与音乐容器 (SongBlock)
@@ -392,14 +399,14 @@ open: SongBlock(title=标题文本或undefined)
 **示例**：
 
 ```dramark
-$$ My Shot
-@Alexander Hamilton [Excited]
-I am not throwing away my shot
+$$ 惊梦
+@杜丽娘
+原来姹紫嫣红开遍，似这般都付与断井颓垣。
 $$
 
 $$
-@Ensemble
-This one has no title
+@柳梦梅
+则为你如花美眷，似水流年。
 $$
 ```
 
@@ -446,17 +453,17 @@ close: SongBlock
 **示例**：
 
 ```dramark
-@Hamilton
-I am not throwing away $my shot$
+@窦娥
+有日月朝暮悬，有鬼神掌着生死权。
 
-$$ My Shot
-@Hamilton
-I am not throwing away $my shot$ % 这是行内念白
+$$ 滚绣球
+@窦娥
+有日月朝暮悬，有鬼神掌着生死权。 % 整句为唱词
 $$
 
-$$ Farmer Refuted
-@Seabury
-Heed not the rabble who scream, $"Revolution!"$
+$$ 春香歌
+@春香
+三月春光无限好，奴家心中却烦恼。 % 行内唱词
 $$
 ```
 
@@ -495,40 +502,35 @@ close: SpokenSegment
 #### 8.3.1 唱段中插入短念白
 
 ```dramark
-$$ Farmer Refuted
-@Samuel Seabury
-Heed not the rabble who scream
+$$ 春香歌
+@春香
+三月春光无限好，奴家心中却烦恼。
 
 !!
-@Alexander Hamilton
-What?!
+@梦龙
+春香，你且放心。
 !!
 
-@Samuel Seabury  
-who scream, "Revolution!"
+@春香
+从今一别音书断，不知何日再相邀。
 $$
 ```
 
 #### 8.3.2 唱段中插入长念白场景
 
 ```dramark
-$$ The Room Where It Happens
-@Aaron Burr
-No one else was in the room where it happened
+$$ 游园惊梦
+@杜丽娘
+原来姹紫嫣红开遍，似这般都付与断井颓垣。
 
 !!
-@Thomas Jefferson
-We need a compromise
-
-@James Madison
-Something we can all agree on
-
-@Alexander Hamilton
-I have a proposal...
+柳梦梅上。
+@柳梦梅
+则为你如花美眷，似水流年。
 !!
 
-@Aaron Burr
-The room where it happened
+@杜丽娘
+良辰美景奈何天，赏心乐事谁家院。
 $$
 ```
 
@@ -604,15 +606,15 @@ close: TranslationBlock
 **示例**：
 
 ```dramark
-@冉阿让
-= Who am I?
-我是谁？
-= Can I conceal myself?
-我能否隐瞒真相？
+@窦娥
+= 有日月朝暮悬，有鬼神掌着生死权
+ 有 sun and moon turn in their courses
+= 天地也！只合把清浊分辨
+ Heaven and earth! Should distinguish good from evil
 
 =
 （无需再配对，直接回到普通对白模式）
-但我的良心永不允许。
+地也，你不分好歹何为地！
 ```
 
 ### 8.6 词法约束（严格）
