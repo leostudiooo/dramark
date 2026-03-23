@@ -76,17 +76,9 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  const exportPdf = vscode.commands.registerCommand('dramark.exportPdf', () => {
-    preview.exportPdf();
-  });
-
-  const exportHtml = vscode.commands.registerCommand('dramark.exportHtml', async () => {
-    await preview.exportHtml();
-  });
-
   const exportMenu = vscode.commands.registerCommand('dramark.export', async () => {
     const items: vscode.QuickPickItem[] = [
-      { label: '$(file-pdf) Export to PDF', description: 'Open print dialog to save as PDF' },
+      { label: '$(file-pdf) Export to PDF', description: 'Generate PDF file via Chrome/Chromium' },
       { label: '$(file-code) Export to HTML', description: 'Save as standalone HTML file' },
     ];
     
@@ -97,7 +89,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!selected) return;
     
     if (selected.label.includes('PDF')) {
-      preview.exportPdf();
+      await preview.exportPdf();
     } else if (selected.label.includes('HTML')) {
       await preview.exportHtml();
     }
@@ -155,8 +147,6 @@ export function activate(context: vscode.ExtensionContext): void {
     semanticTokensProvider,
     showPreview,
     exportMenu,
-    exportPdf,
-    exportHtml,
     copyDiagnostics,
     noOpCodeLens,
     openSub,

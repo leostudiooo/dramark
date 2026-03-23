@@ -48,16 +48,6 @@
         "icon": "$(export)"
       },
       {
-        "command": "dramark.exportPdf",
-        "title": "Export to PDF",
-        "icon": "$(file-pdf)"
-      },
-      {
-        "command": "dramark.exportHtml",
-        "title": "Export to HTML",
-        "icon": "$(file-code)"
-      },
-      {
         "command": "dramark.copyDiagnostics",
         "title": "DraMark: Copy Diagnostics"
       }
@@ -68,6 +58,30 @@
           "command": "dramark.showPreview",
           "when": "resourceLangId == dramark",
           "group": "navigation@10"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "dramark.showPreview",
+          "when": "resourceLangId == dramark",
+          "group": "dramark@1"
+        },
+        {
+          "command": "dramark.export",
+          "when": "resourceLangId == dramark",
+          "group": "dramark@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dramark.showPreview",
+          "when": "resourceLangId == dramark",
+          "group": "dramark@1"
+        },
+        {
+          "command": "dramark.export",
+          "when": "resourceLangId == dramark || resourceExtname == .dra.md || resourceExtname == .dramark || resourceExtname == .drm",
+          "group": "dramark@2"
         }
       ]
     },
@@ -80,7 +94,17 @@
           "meta.embedded.block.frontmatter.dramark": "yaml"
         }
       }
-    ]
+    ],
+    "configuration": {
+      "title": "DraMark",
+      "properties": {
+        "dramark.pdf.chromePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Chrome/Chromium executable. Leave empty for auto-detection."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node build.mjs",
@@ -93,6 +117,7 @@
   },
   "dependencies": {
     "@vscode/vsce": "^3.7.1",
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "puppeteer-core": "^23.11.1"
   }
 }

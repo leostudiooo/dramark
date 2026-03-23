@@ -12,6 +12,7 @@ import {
   defaultTheme,
 } from '../../../apps/core/index.js';
 import { createPreviewHTML } from '../../../apps/core/index.js';
+import { detectChromePath, exportToPdf } from './pdf-exporter.js';
 
 export class PreviewPanel {
   public static readonly viewType = 'dramark.preview';
@@ -66,8 +67,6 @@ export class PreviewPanel {
         } else if (message.type === 'toggleConfig') {
           this.configOpen = !this.configOpen;
           this.rerender();
-        } else if (message.type === 'printError') {
-          vscode.window.showErrorMessage(String(message.error || 'Failed to open print dialog in preview.'));
         }
       });
     }
@@ -81,13 +80,66 @@ export class PreviewPanel {
     this.rerender();
   }
 
-  exportPdf(): void {
-    if (!this.panel) {
+  async exportPdf(): Promise<void> {
+    if (!this.latestViewModel || !this.latestDocumentUri) {
       vscode.window.showInformationMessage('Open DraMark Preview first, then export PDF.');
       return;
     }
-    this.panel.reveal(vscode.ViewColumn.Beside);
-    this.panel.webview.postMessage({ type: 'exportPdf' });
+
+    const chromePath = await detectChromePath();
+    if (!chromePath) {
+      const openSettings = 'Open Settings';
+      const exportHtml = 'Export HTML instead';
+      const choice = await vscode.window.showWarningMessage(
+        'Chrome/Chromium not found. Please install Chrome or configure "dramark.pdf.chromePath" in settings.',
+        openSettings,
+        exportHtml,
+      );
+      if (choice === openSettings) {
+        vscode.commands.executeCommand('workbench.action.openSettings', 'dramark.pdf.chromePath');
+      } else if (choice === exportHtml) {
+        await this.exportHtml();
+      }
+      return;
+    }
+
+    const exportHtml = await this.generateExportHtmlContent();
+    if (!exportHtml) {
+      return;
+    }
+
+    const defaultUri = this.latestDocumentUri.with({
+      path: this.latestDocumentUri.path.replace(/\.dra\.md$/i, '.pdf'),
+    });
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri,
+      filters: {
+        'PDF Files': ['pdf'],
+        'All Files': ['*'],
+      },
+      title: 'Export DraMark to PDF',
+    });
+
+    if (!saveUri) {
+      return;
+    }
+
+    await vscode.window.withProgress(
+      {
+        title: 'Exporting PDF...',
+        location: vscode.ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          await exportToPdf(exportHtml, saveUri.fsPath, chromePath);
+          vscode.window.showInformationMessage(`PDF exported: ${saveUri.fsPath}`);
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to export PDF: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      },
+    );
   }
 
   async exportHtml(): Promise<void> {
@@ -96,34 +148,11 @@ export class PreviewPanel {
       return;
     }
 
-    const effectiveTheme = this.resolveThemeMode();
-    const renderConfig = {
-      ...this.config,
-      theme: effectiveTheme,
-    };
-    const techConfig = this.latestViewModel.config.tech ?? { mics: [] };
-    
-    // Generate CSS by running render once on extension side
-    const previewCss = generateCSS(defaultTheme, renderConfig);
-    
-    // AST and config for the standalone renderer
-    const astJson = JSON.stringify(this.latestViewModel.tree);
-    const techConfigJson = JSON.stringify(techConfig);
-    const configJson = JSON.stringify(renderConfig);
-    const rendererJs = await this.buildStandaloneRendererBundle();
-    
-    const exportHtml = buildStandaloneExportHtml({
-      astJson,
-      techConfigJson,
-      initialConfigJson: configJson,
-      initialTheme: effectiveTheme,
-      previewCss,
-      rendererJs,
-      config: this.config,
-      configOpen: this.configOpen,
-    });
+    const exportHtml = await this.generateExportHtmlContent();
+    if (!exportHtml) {
+      return;
+    }
 
-    // Save dialog
     const defaultUri = this.latestDocumentUri.with({
       path: this.latestDocumentUri.path.replace(/\.dra\.md$/i, '.html'),
     });
@@ -147,6 +176,37 @@ export class PreviewPanel {
     } catch (err) {
       vscode.window.showErrorMessage(`Failed to export HTML: ${String(err)}`);
     }
+  }
+
+  private async generateExportHtmlContent(): Promise<string | null> {
+    if (!this.latestViewModel || !this.latestDocumentUri) {
+      return null;
+    }
+
+    const effectiveTheme = this.resolveThemeMode();
+    const renderConfig = {
+      ...this.config,
+      theme: effectiveTheme,
+    };
+    const techConfig = this.latestViewModel.config.tech ?? { mics: [] };
+    
+    const previewCss = generateCSS(defaultTheme, renderConfig);
+    
+    const astJson = JSON.stringify(this.latestViewModel.tree);
+    const techConfigJson = JSON.stringify(techConfig);
+    const configJson = JSON.stringify(renderConfig);
+    const rendererJs = await this.buildStandaloneRendererBundle();
+    
+    return buildStandaloneExportHtml({
+      astJson,
+      techConfigJson,
+      initialConfigJson: configJson,
+      initialTheme: effectiveTheme,
+      previewCss,
+      rendererJs,
+      config: this.config,
+      configOpen: this.configOpen,
+    });
   }
 
   private async buildStandaloneRendererBundle(): Promise<string> {
@@ -279,21 +339,6 @@ ${configHTML}
         config: { [key]: value }
       });
     });
-  });
-
-  window.addEventListener('message', function(event) {
-    const message = event.data;
-    if (!message || message.type !== 'exportPdf') {
-      return;
-    }
-    try {
-      window.print();
-    } catch (err) {
-      vscode.postMessage({
-        type: 'printError',
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
   });
 })();
 </script>

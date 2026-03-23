@@ -251,6 +251,13 @@ function getExportCSS(): string {
     '@media print {',
     '  .dm-export-panel { display: none !important; }',
     '',
+    '  html, body, .dramark-preview, .dramark-layout,',
+    '  .dm-tech-cue-block, .dm-inline-tech-cue, .dm-song-container,',
+    '  .dm-character, .dm-global-action, .dm-comment, .dm-translation {',
+    '    -webkit-print-color-adjust: exact !important;',
+    '    print-color-adjust: exact !important;',
+    '  }',
+    '',
     '  body,',
     '  .dramark-preview {',
     '    font-family: Georgia, "Times New Roman", serif !important;',
@@ -303,7 +310,7 @@ function getExportCSS(): string {
     '  .dm-comment { color: #6b7280 !important; }',
     '  .dm-tech-cue-header { color: #374151 !important; border-bottom-color: #d1d5db !important; }',
     '  .dm-tech-cue-content { color: #374151 !important; }',
-    '  .dm-tech-cue-block { border-color: #9ca3af !important; background: #f5f5f5 !important; }',
+    '  .dm-tech-cue-block { border-color: #9ca3af; background: #f5f5f5; }',
     '}',
   ].join('\n');
 }
