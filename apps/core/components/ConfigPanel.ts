@@ -7,23 +7,68 @@ export interface ConfigPanelProps {
   onToggle: () => void;
 }
 
-export function createConfigPanelHTML(props: ConfigPanelProps): string {
+export interface ConfigPanelRenderOptions {
+  triggerAriaLabel?: string;
+  triggerId?: string;
+  contentId?: string;
+  triggerIconHtml?: string;
+  includePrintThemeOption?: boolean;
+  themeValue?: ThemeMode;
+  keepContentMounted?: boolean;
+  contentStyle?: string;
+  extraItemsHtml?: string;
+}
+
+const defaultSettingsIcon = '<span class="codicon codicon-settings-gear" aria-hidden="true"></span>';
+
+export function createConfigPanelHTML(props: ConfigPanelProps, options: ConfigPanelRenderOptions = {}): string {
   const { config, isOpen } = props;
+  const {
+    triggerAriaLabel = '配置',
+    triggerId,
+    contentId,
+    triggerIconHtml = defaultSettingsIcon,
+    keepContentMounted = false,
+  } = options;
+
+  const renderContent = isOpen || keepContentMounted;
+  const contentStyle = keepContentMounted
+    ? ` style="display: ${isOpen ? 'block' : 'none'};${options.contentStyle ? ` ${options.contentStyle}` : ''}"`
+    : (options.contentStyle ? ` style="${options.contentStyle}"` : '');
+  const contentHtml = renderContent
+    ? createConfigContentHTML(config, options, contentId, contentStyle)
+    : '';
+  const triggerIdAttr = triggerId ? ` id="${triggerId}"` : '';
 
   return `
     <div class="dm-config-panel">
-      <button class="dm-config-trigger" aria-label="配置" aria-expanded="${isOpen}">
-        <span class="codicon codicon-settings-gear" aria-hidden="true"></span>
+      <button class="dm-config-trigger"${triggerIdAttr} aria-label="${triggerAriaLabel}" aria-expanded="${isOpen}">
+        ${triggerIconHtml}
       </button>
-      
-      ${isOpen ? createConfigContentHTML(config) : ''}
+      ${contentHtml}
     </div>
   `;
 }
 
-function createConfigContentHTML(config: PreviewConfig): string {
+export function createConfigContentHTML(
+  config: PreviewConfig,
+  options: ConfigPanelRenderOptions = {},
+  contentId?: string,
+  contentStyleAttr = '',
+): string {
+  const themeValue = options.themeValue ?? config.theme;
+  const themeOptions = [
+    `<option value="auto" ${themeValue === 'auto' ? 'selected' : ''}>Auto</option>`,
+    `<option value="light" ${themeValue === 'light' ? 'selected' : ''}>Light</option>`,
+    `<option value="dark" ${themeValue === 'dark' ? 'selected' : ''}>Dark</option>`,
+    options.includePrintThemeOption
+      ? `<option value="print" ${themeValue === 'print' ? 'selected' : ''}>Print</option>`
+      : '',
+  ].join('');
+  const contentIdAttr = contentId ? ` id="${contentId}"` : '';
+
   return `
-    <div class="dm-config-content">
+    <div class="dm-config-content"${contentIdAttr}${contentStyleAttr}>
       <div class="dm-config-item">
         <span class="dm-config-label">Tech Cues</span>
         <label class="dm-switch">
@@ -60,11 +105,11 @@ function createConfigContentHTML(config: PreviewConfig): string {
       <div class="dm-config-item">
         <span class="dm-config-label">Theme</span>
         <select data-config="theme">
-          <option value="auto" ${config.theme === 'auto' ? 'selected' : ''}>Auto</option>
-          <option value="light" ${config.theme === 'light' ? 'selected' : ''}>Light</option>
-          <option value="dark" ${config.theme === 'dark' ? 'selected' : ''}>Dark</option>
+          ${themeOptions}
         </select>
       </div>
+
+      ${options.extraItemsHtml ?? ''}
     </div>
   `;
 }

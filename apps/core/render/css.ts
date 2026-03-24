@@ -522,6 +522,52 @@ ${generateTechCueCSS()}
   font-size: 0.875rem;
   color: var(--dm-text);
 }
+
+/* Switch component */
+.dm-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.dm-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.dm-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.dm-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.dm-switch input:checked + .dm-switch-slider {
+  background-color: var(--dm-character, #555);
+}
+
+.dm-switch input:checked + .dm-switch-slider:before {
+  transform: translateX(20px);
+}
 ${isPrint ? generatePrintThemeCSS() : ''}
 `.trim();
 }

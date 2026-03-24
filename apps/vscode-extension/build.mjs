@@ -13,7 +13,7 @@ const buildOptions = {
   platform: 'node',
   target: 'node18',
   sourcemap: true,
-  loader: { '.json': 'json' },
+  loader: { '.json': 'json', '.css': 'text' },
   plugins: [
     {
       name: 'puppeteer-externals',
