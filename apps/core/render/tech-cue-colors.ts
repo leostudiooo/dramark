@@ -65,13 +65,9 @@ export function matchTechCue(payload: string, colorMap: TechCueColorMap): TechCu
 
 function extractFirstToken(payload: string): string {
   const trimmed = payload.trim();
-  const colonIndex = trimmed.indexOf(':');
-  if (colonIndex > 0) {
-    return trimmed.slice(0, colonIndex).trim();
-  }
-  const spaceIndex = trimmed.indexOf(' ');
-  if (spaceIndex > 0) {
-    return trimmed.slice(0, spaceIndex).trim();
+  const tokenMatch = trimmed.match(/^[^\s:]+/u);
+  if (tokenMatch) {
+    return tokenMatch[0];
   }
   return trimmed;
 }

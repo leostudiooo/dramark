@@ -92,6 +92,26 @@ describe('parseDraMark', () => {
     expect(character.children.some((node) => node.type === 'paragraph' && (node.children?.[0]?.value ?? '') === '')).toBe(false);
   });
 
+  it('keeps dialogue text before inline % comment in song character context', () => {
+    const input = ['$$', '@舞监', '台词主体 % 唱段注释', '$$'].join('\n');
+
+    const result = parseDraMark(input, { includeComments: true });
+    const song = result.tree.children[0] as {
+      type: string;
+      children: Array<{
+        type: string;
+        children: Array<{ type: string; value?: string; children?: Array<{ value?: string }> }>;
+      }>;
+    };
+    const character = song.children[0];
+
+    expect(song.type).toBe('song-container');
+    expect(character.type).toBe('character-block');
+    expect(character.children.map((node) => node.type)).toEqual(['paragraph', 'comment-line']);
+    expect(character.children[0].children?.[0]?.value).toContain('台词主体');
+    expect(character.children[1].value).toContain('唱段注释');
+  });
+
   it('supports full-width mood annotation in character declarations', () => {
     const input = ['@哈姆雷特@奥菲莉娅【压抑】', '沉默。'].join('\n');
 

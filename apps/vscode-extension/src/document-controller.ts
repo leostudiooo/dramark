@@ -1,5 +1,5 @@
 import type { ParseViewModel } from '../../../src/core/index.js';
-import type { DocumentEngine } from '../../../packages/app-core/index.js';
+import type { DocumentEngine } from '../../../apps/core/index.js';
 
 export type SnapshotListener = (uri: string, viewModel: ParseViewModel) => void;
 

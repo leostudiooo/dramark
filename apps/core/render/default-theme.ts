@@ -1,4 +1,4 @@
-import type { Theme } from './types.js';
+import type { Theme, ColorScheme } from './types.js';
 
 export const defaultTheme: Theme = {
   name: 'default',
@@ -28,4 +28,18 @@ export const defaultTheme: Theme = {
 
 export function getColorScheme(theme: Theme, mode: 'light' | 'dark'): typeof theme.light {
   return mode === 'dark' ? theme.dark : theme.light;
+}
+
+export function getPrintColorScheme(): ColorScheme {
+  return {
+    background: '#ffffff',
+    sungBackground: '#ffffff',
+    spokenBackground: '#ffffff',
+    text: '#1a1a1a',
+    textMuted: '#4a4a4a',
+    border: '#d0d0d0',
+    characterName: '#b45309',
+    techCueBorder: '#9ca3af',
+    commentText: '#6b7280',
+  };
 }

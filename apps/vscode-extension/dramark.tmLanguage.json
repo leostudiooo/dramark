@@ -4,6 +4,7 @@
   "scopeName": "source.dramark",
   "patterns": [
     { "include": "#frontmatter" },
+    { "include": "#comment-block" },
     { "include": "#comment-line" },
     { "include": "#comment-inline" },
     { "include": "#character-name" },
@@ -27,6 +28,11 @@
     "comment-line": {
       "match": "^\\s*%(?!%).*$",
       "name": "comment.line.percent.dramark"
+    },
+    "comment-block": {
+      "begin": "^\\s*%%\\s*$",
+      "end": "^\\s*%%\\s*$",
+      "name": "comment.block.percent.dramark"
     },
     "comment-inline": {
       "match": "(?<=\\s)%(?!%).*$",
@@ -53,6 +59,7 @@
         "1": { "name": "keyword.control.song-boundary.dramark" }
       },
       "patterns": [
+        { "include": "#comment-block" },
         { "include": "#comment-line" },
         { "include": "#comment-inline" },
         { "include": "#character-name" },
@@ -74,6 +81,7 @@
         "1": { "name": "keyword.control.tech-cue-boundary.dramark" }
       },
       "patterns": [
+        { "include": "#comment-block" },
         { "include": "#comment-line" },
         { "include": "#comment-inline" },
         { "include": "#inline-song" },

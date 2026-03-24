@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import schemaContent from '../../../packages/app-core/schemas/dramark-frontmatter.schema.json';
+import schemaContent from '../../../apps/core/schemas/dramark-frontmatter.schema.json';
 
 const SCHEMA_URI = 'dramark://schemas/frontmatter.json';
 

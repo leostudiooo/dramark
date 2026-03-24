@@ -1,11 +1,12 @@
 import type { Theme, PreviewConfig, ColorScheme } from './types.js';
-import { getColorScheme } from './default-theme.js';
+import { getColorScheme, getPrintColorScheme } from './default-theme.js';
 
 export function generateCSS(theme: Theme, config: PreviewConfig): string {
-  const isDark = config.theme === 'dark' || 
-    (config.theme === 'auto' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isPrint = config.theme === 'print';
+  const isDark = !isPrint && (config.theme === 'dark' || 
+    (config.theme === 'auto' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches));
   
-  const colors = getColorScheme(theme, isDark ? 'dark' : 'light');
+  const colors = isPrint ? getPrintColorScheme() : getColorScheme(theme, isDark ? 'dark' : 'light');
   
   return `
 /* DraMark Preview Styles */
@@ -20,18 +21,20 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   --dm-character: ${colors.characterName};
   --dm-tech-border: ${colors.techCueBorder};
   --dm-comment: ${colors.commentText};
+  ${isPrint ? '--dm-print-border-sung: #c4a86a;\n  --dm-print-border-spoken: #8a9aaa;' : ''}
   
   background: var(--dm-bg);
   color: var(--dm-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ${isPrint ? 'Georgia, "Times New Roman", serif' : 'system-ui, -apple-system, sans-serif'};
   line-height: 1.4;
   container-type: inline-size;
   container-name: preview;
 }
 
-/* Layout */
+/* Layout - Row-based */
 .dramark-layout {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   padding: 2rem;
   max-width: 1200px;
@@ -42,50 +45,69 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   display: none;
 }
 
-.dm-row-slot {
-  min-height: 1.35rem;
+.dm-layout-tablet {
+  display: none;
 }
 
-.dm-row-placeholder {
-  min-height: 1.35rem;
-}
-
-/* Three column layout (>960px) */
-@container preview (min-width: 960px) {
-  .dramark-layout {
-    grid-template-columns: 200px 1fr 200px;
-  }
-  
-  .dramark-left {
-    display: block;
-  }
-  
-  .dramark-right {
-    display: block;
-  }
-}
-
-/* Two column layout (>600px) */
+/* Two column layout (600px-959px): show tablet layout */
 @container preview (min-width: 600px) and (max-width: 959px) {
   .dm-layout-desktop {
-    grid-template-columns: 1fr 200px;
+    display: none;
   }
   
-  .dramark-left {
-    display: none;
+  .dm-layout-tablet {
+    display: block;
   }
   
   .dm-layout-mobile {
     display: none;
   }
+  
+  /* Tablet layout: 2 columns (center + right), left content merged into center */
+  .dm-layout-tablet-inner .dm-row {
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+    grid-template-columns: 1fr 200px;
+  }
+  
+  /* When only tech cues (no comments), swap: left column for tech cues, center takes right */
+  .dramark-preview[data-has-left="true"][data-has-right="false"] .dm-layout-tablet-inner .dm-row {
+    grid-template-columns: 200px 1fr;
+  }
+  
+  .dm-layout-tablet-inner .dm-row-left {
+    min-width: 0;
+  }
+  
+  .dm-layout-tablet-inner .dm-row-center {
+    min-width: 0;
+  }
+  
+  .dm-layout-tablet-inner .dm-row-right {
+    min-width: 0;
+  }
+  
+  .dm-layout-tablet-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
 }
 
-/* Single column layout (<=600px) */
+/* Single column layout (<600px): show mobile layout */
 @container preview (max-width: 599px) {
   .dm-layout-desktop {
     display: none;
   }
-
+  
+  .dm-layout-tablet {
+    display: none;
+  }
+  
   .dm-layout-mobile {
     display: grid;
     grid-template-columns: 1fr;
@@ -93,6 +115,56 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
     padding: 1rem;
   }
 }
+
+/* Row container - always 3 columns */
+/* gap = 0.5rem (间距) + 0.6rem (外扩背景) = 1.1rem */
+.dm-row {
+  display: grid;
+  gap: 1.1rem;
+  align-items: start;
+  grid-template-columns: 200px 1fr 200px;
+}
+
+/* When no left sidebar at document level, collapse left column */
+.dramark-preview[data-has-left="false"] .dm-row {
+  grid-template-columns: 0 1fr 200px;
+}
+
+/* When no right sidebar at document level, collapse right column */
+.dramark-preview[data-has-right="false"] .dm-row {
+  grid-template-columns: 200px 1fr 0;
+}
+
+/* When no sidebars */
+.dramark-preview[data-has-left="false"][data-has-right="false"] .dm-row {
+  grid-template-columns: 0 1fr 0;
+}
+
+/* Row sections */
+.dm-row-left {
+  min-width: 0;
+}
+
+.dm-row-center {
+  min-width: 0;
+}
+
+.dm-row-right {
+  min-width: 0;
+}
+
+/* Empty placeholders still take up grid space but are invisible */
+.dm-row-empty {
+  min-height: 1.35rem;
+  visibility: hidden;
+}
+
+/* Hide comments in center when right column is shown */
+.dramark-preview[data-has-right="true"] .dm-row-center .dm-comment {
+  display: none;
+}
+
+
 
 /* Character Block */
 .dm-character {
@@ -174,6 +246,14 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   background: rgba(196, 168, 106, 0.1);
   padding: 0 0.25rem;
   border-radius: 2px;
+}
+
+.dm-inline-image {
+  max-width: min(100%, 560px);
+  height: auto;
+  display: block;
+  margin: 0.45rem 0;
+  border-radius: 4px;
 }
 
 .dm-inline-spoken {
@@ -330,7 +410,7 @@ ${generateTechCueCSS()}
 .dm-translation {
   display: flex;
   gap: 1rem;
-  margin: 0.5rem 0;
+  margin: 0.35rem 0;
 }
 
 .dm-translation[data-layout="stack"] {
@@ -342,15 +422,26 @@ ${generateTechCueCSS()}
   flex: 1;
   font-style: italic;
   color: var(--dm-text-muted);
+  min-width: 0;
 }
 
 .dm-translation-target {
   flex: 1;
+  min-width: 0;
 }
 
-@container preview (max-width: 600px) {
+/* Translation responsive: based on parent container width, not page width */
+.dm-row-center,
+.dm-layout-mobile,
+.dm-layout-tablet-inner .dm-row-center {
+  container-type: inline-size;
+  container-name: translation-container;
+}
+
+@container translation-container (max-width: 480px) {
   .dm-translation[data-layout="side-by-side"] {
     flex-direction: column;
+    gap: 0.25rem;
   }
 }
 
@@ -431,7 +522,159 @@ ${generateTechCueCSS()}
   font-size: 0.875rem;
   color: var(--dm-text);
 }
+
+/* Switch component */
+.dm-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.dm-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.dm-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.dm-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.dm-switch input:checked + .dm-switch-slider {
+  background-color: var(--dm-character, #555);
+}
+
+.dm-switch input:checked + .dm-switch-slider:before {
+  transform: translateX(20px);
+}
+${isPrint ? generatePrintThemeCSS() : ''}
 `.trim();
+}
+
+function generatePrintThemeCSS(): string {
+  return `
+/* Print Theme Styles */
+.dramark-preview[data-theme="print"] {
+  background: white;
+}
+
+/* Print: use tablet layout for 2-column, desktop for 3-column */
+.dramark-preview[data-theme="print"][data-columns="2"] .dm-layout-desktop {
+  display: none;
+}
+
+.dramark-preview[data-theme="print"][data-columns="2"] .dm-layout-tablet {
+  display: block;
+}
+
+.dramark-preview[data-theme="print"] .dm-layout-tablet-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.dramark-preview[data-theme="print"] .dm-layout-tablet-inner .dm-row {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* When only tech cues (no comments): left column for tech cues, center takes right */
+.dramark-preview[data-theme="print"][data-has-left="true"][data-has-right="false"] .dm-layout-tablet-inner .dm-row {
+  grid-template-columns: 200px 1fr;
+}
+
+/* When only comments (no tech cues): center on left, comments on right */
+.dramark-preview[data-theme="print"][data-has-left="false"][data-has-right="true"] .dm-layout-tablet-inner .dm-row {
+  grid-template-columns: 1fr 200px;
+}
+
+.dramark-preview[data-theme="print"] .dm-song-container {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border: none;
+  padding: 0;
+}
+
+.dramark-preview[data-theme="print"] .dm-song-container[data-mode="sung"]::before {
+  content: "";
+  position: absolute;
+  left: -0.5rem;
+  right: -0.5rem;
+  top: -0.35rem;
+  bottom: -0.35rem;
+  border: 1px solid var(--dm-print-border-sung);
+  border-radius: 4px;
+  z-index: -1;
+  background: transparent;
+}
+
+.dramark-preview[data-theme="print"] .dm-song-container[data-mode="spoken"]::before {
+  content: "";
+  position: absolute;
+  left: -0.25rem;
+  right: -0.25rem;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  border: 1px dashed var(--dm-print-border-spoken);
+  border-radius: 4px;
+  z-index: -1;
+  background: transparent;
+}
+
+.dramark-preview[data-theme="print"] .dm-song-title {
+  break-after: avoid;
+}
+
+.dramark-preview[data-theme="print"] .dm-character,
+.dramark-preview[data-theme="print"] .dm-tech-cue-block,
+.dramark-preview[data-theme="print"] .dm-comment,
+.dramark-preview[data-theme="print"] .dm-translation {
+  break-inside: avoid;
+}
+
+.dramark-preview[data-theme="print"] .dm-tech-cue-block {
+  background: #f5f5f5;
+  border-color: #9ca3af;
+}
+
+.dramark-preview[data-theme="print"] .dm-tech-cue-header {
+  color: #374151;
+  border-bottom-color: #d1d5db;
+}
+
+.dramark-preview[data-theme="print"] .dm-tech-cue-content {
+  color: #374151;
+}
+
+.dramark-preview[data-theme="print"] .dm-inline-spoken {
+  color: #888888;
+}
+`;
 }
 
 function generateTechCueCSS(): string {

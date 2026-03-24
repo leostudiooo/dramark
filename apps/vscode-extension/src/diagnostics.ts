@@ -32,10 +32,24 @@ function toVscodeDiagnostic(
 ): vscode.Diagnostic {
   const line = Math.max(0, (d.line ?? 1) - 1);
   const col = Math.max(0, (d.column ?? 1) - 1);
-  const range = new vscode.Range(line, col, line, col + 100);
+  const width = getDiagnosticWidth(d.code);
+  const range = new vscode.Range(line, col, line, col + width);
   const severity = SEVERITY_MAP[d.severity] ?? vscode.DiagnosticSeverity.Warning;
   const diag = new vscode.Diagnostic(range, d.message, severity);
   diag.code = d.code;
   diag.source = 'dramark';
   return diag;
+}
+
+function getDiagnosticWidth(code: string): number {
+  if (code === 'UNCLOSED_BLOCK_TECH_CUE') {
+    return 3;
+  }
+  if (code === 'UNCLOSED_BLOCK_COMMENT') {
+    return 2;
+  }
+  if (code === 'UNCLOSED_SONG_CONTAINER') {
+    return 2;
+  }
+  return 100;
 }

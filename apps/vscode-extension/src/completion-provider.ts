@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { resolveCompletionContext, collectCompletions } from '../../../packages/app-core/index.js';
-import type { CompletionItem as DraCompletionItem } from '../../../packages/app-core/index.js';
+import { resolveCompletionContext, collectCompletions } from '../../../apps/core/index.js';
+import type { CompletionItem as DraCompletionItem } from '../../../apps/core/index.js';
 import type { DocumentController } from './document-controller.js';
 
 const COMPLETION_KIND_MAP: Record<string, vscode.CompletionItemKind> = {

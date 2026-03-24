@@ -48,6 +48,21 @@
 code --install-extension dramark-0.1.0.vsix
 ```
 
+### 本地打包 VSIX
+
+推荐（pnpm）：
+
+```bash
+pnpm --dir apps/vscode-extension package:vsix
+```
+
+npm 兜底：
+
+```bash
+cd apps/vscode-extension
+npm run package:vsix
+```
+
 ## 快速开始
 
 1. 创建或打开 `.dramark` 或 `.md` 文件

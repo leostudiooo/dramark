@@ -1,20 +1,28 @@
 import * as vscode from 'vscode';
+import * as path from 'node:path';
+import * as esbuild from 'esbuild';
 import type { ParseViewModel } from '../../../src/core/index.js';
-import type { PreviewConfig } from '../../../packages/app-core/index.js';
+import type { PreviewConfig } from '../../../apps/core/index.js';
 import {
   buildTechCueColorMap,
+  buildStandaloneExportHtml,
   convertAstToRenderBlocks,
+  createConfigPanelHTML,
   buildColumnarLayout,
   generateCSS,
   defaultTheme,
-} from '../../../packages/app-core/index.js';
-import { createPreviewHTML } from '../../../packages/app-core/index.js';
+} from '../../../apps/core/index.js';
+import { createPreviewHTML } from '../../../apps/core/index.js';
+import { detectChromePath, exportToPdf } from './pdf-exporter.js';
+import exportOverridesCss from './styles/export-overrides.css';
+import webviewOverridesCss from './styles/webview-overrides.css';
 
 export class PreviewPanel {
   public static readonly viewType = 'dramark.preview';
   private panel: vscode.WebviewPanel | undefined;
   private themeListener: vscode.Disposable | undefined;
   private latestViewModel: ParseViewModel | null = null;
+  private latestDocumentUri: vscode.Uri | null = null;
   private configOpen = false;
   private config: PreviewConfig = {
     showTechCues: true,
@@ -26,18 +34,21 @@ export class PreviewPanel {
 
   constructor(private extensionUri: vscode.Uri) {}
 
-  show(viewModel: ParseViewModel): void {
+  show(documentUri: vscode.Uri, viewModel: ParseViewModel): void {
     this.latestViewModel = viewModel;
+    this.latestDocumentUri = documentUri;
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.Beside);
     } else {
+      const workspaceRoots = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri);
+      const roots = [this.extensionUri, ...workspaceRoots];
       this.panel = vscode.window.createWebviewPanel(
         PreviewPanel.viewType,
         'DraMark Preview',
         vscode.ViewColumn.Beside,
         {
           enableScripts: true,
-          localResourceRoots: [this.extensionUri],
+          localResourceRoots: roots,
         },
       );
       this.panel.onDidDispose(() => {
@@ -66,9 +77,186 @@ export class PreviewPanel {
     this.rerender();
   }
 
-  update(viewModel: ParseViewModel): void {
+  update(documentUri: vscode.Uri, viewModel: ParseViewModel): void {
     this.latestViewModel = viewModel;
+    this.latestDocumentUri = documentUri;
     this.rerender();
+  }
+
+  async exportPdf(documentUri?: vscode.Uri, viewModel?: ParseViewModel): Promise<void> {
+    const source = this.resolveExportSource(documentUri, viewModel);
+    if (!source) {
+      vscode.window.showInformationMessage('Open a DraMark document first, then export PDF.');
+      return;
+    }
+
+    const { documentUri: targetUri, viewModel: targetViewModel } = source;
+
+    const chromePath = await detectChromePath();
+    if (!chromePath) {
+      const openSettings = 'Open Settings';
+      const exportHtml = 'Export HTML instead';
+      const choice = await vscode.window.showWarningMessage(
+        'Chrome/Chromium not found. Please install Chrome or configure "dramark.pdf.chromePath" in settings.',
+        openSettings,
+        exportHtml,
+      );
+      if (choice === openSettings) {
+        vscode.commands.executeCommand('workbench.action.openSettings', 'dramark.pdf.chromePath');
+      } else if (choice === exportHtml) {
+        await this.exportHtml();
+      }
+      return;
+    }
+
+    const exportHtml = await this.generateExportHtmlContent(targetUri, targetViewModel, 'pdf');
+    if (!exportHtml) {
+      return;
+    }
+
+    const defaultUri = targetUri.with({
+      path: targetUri.path.replace(/\.dra\.md$/i, '.pdf'),
+    });
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri,
+      filters: {
+        'PDF Files': ['pdf'],
+        'All Files': ['*'],
+      },
+      title: 'Export DraMark to PDF',
+    });
+
+    if (!saveUri) {
+      return;
+    }
+
+    await vscode.window.withProgress(
+      {
+        title: 'Exporting PDF...',
+        location: vscode.ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          await exportToPdf(exportHtml, saveUri.fsPath, chromePath);
+          vscode.window.showInformationMessage(`PDF exported: ${saveUri.fsPath}`);
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to export PDF: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      },
+    );
+  }
+
+  async exportHtml(documentUri?: vscode.Uri, viewModel?: ParseViewModel): Promise<void> {
+    const source = this.resolveExportSource(documentUri, viewModel);
+    if (!source) {
+      vscode.window.showInformationMessage('Open a DraMark document first, then export HTML.');
+      return;
+    }
+
+    const { documentUri: targetUri, viewModel: targetViewModel } = source;
+
+    const exportHtml = await this.generateExportHtmlContent(targetUri, targetViewModel, 'html');
+    if (!exportHtml) {
+      return;
+    }
+
+    const defaultUri = targetUri.with({
+      path: targetUri.path.replace(/\.dra\.md$/i, '.html'),
+    });
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri,
+      filters: {
+        'HTML Files': ['html'],
+        'All Files': ['*'],
+      },
+      title: 'Export DraMark to HTML',
+    });
+
+    if (!saveUri) {
+      return;
+    }
+
+    try {
+      await vscode.workspace.fs.writeFile(saveUri, Buffer.from(exportHtml, 'utf-8'));
+      vscode.window.showInformationMessage(`Exported to ${saveUri.fsPath}`);
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to export HTML: ${String(err)}`);
+    }
+  }
+
+  private resolveExportSource(
+    documentUri?: vscode.Uri,
+    viewModel?: ParseViewModel,
+  ): { documentUri: vscode.Uri; viewModel: ParseViewModel } | null {
+    const targetUri = documentUri ?? this.latestDocumentUri;
+    const targetViewModel = viewModel ?? this.latestViewModel;
+    if (!targetUri || !targetViewModel) {
+      return null;
+    }
+    return { documentUri: targetUri, viewModel: targetViewModel };
+  }
+
+  private async generateExportHtmlContent(
+    documentUri: vscode.Uri,
+    viewModel: ParseViewModel,
+    exportFormat: 'html' | 'pdf',
+  ): Promise<string | null> {
+    const exportTheme: PreviewConfig['theme'] = exportFormat === 'pdf' ? 'print' : 'auto';
+    const renderConfig = {
+      ...this.config,
+      theme: exportTheme,
+    };
+    const techConfig = viewModel.config.tech ?? { mics: [] };
+    
+    const previewCss = generateCSS(defaultTheme, renderConfig);
+    
+    const astJson = JSON.stringify(viewModel.tree);
+    const techConfigJson = JSON.stringify(techConfig);
+    const configJson = JSON.stringify(renderConfig);
+    const rendererJs = await this.buildStandaloneRendererBundle();
+    
+    return buildStandaloneExportHtml({
+      astJson,
+      techConfigJson,
+      initialConfigJson: configJson,
+      initialTheme: exportTheme,
+      previewCss,
+      overrideCss: exportOverridesCss,
+      rendererJs,
+      config: renderConfig,
+      configOpen: this.configOpen,
+    });
+  }
+
+  private async buildStandaloneRendererBundle(): Promise<string> {
+    const runtimeEntryPath = path.resolve(this.extensionUri.fsPath, '..', 'core', 'standalone-runtime.ts');
+    const entryCode = [
+      `import { renderStandalone } from ${JSON.stringify(runtimeEntryPath)};`,
+      'globalThis.DraMarkRenderer = { render: renderStandalone };',
+    ].join('\n');
+
+    const result = await esbuild.build({
+      stdin: {
+        contents: entryCode,
+        resolveDir: path.dirname(runtimeEntryPath),
+        sourcefile: 'dramark-export-runtime-entry.ts',
+        loader: 'ts',
+      },
+      bundle: true,
+      write: false,
+      format: 'iife',
+      platform: 'browser',
+      target: 'es2020',
+    });
+
+    const output = result.outputFiles?.[0]?.text;
+    if (!output) {
+      throw new Error('Failed to bundle standalone renderer.');
+    }
+    return output;
   }
 
   dispose(): void {
@@ -81,10 +269,10 @@ export class PreviewPanel {
     if (!this.panel || this.latestViewModel === null) {
       return;
     }
-    this.panel.webview.html = this.renderHtml(this.latestViewModel);
+    this.panel.webview.html = this.renderHtml(this.latestViewModel, this.latestDocumentUri);
   }
 
-  private renderHtml(viewModel: ParseViewModel): string {
+  private renderHtml(viewModel: ParseViewModel, documentUri: vscode.Uri | null): string {
     const effectiveTheme = this.resolveThemeMode();
     const renderConfig = {
       ...this.config,
@@ -105,37 +293,17 @@ export class PreviewPanel {
     const previewHTML = createPreviewHTML({ layout, config: renderConfig });
     const css = generateCSS(defaultTheme, renderConfig);
     const configHTML = this.createConfigPanelHTML();
+    const baseHref = this.buildBaseHref(documentUri);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+${baseHref.length > 0 ? `<base href="${baseHref}">` : ''}
 <style>
   ${css}
-  
-  /* VSCode-specific adjustments */
-  body {
-    font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
-    background: transparent;
-    color: inherit;
-    padding: 16px;
-  }
-
-  /* Ensure config panel stays within bounds */
-  .dm-config-panel {
-    position: fixed;
-    bottom: 16px;
-    right: 16px;
-    z-index: 1000;
-  }
-  
-  .dm-config-content {
-    background: var(--dm-bg);
-    color: var(--dm-text);
-    border: 1px solid var(--dm-border);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  }
+  ${webviewOverridesCss}
 </style>
 </head>
 <body>
@@ -178,7 +346,19 @@ ${configHTML}
 </html>`;
   }
 
+  private buildBaseHref(documentUri: vscode.Uri | null): string {
+    if (!this.panel || !documentUri || documentUri.scheme !== 'file') {
+      return '';
+    }
+    const dirUri = vscode.Uri.joinPath(documentUri, '..');
+    const base = this.panel.webview.asWebviewUri(dirUri).toString();
+    return base.endsWith('/') ? base : `${base}/`;
+  }
+
   private resolveThemeMode(): PreviewConfig['theme'] {
+    if (this.config.theme === 'print') {
+      return 'print';
+    }
     if (this.config.theme !== 'auto') {
       return this.config.theme;
     }
@@ -189,65 +369,28 @@ ${configHTML}
     return 'dark';
   }
 
-  private createConfigPanelHTML(): string {
-    const { config, configOpen } = this;
-    
-    // Lucide Settings icon SVG
-    const settingsIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>`;
-    
-    const configContent = configOpen ? `
-      <div class="dm-config-content">
-        <div class="dm-config-item">
-          <span class="dm-config-label">Tech Cues</span>
-          <label class="dm-switch">
-            <input type="checkbox" data-config="showTechCues" ${config.showTechCues ? 'checked' : ''}>
-            <span class="dm-switch-slider"></span>
-          </label>
-        </div>
-        
-        <div class="dm-config-item">
-          <span class="dm-config-label">Comments</span>
-          <label class="dm-switch">
-            <input type="checkbox" data-config="showComments" ${config.showComments ? 'checked' : ''}>
-            <span class="dm-switch-slider"></span>
-          </label>
-        </div>
-        
-        <div class="dm-config-item">
-          <span class="dm-config-label">Translation</span>
-          <select data-config="translationMode">
-            <option value="source-only" ${config.translationMode === 'source-only' ? 'selected' : ''}>Source Only</option>
-            <option value="target-only" ${config.translationMode === 'target-only' ? 'selected' : ''}>Target Only</option>
-            <option value="bilingual" ${config.translationMode === 'bilingual' ? 'selected' : ''}>Bilingual</option>
-          </select>
-        </div>
-        
-        <div class="dm-config-item">
-          <span class="dm-config-label">Layout</span>
-          <select data-config="translationLayout">
-            <option value="stack" ${config.translationLayout === 'stack' ? 'selected' : ''}>Stack</option>
-            <option value="side-by-side" ${config.translationLayout === 'side-by-side' ? 'selected' : ''}>Side by Side</option>
-          </select>
-        </div>
-        
-        <div class="dm-config-item">
-          <span class="dm-config-label">Theme</span>
-          <select data-config="theme">
-            <option value="auto" ${config.theme === 'auto' ? 'selected' : ''}>Auto</option>
-            <option value="light" ${config.theme === 'light' ? 'selected' : ''}>Light</option>
-            <option value="dark" ${config.theme === 'dark' ? 'selected' : ''}>Dark</option>
-          </select>
-        </div>
-      </div>
-    ` : '';
-    
-    return `
-      <div class="dm-config-panel">
-        <button class="dm-config-trigger" aria-label="配置" aria-expanded="${configOpen}">
-          ${settingsIcon}
-        </button>
-        ${configContent}
-      </div>
-    `;
+  private wrapCSSWithSelector(css: string, _selector: string): string {
+    // 简单处理：将 CSS 规则包装在指定选择器下
+    // 移除最外层的 :root 或 .dramark-preview 选择器，因为我们会在外层包装
+    return css
+      .replace(/:root\s*,\s*/g, '')
+      .replace(/:root\s*/g, '')
+      .replace(/\.dramark-preview\s*/g, '');
   }
+
+  private createConfigPanelHTML(): string {
+    return createConfigPanelHTML(
+      {
+        config: this.config,
+        isOpen: this.configOpen,
+        onChange: () => undefined,
+        onToggle: () => undefined,
+      },
+      {
+        includePrintThemeOption: true,
+        triggerIconHtml: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>`,
+      },
+    );
+  }
+
 }

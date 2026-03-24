@@ -23,7 +23,7 @@ export type {
   DialogueChild,
 } from './types.js';
 
-export { defaultTheme, getColorScheme } from './default-theme.js';
+export { defaultTheme, getColorScheme, getPrintColorScheme } from './default-theme.js';
 export {
   buildTechCueColorMap,
   matchTechCue,
