@@ -96,24 +96,26 @@ export async function exportToPdf(
     ],
   });
 
-  const page = await browser.newPage();
-  await page.emulateMediaType('print');
-  await page.setContent(html, {
-    waitUntil: 'domcontentloaded',
-    timeout: 10000,
-  });
+  try {
+    const page = await browser.newPage();
+    await page.emulateMediaType('print');
+    await page.setContent(html, {
+      waitUntil: 'domcontentloaded',
+      timeout: 10000,
+    });
 
-  await page.pdf({
-    path: outputPath,
-    format: 'A4',
-    printBackground: true,
-    margin: {
-      top: '1cm',
-      bottom: '1cm',
-      left: '1cm',
-      right: '1cm',
-    },
-  });
-
-  await browser.close();
+    await page.pdf({
+      path: outputPath,
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '1cm',
+        bottom: '1cm',
+        left: '1cm',
+        right: '1cm',
+      },
+    });
+  } finally {
+    await browser.close();
+  }
 }

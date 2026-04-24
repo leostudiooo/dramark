@@ -54,10 +54,7 @@ export function buildColumnarLayout(
     | { side: 'right'; block: CommentRenderBlock }
   > = [];
 
-  function flushPendingSideBlocks(
-    anchorRowIndex: number,
-    attachTo: 'before' | 'after'
-  ): void {
+  function flushPendingSideBlocks(): void {
     // 独立的 side blocks 应该对齐到上下节点之间的缝
     // 这里我们简单地将它们作为独立行添加
     for (const item of pendingSideBlocks) {
@@ -76,7 +73,7 @@ export function buildColumnarLayout(
     const block = blocks[i];
 
     if (block.type === 'song-container') {
-      flushPendingSideBlocks(i, 'before');
+      flushPendingSideBlocks();
 
       const separated = separateSongContainerSideBlocks(block);
       const visibleTechCues = context.config.showTechCues ? separated.techCues : [];
@@ -123,7 +120,7 @@ export function buildColumnarLayout(
     }
 
     if (block.type === 'character') {
-      flushPendingSideBlocks(i, 'before');
+      flushPendingSideBlocks();
 
       // Character 作为主锚点
       center.push(block);
@@ -166,7 +163,7 @@ export function buildColumnarLayout(
 
     if (block.type === 'tech-cue' && block.variant === 'inline') {
       if (context.config.showTechCues) {
-        flushPendingSideBlocks(i, 'before');
+        flushPendingSideBlocks();
         // inline tech-cue 作为主内容
         center.push(block);
         rows.push({ left: null, center: block, right: null });
@@ -183,13 +180,13 @@ export function buildColumnarLayout(
     }
 
     // 其他 block（global-action, heading, thematic-break 等）作为主锚点
-    flushPendingSideBlocks(i, 'before');
+    flushPendingSideBlocks();
     center.push(block);
     rows.push({ left: null, center: block, right: null });
   }
 
   // 处理最后剩余的 side blocks
-  flushPendingSideBlocks(blocks.length, 'after');
+  flushPendingSideBlocks();
 
   return { left, center, right, rows };
 }

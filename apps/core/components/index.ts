@@ -6,6 +6,7 @@ export {
   createConfigContentHTML,
   attachConfigPanelListeners,
   parseConfigFromForm,
+  settingsGearSvg,
 } from './ConfigPanel.js';
 
 export { createPreviewHTML } from './Preview.js';

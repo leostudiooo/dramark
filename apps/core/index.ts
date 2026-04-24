@@ -10,7 +10,6 @@ export type { CompletionItem, CompletionContext } from './completions.js';
 
 export type { DocumentSnapshot, EngineMessage } from './protocol.js';
 export { buildStandaloneExportHtml } from './export-standalone-html.js';
-export { getStandaloneRendererJs } from './standalone-renderer.js';
 export { renderStandalone } from './standalone-runtime.js';
 
 // Render module

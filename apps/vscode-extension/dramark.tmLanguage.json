@@ -18,8 +18,14 @@
   ],
   "repository": {
     "frontmatter": {
-      "begin": "\\A---",
-      "end": "^---\\s*$",
+      "begin": "(\\A---)",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.frontmatter-fence.dramark" }
+      },
+      "end": "^(---)\\s*$",
+      "endCaptures": {
+        "1": { "name": "keyword.control.frontmatter-fence.dramark" }
+      },
       "contentName": "meta.embedded.block.frontmatter.dramark",
       "patterns": [
         { "include": "source.yaml" }

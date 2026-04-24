@@ -21,7 +21,7 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
   --dm-character: ${colors.characterName};
   --dm-tech-border: ${colors.techCueBorder};
   --dm-comment: ${colors.commentText};
-  ${isPrint ? '--dm-print-border-sung: #c4a86a;\n  --dm-print-border-spoken: #8a9aaa;' : ''}
+  ${isPrint ? '--dm-print-border-sung: #c4a86a;\n  --dm-print-border-spoken: #8a9aaa;\n  --dm-print-tech-bg: #f5f5f5;\n  --dm-print-tech-header: #374151;\n  --dm-print-tech-border-bottom: #d1d5db;\n  --dm-print-inline-spoken: #888888;' : ''}
   
   background: var(--dm-bg);
   color: var(--dm-text);
@@ -117,7 +117,7 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 }
 
 /* Row container - always 3 columns */
-/* gap = 0.5rem (间距) + 0.6rem (外扩背景) = 1.1rem */
+/* gap = 0.5rem (spacing) + 0.6rem (background bleed) = 1.1rem */
 .dm-row {
   display: grid;
   gap: 1.1rem;
@@ -273,7 +273,13 @@ export function generateCSS(theme: Theme, config: PreviewConfig): string {
 }
 
 /* Tech Cue Colors */
-${generateTechCueCSS()}
+.dm-inline-tech-cue {
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.dm-tech-cue-block {
+  background: rgba(128, 128, 128, 0.05);
+}
 
 /* Block Tech Cue */
 .dm-tech-cue-block {
@@ -658,43 +664,82 @@ function generatePrintThemeCSS(): string {
 }
 
 .dramark-preview[data-theme="print"] .dm-tech-cue-block {
-  background: #f5f5f5;
-  border-color: #9ca3af;
+  background: var(--dm-print-tech-bg);
+  border-color: var(--dm-tech-border);
 }
 
 .dramark-preview[data-theme="print"] .dm-tech-cue-header {
-  color: #374151;
-  border-bottom-color: #d1d5db;
+  color: var(--dm-print-tech-header);
+  border-bottom-color: var(--dm-print-tech-border-bottom);
 }
 
 .dramark-preview[data-theme="print"] .dm-tech-cue-content {
-  color: #374151;
+  color: var(--dm-print-tech-header);
 }
 
 .dramark-preview[data-theme="print"] .dm-inline-spoken {
-  color: #888888;
+  color: var(--dm-print-inline-spoken);
+}
+
+@media print {
+  .dm-config-panel {
+    display: none !important;
+  }
+
+  html,
+  body,
+  .dramark-preview,
+  .dramark-layout,
+  .dm-tech-cue-block,
+  .dm-inline-tech-cue,
+  .dm-song-container,
+  .dm-character,
+  .dm-global-action,
+  .dm-comment,
+  .dm-translation {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body,
+  .dramark-preview {
+    font-family: Georgia, "Times New Roman", serif !important;
+  }
+
+  body {
+    padding: 1rem !important;
+    background: white !important;
+    color: #1a1a1a !important;
+  }
+
+  .dramark-layout {
+    padding: 1rem !important;
+    max-width: none !important;
+  }
+
+  .dm-character-name {
+    color: var(--dm-character) !important;
+  }
+
+  .dm-comment {
+    color: var(--dm-comment) !important;
+  }
+
+  .dm-tech-cue-header {
+    color: var(--dm-print-tech-header) !important;
+    border-bottom-color: var(--dm-print-tech-border-bottom) !important;
+  }
+
+  .dm-tech-cue-content {
+    color: var(--dm-print-tech-header) !important;
+  }
+
+  .dm-tech-cue-block {
+    border-color: var(--dm-tech-border);
+    background: var(--dm-print-tech-bg);
+  }
 }
 `;
 }
 
-function generateTechCueCSS(): string {
-  // Generate CSS for tech cues with dynamic colors
-  return `
-.dm-inline-tech-cue {
-  background: rgba(128, 128, 128, 0.1);
-}
 
-.dm-tech-cue-block {
-  background: rgba(128, 128, 128, 0.05);
-}
-`.trim();
-}
-
-export function generateTechCueColorCSS(color: string): string {
-  const bgColor = color + '26'; // 15% opacity in hex
-  return `
-    background-color: ${bgColor};
-    border-color: ${color};
-    color: ${color};
-  `;
-}

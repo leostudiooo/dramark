@@ -34,4 +34,4 @@ export {
   convertAstToRenderBlocks,
   buildColumnarLayout,
 } from './ast-to-blocks.js';
-export { generateCSS, generateTechCueColorCSS } from './css.js';
+export { generateCSS } from './css.js';

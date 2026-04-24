@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
-import * as esbuild from 'esbuild';
+import * as fs from 'node:fs';
 import type { ParseViewModel } from '../../../src/core/index.js';
 import type { PreviewConfig } from '../../../apps/core/index.js';
 import {
@@ -11,8 +11,9 @@ import {
   buildColumnarLayout,
   generateCSS,
   defaultTheme,
+  createPreviewHTML,
+  settingsGearSvg,
 } from '../../../apps/core/index.js';
-import { createPreviewHTML } from '../../../apps/core/index.js';
 import { detectChromePath, exportToPdf } from './pdf-exporter.js';
 import exportOverridesCss from './styles/export-overrides.css';
 import webviewOverridesCss from './styles/webview-overrides.css';
@@ -232,31 +233,8 @@ export class PreviewPanel {
   }
 
   private async buildStandaloneRendererBundle(): Promise<string> {
-    const runtimeEntryPath = path.resolve(this.extensionUri.fsPath, '..', 'core', 'standalone-runtime.ts');
-    const entryCode = [
-      `import { renderStandalone } from ${JSON.stringify(runtimeEntryPath)};`,
-      'globalThis.DraMarkRenderer = { render: renderStandalone };',
-    ].join('\n');
-
-    const result = await esbuild.build({
-      stdin: {
-        contents: entryCode,
-        resolveDir: path.dirname(runtimeEntryPath),
-        sourcefile: 'dramark-export-runtime-entry.ts',
-        loader: 'ts',
-      },
-      bundle: true,
-      write: false,
-      format: 'iife',
-      platform: 'browser',
-      target: 'es2020',
-    });
-
-    const output = result.outputFiles?.[0]?.text;
-    if (!output) {
-      throw new Error('Failed to bundle standalone renderer.');
-    }
-    return output;
+    const bundlePath = path.resolve(this.extensionUri.fsPath, 'dist', 'standalone-renderer.js');
+    return fs.promises.readFile(bundlePath, 'utf-8');
   }
 
   dispose(): void {
@@ -369,15 +347,6 @@ ${configHTML}
     return 'dark';
   }
 
-  private wrapCSSWithSelector(css: string, _selector: string): string {
-    // 简单处理：将 CSS 规则包装在指定选择器下
-    // 移除最外层的 :root 或 .dramark-preview 选择器，因为我们会在外层包装
-    return css
-      .replace(/:root\s*,\s*/g, '')
-      .replace(/:root\s*/g, '')
-      .replace(/\.dramark-preview\s*/g, '');
-  }
-
   private createConfigPanelHTML(): string {
     return createConfigPanelHTML(
       {
@@ -388,7 +357,7 @@ ${configHTML}
       },
       {
         includePrintThemeOption: true,
-        triggerIconHtml: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>`,
+        triggerIconHtml: settingsGearSvg,
       },
     );
   }

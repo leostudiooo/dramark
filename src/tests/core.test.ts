@@ -4,8 +4,10 @@ import { parseDraMark } from '../parser.js';
 import {
   buildColumnarLayout,
   buildTechCueColorMap,
+  buildStandaloneExportHtml,
   convertAstToRenderBlocks,
   defaultTheme,
+  generateCSS,
 } from '../../apps/core/index.js';
 
 describe('core/normalizeFrontmatter', () => {
@@ -163,5 +165,78 @@ describe('render/comment layout', () => {
 
     expect(layout.center.some((block) => block.type === 'song-container')).toBe(true);
     expect(layout.right).toHaveLength(0);
+  });
+});
+
+describe('buildStandaloneExportHtml', () => {
+  const defaultParams = {
+    astJson: '{}',
+    techConfigJson: '{"mics":[]}',
+    initialConfigJson: '{"theme":"print"}',
+    initialTheme: 'print',
+    previewCss: '/* test css */',
+    overrideCss: '/* override css */',
+    rendererJs: 'globalThis.DraMarkRenderer={render:function(){}};',
+    config: {
+      showTechCues: true,
+      showComments: true,
+      translationMode: 'bilingual' as const,
+      translationLayout: 'side-by-side' as const,
+      theme: 'print' as const,
+    },
+    configOpen: false,
+  };
+
+  it('produces valid HTML with DOCTYPE, charset, and embedded data', () => {
+    const html = buildStandaloneExportHtml(defaultParams);
+
+    expect(html.startsWith('<!DOCTYPE html>')).toBe(true);
+    expect(html).toContain('<meta charset="UTF-8">');
+    expect(html).toContain('id="dramark-preview-css"');
+    expect(html).toContain('globalThis.DraMarkRenderer');
+    expect(html).toContain('"theme":"print"');
+  });
+
+  it('embeds preview CSS and override CSS in separate style blocks', () => {
+    const html = buildStandaloneExportHtml(defaultParams);
+
+    expect(html).toContain('/* test css */');
+    expect(html).toContain('/* override css */');
+    expect(html).toContain('id="configTrigger"');
+    expect(html).toContain('Print / Save PDF');
+  });
+});
+
+describe('generateCSS print theme', () => {
+  it('includes print-specific CSS variables and @media print rules', () => {
+    const css = generateCSS(defaultTheme, {
+      showTechCues: true,
+      showComments: true,
+      translationMode: 'bilingual',
+      translationLayout: 'side-by-side',
+      theme: 'print',
+    });
+
+    expect(css).toContain('--dm-print-border-sung:');
+    expect(css).toContain('--dm-print-border-spoken:');
+    expect(css).toContain('--dm-print-tech-bg:');
+    expect(css).toContain('--dm-print-tech-header:');
+    expect(css).toContain('@media print');
+    expect(css).toContain('print-color-adjust: exact');
+    expect(css).toContain('var(--dm-print-tech-bg)');
+    expect(css).toContain('var(--dm-print-tech-header)');
+  });
+
+  it('does not include print variables for non-print themes', () => {
+    const css = generateCSS(defaultTheme, {
+      showTechCues: true,
+      showComments: true,
+      translationMode: 'bilingual',
+      translationLayout: 'side-by-side',
+      theme: 'light',
+    });
+
+    expect(css).not.toContain('--dm-print-border-sung:');
+    expect(css).not.toContain('@media print');
   });
 });

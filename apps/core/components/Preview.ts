@@ -1,3 +1,6 @@
+import {
+  applyAlpha,
+} from '../render/tech-cue-colors.js';
 import type {
   RenderBlock,
   CharacterRenderBlock,
@@ -124,13 +127,6 @@ function renderDesktopRow(
   `;
 }
 
-function renderRowCenter(block: RenderBlock | null, config: PreviewConfig): string {
-  if (block === null) {
-    return '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
-  }
-  return `<div class="dm-row-center">${renderBlock(block, config)}</div>`;
-}
-
 function renderRowForMobile(
   row: { left: TechCueBlock | null; center: RenderBlock | null; right: CommentRenderBlock | null },
   config: PreviewConfig,
@@ -216,7 +212,7 @@ function renderTechCueBlock(block: TechCueBlock): string {
     ? `<div class="dm-tech-cue-header">${escapeHtml(block.header)}</div>` 
     : '';
   
-  const style = block.color ? `style="border-color: ${block.color}; background: ${block.color}15;"` : '';
+  const style = block.color ? `style="border-color: ${block.color}; background: ${applyAlpha(block.color, 0.08)};"` : '';
 
   return `
     <div class="dm-tech-cue-block" ${style} data-mode="${block.performanceMode}">
@@ -301,7 +297,7 @@ function renderInlineChildren(children: DialogueChild[] | unknown): string {
 }
 
 function renderInlineTechCue(tc: { payload: string; color?: string }): string {
-  const style = tc.color ? `style="border-color: ${tc.color}; color: ${tc.color}; background: ${tc.color}15;"` : '';
+  const style = tc.color ? `style="border-color: ${tc.color}; color: ${tc.color}; background: ${applyAlpha(tc.color, 0.08)};"` : '';
   return `<span class="dm-inline-tech-cue" ${style}>${escapeHtml(tc.payload)}</span>`;
 }
 

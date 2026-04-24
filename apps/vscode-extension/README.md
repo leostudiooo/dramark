@@ -205,5 +205,3 @@ ${2:译文}
 MIT © DraMark Contributors
 
 注：本扩展依赖仓库中的核心引擎模块（Apache-2.0），具体分层见仓库根目录 README。
-
-注：本扩展依赖仓库中的核心引擎模块（Apache-2.0），具体分层见仓库根目录 README。
