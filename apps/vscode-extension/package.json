@@ -16,9 +16,6 @@
     "Programming Languages"
   ],
   "main": "./dist/extension.js",
-  "extensionPack": [
-    "redhat.vscode-yaml"
-  ],
   "contributes": {
     "languages": [
       {
@@ -95,6 +92,16 @@
         }
       }
     ],
+    "configurationDefaults": {
+      "[dramark]": {
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": true
+        },
+        "editor.wordBasedSuggestions": "off"
+      }
+    },
     "configuration": {
       "title": "DraMark",
       "properties": {

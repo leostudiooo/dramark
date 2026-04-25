@@ -1,222 +1,17 @@
 import * as vscode from 'vscode';
 import { resolveCompletionContext, collectCompletions } from '../../../apps/core/index.js';
 import type { CompletionItem as DraCompletionItem } from '../../../apps/core/index.js';
+import {
+  resolveFrontmatterPosition,
+  getFrontmatterCompletions,
+} from '../../../apps/core/frontmatter-completions.js';
+import type { FrontmatterCompletionItem as FmCompletionItem } from '../../../apps/core/frontmatter-completions.js';
 import type { DocumentController } from './document-controller.js';
 
 const COMPLETION_KIND_MAP: Record<string, vscode.CompletionItemKind> = {
   character: vscode.CompletionItemKind.User,
   'tech-cue': vscode.CompletionItemKind.Value,
   snippet: vscode.CompletionItemKind.Snippet,
-};
-
-type FrontmatterCompletionSpec = {
-  label: string;
-  detail: string;
-  insertText: string;
-};
-
-const FRONTMATTER_ROOT_KEYS: FrontmatterCompletionSpec[] = [
-  {
-    label: 'meta',
-    detail: 'Document metadata',
-    insertText: 'meta:',
-  },
-  {
-    label: 'casting',
-    detail: 'Character and group configuration',
-    insertText: 'casting:',
-  },
-  {
-    label: 'translation',
-    detail: 'Translation configuration',
-    insertText: 'translation:',
-  },
-  {
-    label: 'tech',
-    detail: 'Technical resources dictionary',
-    insertText: 'tech:',
-  },
-  {
-    label: 'use_frontmatter_from',
-    detail: 'Load external frontmatter baseline',
-    insertText: 'use_frontmatter_from: ',
-  },
-];
-
-const FRONTMATTER_CHILD_KEYS: Record<string, FrontmatterCompletionSpec[]> = {
-  meta: [
-    {
-      label: 'title',
-      detail: 'Document title',
-      insertText: 'title: ',
-    },
-    {
-      label: 'author',
-      detail: 'Author name',
-      insertText: 'author: ',
-    },
-    {
-      label: 'locale',
-      detail: 'Locale, e.g. zh-CN',
-      insertText: 'locale: ',
-    },
-    {
-      label: 'version',
-      detail: 'Document version',
-      insertText: 'version: ',
-    },
-  ],
-  casting: [
-    {
-      label: 'characters',
-      detail: 'Character definitions',
-      insertText: 'characters:',
-    },
-    {
-      label: 'groups',
-      detail: 'Character groups',
-      insertText: 'groups:',
-    },
-  ],
-  translation: [
-    {
-      label: 'enabled',
-      detail: 'Enable translation mode',
-      insertText: 'enabled: ',
-    },
-    {
-      label: 'source_lang',
-      detail: 'Source language',
-      insertText: 'source_lang: ',
-    },
-    {
-      label: 'target_lang',
-      detail: 'Target language',
-      insertText: 'target_lang: ',
-    },
-    {
-      label: 'render_mode',
-      detail: 'Rendering mode',
-      insertText: 'render_mode: ',
-    },
-  ],
-  tech: [
-    {
-      label: 'mics',
-      detail: 'Microphone resources',
-      insertText: 'mics:',
-    },
-    {
-      label: 'sfx',
-      detail: 'SFX resources',
-      insertText: 'sfx:',
-    },
-    {
-      label: 'lx',
-      detail: 'Lighting resources',
-      insertText: 'lx:',
-    },
-    {
-      label: 'keywords',
-      detail: 'Tech keyword dictionary',
-      insertText: 'keywords:',
-    },
-  ],
-  characters: [
-    {
-      label: 'name',
-      detail: 'Character display name',
-      insertText: 'name: ',
-    },
-    {
-      label: 'id',
-      detail: 'Optional unique id for disambiguation',
-      insertText: 'id: ',
-    },
-    {
-      label: 'actor',
-      detail: 'Actor name',
-      insertText: 'actor: ',
-    },
-    {
-      label: 'mic',
-      detail: 'Default microphone id',
-      insertText: 'mic: ',
-    },
-    {
-      label: 'aliases',
-      detail: 'Alternative names',
-      insertText: 'aliases: []',
-    },
-  ],
-  mics: [
-    {
-      label: 'id',
-      detail: 'Mic id',
-      insertText: 'id: ',
-    },
-    {
-      label: 'label',
-      detail: 'Display label',
-      insertText: 'label: ',
-    },
-    {
-      label: 'color',
-      detail: 'Hex color string',
-      insertText: 'color: ',
-    },
-  ],
-  sfx: [
-    {
-      label: 'id',
-      detail: 'SFX id',
-      insertText: 'id: ',
-    },
-    {
-      label: 'file',
-      detail: 'Audio file path',
-      insertText: 'file: ',
-    },
-    {
-      label: 'desc',
-      detail: 'Description',
-      insertText: 'desc: ',
-    },
-  ],
-  lx: [
-    {
-      label: 'id',
-      detail: 'Lighting id',
-      insertText: 'id: ',
-    },
-    {
-      label: 'desc',
-      detail: 'Description',
-      insertText: 'desc: ',
-    },
-    {
-      label: 'color',
-      detail: 'Hex color string',
-      insertText: 'color: ',
-    },
-  ],
-  keywords: [
-    {
-      label: 'token',
-      detail: 'Keyword token',
-      insertText: 'token: ',
-    },
-    {
-      label: 'label',
-      detail: 'Display label',
-      insertText: 'label: ',
-    },
-    {
-      label: 'color',
-      detail: 'Hex color string',
-      insertText: 'color: ',
-    },
-  ],
 };
 
 export class DraMarkCompletionProvider implements vscode.CompletionItemProvider {
@@ -227,7 +22,25 @@ export class DraMarkCompletionProvider implements vscode.CompletionItemProvider 
     position: vscode.Position,
   ): vscode.CompletionItem[] | undefined {
     if (isInsideFrontmatter(document, position)) {
-      return undefined;
+      const range = getFrontmatterRange(document);
+      if (!range) return undefined;
+
+      const startLine = range.startLine + 1;
+      const endLine = range.endLine;
+      const yamlText = document.getText(
+        new vscode.Range(startLine, 0, endLine, 0),
+      );
+      const yamlLine = position.line - startLine + 1;
+      const yamlCol = position.character + 1;
+
+      const viewModel = this.controller.getViewModel(document.uri.toString());
+      const ctx = resolveFrontmatterPosition(yamlText, yamlLine, yamlCol);
+      const items = getFrontmatterCompletions(
+        ctx,
+        viewModel?.config,
+      );
+
+      return items.map((item) => toVscodeFrontmatterCompletion(item, position, document));
     }
 
     const linePrefix = document.lineAt(position).text.substring(0, position.character);
@@ -269,6 +82,37 @@ function toVscodeCompletion(
     const cueIdx = linePrefix.lastIndexOf('<<');
     const startPos = new vscode.Position(position.line, cueIdx + 2);
     completion.range = new vscode.Range(startPos, position);
+  }
+
+  return completion;
+}
+
+const FM_KIND_MAP: Record<string, vscode.CompletionItemKind> = {
+  key: vscode.CompletionItemKind.Property,
+  value: vscode.CompletionItemKind.Value,
+};
+
+function toVscodeFrontmatterCompletion(
+  item: FmCompletionItem,
+  position: vscode.Position,
+  document: vscode.TextDocument,
+): vscode.CompletionItem {
+  const completion = new vscode.CompletionItem(item.label, FM_KIND_MAP[item.kind]);
+  completion.detail = item.detail;
+
+  const lineText = document.lineAt(position).text;
+  const beforeCursor = lineText.substring(0, position.character);
+
+  let insertText = item.insertText;
+  if (/^\s*-$/u.test(beforeCursor)) {
+    insertText = ' ' + insertText;
+  }
+
+  completion.insertText = insertText;
+
+  const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z_][A-Za-z0-9_-]*/u);
+  if (wordRange) {
+    completion.range = wordRange;
   }
 
   return completion;

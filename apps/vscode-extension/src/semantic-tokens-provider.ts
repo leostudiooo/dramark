@@ -23,15 +23,6 @@ export class DraMarkSemanticTokensProvider implements vscode.DocumentSemanticTok
     const frontmatter = getFrontmatterRange(document);
     const lines = readAllLines(document);
     const startIndex = frontmatter !== null ? frontmatter.endLine + 1 : 0;
-    const viewModel = this.controller.getViewModel(document.uri.toString());
-    const segments = getSegmentsFromViewModel(viewModel);
-    const fencedLines = collectFencedLines(lines, startIndex);
-
-    if (frontmatter !== null) {
-      for (let line = frontmatter.startLine + 1; line < frontmatter.endLine; line += 1) {
-        highlightFrontmatterLine(builder, line, lines[line] ?? '');
-      }
-    }
 
     for (const segment of segments) {
       highlightSegmentLine(builder, lines, segment);
@@ -65,13 +56,6 @@ function getFrontmatterRange(document: vscode.TextDocument): { startLine: number
   }
 
   return null;
-}
-
-function highlightFrontmatterLine(builder: vscode.SemanticTokensBuilder, line: number, text: string): void {
-  const keyMatch = text.match(/^(\s*)([A-Za-z_][A-Za-z0-9_-]*)\s*:/u);
-  if (keyMatch) {
-    builder.push(line, keyMatch[1].length, keyMatch[2].length, 5, 0);
-  }
 }
 
 function highlightSegmentLine(
