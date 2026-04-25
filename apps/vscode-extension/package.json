@@ -92,6 +92,12 @@
         }
       }
     ],
+    "snippets": [
+      {
+        "language": "dramark",
+        "path": "./snippets.json"
+      }
+    ],
     "configurationDefaults": {
       "[dramark]": {
         "editor.quickSuggestions": {

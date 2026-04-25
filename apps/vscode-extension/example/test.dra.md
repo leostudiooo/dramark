@@ -44,11 +44,6 @@ tech:
         desc: 小塔独光
       - id: SPOT_DUO
         desc: 双人光区
-  efx:
-    color: "#ccff66"
-    entries: 
-      - id: "1234"
-        desc: "1234"
 ---
 
 # 02 相遇小帕

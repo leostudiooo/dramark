@@ -1,0 +1,197 @@
+{
+  "New DraMark Script": {
+    "prefix": "dramark",
+    "body": [
+      "---",
+      "meta:",
+      "  title: ${1:剧本标题}",
+      "  author: ${2:作者}",
+      "  locale: ${3:zh-CN}",
+      "casting:",
+      "  characters:",
+      "    - name: ${4:角色A}",
+      "      aliases: [${5:A}]",
+      "      mic: ${6:M1}",
+      "    - name: ${7:角色B}",
+      "      aliases: [${8:B}]",
+      "      mic: ${9:M2}",
+      "translation:",
+      "  enabled: ${10|true,false|}",
+      "  source_lang: ${11:zh-CN}",
+      "  target_lang: ${12:en}",
+      "  render_mode: ${13|bilingual,source,target,script|}",
+      "tech:",
+      "  mics:",
+      "    - id: ${14:M1}",
+      "    - id: ${15:M2}",
+      "  sfx:",
+      "    color: \"${16:#66ccff}\"",
+      "    entries:",
+      "      - id: ${17:SFX_01}",
+      "        desc: ${18:音效描述}",
+      "  lx:",
+      "    color: \"${19:#ff66cc}\"",
+      "    entries:",
+      "      - id: ${20:LX_01}",
+      "        desc: ${21:灯光描述}",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "New DraMark script with full frontmatter"
+  },
+  "Frontmatter": {
+    "prefix": "frontmatter",
+    "body": [
+      "---",
+      "meta:",
+      "  title: ${1:剧本标题}",
+      "  author: ${2:作者}",
+      "casting:",
+      "  characters:",
+      "    - name: ${3:角色名}",
+      "---"
+    ],
+    "description": "Insert a minimal frontmatter block"
+  },
+  "Character Declaration": {
+    "prefix": "character",
+    "body": [
+      "@${1:角色名}",
+      "$0"
+    ],
+    "description": "Character declaration"
+  },
+  "Character with Mood": {
+    "prefix": "charmood",
+    "body": [
+      "@${1:角色名} [${2:情绪}]",
+      "$0"
+    ],
+    "description": "Character declaration with mood tag"
+  },
+  "Multi-Character": {
+    "prefix": "duet",
+    "body": [
+      "@${1:角色A} @${2:角色B}",
+      "$0"
+    ],
+    "description": "Multi-character declaration"
+  },
+  "Character Exit": {
+    "prefix": "exit",
+    "body": [
+      "@@",
+      "$0"
+    ],
+    "description": "Exit character mode (@@)"
+  },
+  "Song Container": {
+    "prefix": "song",
+    "body": [
+      "$$ ${1:歌曲标题}",
+      "$0",
+      "$$"
+    ],
+    "description": "Song container block ($$ ... $$)"
+  },
+  "Spoken in Song": {
+    "prefix": "spoken",
+    "body": [
+      "!!",
+      "${1:念白内容}",
+      "!!",
+      "$0"
+    ],
+    "description": "Spoken passage inside a song (!! ... !!)"
+  },
+  "Translation Source": {
+    "prefix": "trans",
+    "body": [
+      "= ${1:原文}",
+      "  ${2:译文}",
+      "$0"
+    ],
+    "description": "Translation pair (= 原文 / 译文)"
+  },
+  "Inline Action": {
+    "prefix": "action",
+    "body": [
+      "{${1:动作描述}}$0"
+    ],
+    "description": "Inline action ({动作})"
+  },
+  "Block Tech Cue": {
+    "prefix": "techcue",
+    "body": [
+      "<<< ${1:SFX 春去秋来}",
+      "$0",
+      ">>>"
+    ],
+    "description": "Block-level tech cue (<<< ... >>>)"
+  },
+  "Inline Tech Cue": {
+    "prefix": "cue",
+    "body": [
+      "<<${1:BGM_ENTER GO}>>$0"
+    ],
+    "description": "Inline tech cue (<<cue>>)"
+  },
+  "Scene Break": {
+    "prefix": "scene",
+    "body": [
+      "---",
+      "$0"
+    ],
+    "description": "Scene break (---)"
+  },
+  "Comment Block": {
+    "prefix": "comment",
+    "body": [
+      "%%",
+      "${1:注释内容}",
+      "%%",
+      "$0"
+    ],
+    "description": "Block comment (%% ... %%)"
+  },
+  "Character Entry": {
+    "prefix": "char",
+    "body": [
+      "- name: ${1:角色名}",
+      "  aliases: [${2:别名}]",
+      "  mic: ${3:M1}"
+    ],
+    "description": "Character entry in casting.characters"
+  },
+  "Mic Definition": {
+    "prefix": "mic",
+    "body": [
+      "- id: ${1:M1}"
+    ],
+    "description": "Mic definition in tech.mics"
+  },
+  "SFX Entry": {
+    "prefix": "sfx",
+    "body": [
+      "- id: ${1:SFX_01}",
+      "  desc: ${2:音效描述}"
+    ],
+    "description": "SFX entry in tech.sfx.entries"
+  },
+  "LX Entry": {
+    "prefix": "lx",
+    "body": [
+      "- id: ${1:LX_01}",
+      "  desc: ${2:灯光描述}"
+    ],
+    "description": "LX entry in tech.lx.entries"
+  },
+  "Inline Song": {
+    "prefix": "ising",
+    "body": [
+      "$$${1:唱词}$$0"
+    ],
+    "description": "Inline song ($唱词$)"
+  }
+}
