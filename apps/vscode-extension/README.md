@@ -50,10 +50,10 @@ code --install-extension dramark-0.1.0.vsix
 
 ### 本地打包 VSIX
 
-推荐（pnpm）：
+推荐（bun）：
 
 ```bash
-pnpm --dir apps/vscode-extension package:vsix
+bun --cwd apps/vscode-extension run package:vsix
 ```
 
 npm 兜底：

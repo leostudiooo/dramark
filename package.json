@@ -23,14 +23,18 @@
     "url": "https://github.com/dramark-md/dramark/issues"
   },
   "homepage": "https://github.com/dramark-md/dramark#readme",
+  "workspaces": [
+    "apps/*",
+    "docs"
+  ],
   "scripts": {
     "build": "tsc",
-    "build:web": "pnpm --dir apps/web build",
-    "build:vscode": "pnpm --dir apps/vscode-extension build",
-    "build:vscode:vsix": "pnpm --dir apps/vscode-extension package:vsix",
-    "build:docs": "pnpm --dir docs build",
-    "dev:web": "pnpm --dir apps/web dev",
-    "dev:docs": "pnpm --dir docs dev",
+    "build:web": "bun --cwd apps/web run build",
+    "build:vscode": "bun --cwd apps/vscode-extension run build",
+    "build:vscode:vsix": "bun --cwd apps/vscode-extension run package:vsix",
+    "build:docs": "bun --cwd docs run build",
+    "dev:web": "bun --cwd apps/web run dev",
+    "dev:docs": "bun --cwd docs run dev",
     "test": "vitest",
     "test:run": "vitest run"
   },

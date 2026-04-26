@@ -16,7 +16,6 @@
   ],
   "author": "DraMark Contributors",
   "license": "CC-BY-4.0",
-  "packageManager": "pnpm@10.24.0",
   "devDependencies": {
     "vitepress": "^1.6.4"
   },

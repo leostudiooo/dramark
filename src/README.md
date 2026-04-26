@@ -12,7 +12,7 @@
 
 - 插件已切换为 micromark-only 集成路径（不再提供 `legacy` 模式开关）
 - DraMark 采用**3-4 pass multipass** 架构（见下方“解析流水线”）
-- `pnpm build`、`pnpm test:run` 已通过（6 files / 81 tests）
+- `bun build`、`bun test:run` 已通过（6 files / 81 tests）
 
 ## 2.1 解析流水线（3-4 pass）
 
@@ -154,10 +154,10 @@
 
 ## 7. 测试与命令
 
-- `pnpm build`
-- `pnpm test:run`
-- `pnpm dev:web`
-- `pnpm build:web`
+- `bun build`
+- `bun test:run`
+- `bun dev:web`
+- `bun build:web`
 
 测试文件：
 

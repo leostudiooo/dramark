@@ -12,19 +12,19 @@ DraMark (Drama Markdown) is a Remark plugin for a Markdown dialect designed for 
 
 ```bash
 # Build the TypeScript project
-pnpm build
+bun build
 
 # Run all tests in watch mode
-pnpm test
+bun test
 
 # Run all tests once (for CI)
-pnpm test:run
+bun test:run
 
 # Run a specific test file
-pnpm test src/tests/parser.test.ts
+bun test src/tests/parser.test.ts
 
 # Run tests matching a specific pattern
-pnpm test -- -t "translation"
+bun test -- -t "translation"
 ```
 
 ## Architecture
