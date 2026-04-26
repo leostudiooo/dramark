@@ -15,7 +15,7 @@
 - 不回退现有可用能力（`$$ title`、`!!`、`inline-spoken`、frontmatter 透传）。
 - 继续保持 CommonMark 结构保留（通过 `fromMarkdown` 解析内容块）。
 - 保持 3-4 pass multipass 合同，不退化为单遍解析。
-- 所有变更必须由 `pnpm build` + `pnpm test:run` 回归。
+- 所有变更必须由 `bun build` + `bun test:run` 回归。
 
 ---
 
@@ -176,9 +176,9 @@
 
 ## 6. 回归命令
 
-- `pnpm build`
-- `pnpm test:run`
+- `bun build`
+- `bun test:run`
 
 若涉及 Web 渲染行为变更，再执行：
 
-- `pnpm build:web`
+- `bun build:web`

@@ -15,16 +15,16 @@ The package is ESM-only (`"type": "module"` in package.json) using `NodeNext` mo
 ## Build / Test / Lint Commands
 
 ```bash
-pnpm build          # Compile TypeScript to dist/ via tsc
-pnpm test           # Run all tests in watch mode (Vitest)
-pnpm test:run       # Run all tests once (CI mode)
-pnpm test:run -- -t "translation"   # Run tests matching a name pattern
-pnpm test src/tests/parser.test.ts  # Run a single test file
-pnpm dev:web        # Start web app dev server
-pnpm build:web      # Build web app
+bun build            # Compile TypeScript to dist/ via tsc
+bun test             # Run all tests in watch mode (Vitest)
+bun test:run         # Run all tests once (CI mode)
+bun test:run -- -t "translation"   # Run tests matching a name pattern
+bun test src/tests/parser.test.ts  # Run a single test file
+bun dev:web          # Start web app dev server
+bun build:web        # Build web app
 ```
 
-There is no linter or formatter configured. Rely on `pnpm build` (strict TS with `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`, `noFallthroughCasesInSwitch`) for correctness checks.
+There is no linter or formatter configured. Rely on `bun build` (strict TS with `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`, `noFallthroughCasesInSwitch`) for correctness checks.
 
 ## Architecture
 
@@ -136,9 +136,9 @@ Tests live in `src/tests/`:
 ### General Guidelines
 - Do NOT add comments unless explicitly asked
 - Follow existing code patterns in neighboring files before introducing new ones
-- The `pnpm-lock.yaml` lockfile indicates `pnpm` is the package manager
+- The package manager is **bun** (lockfile: `bun.lockb`); workspace config via `"workspaces"` in root `package.json`
 - When adding dependencies, verify they are already used in the codebase or get explicit approval
-- Run `pnpm build` after making changes to verify type correctness
+- Run `bun build` after making changes to verify type correctness
 - Comments: `%` for line comments, `%%` for block comments; only included in AST when `includeComments: true`
 - Escaping: backslash escapes `\@`, `\$`, `\%`, `\{`, `\}`, `\<`, `\>`, `\=`
 - Module resolution: `NodeNext` for ESM output; package is ESM-only (`"type": "module"`)
