@@ -100,6 +100,7 @@ describe('DraMark edge-case rules', () => {
     const second = character.children[1] as Node;
 
     expect(collectText(first)).toContain('20%');
+    expect(collectText(first)).toContain('利润下降了 20');
     expect(second.type).toBe('comment-line');
     expect(second.value).toContain('这是注释');
   });

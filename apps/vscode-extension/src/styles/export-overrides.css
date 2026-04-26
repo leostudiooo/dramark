@@ -1,0 +1,31 @@
+/* Export-only CSS overrides layered on top of generateCSS() output */
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--dm-bg);
+  color: var(--dm-text);
+  margin: 0;
+  padding: 0;
+}
+
+.dm-export-print {
+  padding-top: 0.35rem;
+}
+
+.dm-export-print-btn {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--dm-border);
+  border-radius: 6px;
+  background: var(--dm-bg);
+  color: var(--dm-text);
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.dm-export-print-btn:hover {
+  background: var(--dm-sung-bg);
+}

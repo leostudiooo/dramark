@@ -23,7 +23,7 @@ export type {
   DialogueChild,
 } from './types.js';
 
-export { defaultTheme, getColorScheme } from './default-theme.js';
+export { defaultTheme, getColorScheme, getPrintColorScheme } from './default-theme.js';
 export {
   buildTechCueColorMap,
   matchTechCue,
@@ -34,4 +34,4 @@ export {
   convertAstToRenderBlocks,
   buildColumnarLayout,
 } from './ast-to-blocks.js';
-export { generateCSS, generateTechCueColorCSS } from './css.js';
+export { generateCSS } from './css.js';

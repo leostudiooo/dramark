@@ -204,12 +204,20 @@ function scanSegmentsWithProtectedLiterals(lines: string[], startIndex: number):
       continue;
     }
 
-    if (isRoot && isLineComment(rawLine)) {
-      flushContent();
-      segments.push({ kind: 'comment-line', value: rawLine.trim().slice(1).trim(), lineNo });
-      index += 1;
-      contentStartLine = index;
-      continue;
+    if (isRoot) {
+      const comment = splitLineComment(rawLine);
+      if (comment !== null) {
+        if (comment.leadingContent !== undefined) {
+          contentBuffer.push(comment.leadingContent);
+          flushContent();
+        } else {
+          flushContent();
+        }
+        segments.push({ kind: 'comment-line', value: comment.commentText, lineNo });
+        index += 1;
+        contentStartLine = index;
+        continue;
+      }
     }
 
     if (isRoot && trimmed === '@@') {
@@ -775,16 +783,27 @@ function isRootReset(line: string): boolean {
   return trimmed === '---' || trimmed === '***' || trimmed === '___';
 }
 
-function isLineComment(line: string): boolean {
+function splitLineComment(line: string): { leadingContent?: string; commentText: string } | null {
   const leftTrimmed = line.trimStart();
   if (leftTrimmed.startsWith('%')) {
-    return !leftTrimmed.startsWith('%%');
+    if (leftTrimmed.startsWith('%%')) {
+      return null;
+    }
+    return { commentText: leftTrimmed.slice(1).trim() };
   }
-  const idx = line.indexOf('%');
-  if (idx <= 0) {
-    return false;
+  const markerMatch = line.match(/\s%(?!%)/u);
+  if (!markerMatch || markerMatch.index === undefined) {
+    return null;
   }
-  return /\s/u.test(line[idx - 1]);
+  const markerIndex = markerMatch.index + markerMatch[0].length - 1;
+  const leadingContent = line.slice(0, markerIndex).trimEnd();
+  if (leadingContent.length === 0) {
+    return null;
+  }
+  return {
+    leadingContent,
+    commentText: line.slice(markerIndex + 1).trim(),
+  };
 }
 
 function parseFenceOpen(line: string): FenceState | null {

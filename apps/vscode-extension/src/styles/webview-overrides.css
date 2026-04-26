@@ -1,0 +1,7 @@
+/* VSCode webview-specific wrappers layered on top of generateCSS() output */
+body {
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+  background: transparent;
+  color: inherit;
+  padding: 16px;
+}

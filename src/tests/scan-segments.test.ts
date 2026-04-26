@@ -119,6 +119,13 @@ describe('scanSegments — Phase 1 (Lexical Shield)', () => {
     expect(asCommentLine(segs[0]).value).toBe('stage note');
   });
 
+  it('splits inline % comments into content + comment-line', () => {
+    const segs = scanSegments(['台词内容 % 注释'], 0);
+    expect(kinds(segs)).toEqual(['content', 'comment-line']);
+    expect(asContent(segs[0]).lines).toEqual(['台词内容']);
+    expect(asCommentLine(segs[1]).value).toBe('注释');
+  });
+
   it('emits a closed comment-block segment for %% … %%', () => {
     const lines = ['%%', 'director note', '%%'];
     const segs = scanSegments(lines, 0);

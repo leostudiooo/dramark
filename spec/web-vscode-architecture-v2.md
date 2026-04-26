@@ -79,7 +79,7 @@ apps/
 
 说明：
 
-- `packages/app-core` 负责“平台无关业务编排”。
+- `apps/core` 负责“平台无关业务编排”。
 - `packages/ui-renderer` 负责“跨端可复用 UI”。
 - `apps/vscode-extension/webview` 与 `apps/web` 尽量共享同一 React 组件。
 

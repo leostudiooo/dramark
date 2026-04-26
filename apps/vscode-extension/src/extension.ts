@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DocumentEngine } from '../../../packages/app-core/index.js';
+import { DocumentEngine } from '../../../apps/core/index.js';
 import { DocumentController } from './document-controller.js';
 import { DiagnosticsManager } from './diagnostics.js';
 import { DraMarkCompletionProvider } from './completion-provider.js';
@@ -9,8 +9,6 @@ import { DraMarkFoldingProvider } from './folding-provider.js';
 import { DraMarkFormattingProvider } from './formatting-provider.js';
 import { PreviewPanel } from './preview-panel.js';
 import { DraMarkSemanticTokensProvider } from './semantic-tokens-provider.js';
-import { registerYamlSchema } from './yaml-schema.js';
-
 const DRAMARK_SELECTOR: vscode.DocumentSelector = { language: 'dramark' };
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -36,6 +34,8 @@ export function activate(context: vscode.ExtensionContext): void {
     new DraMarkCompletionProvider(controller),
     '@',
     '<',
+    ':',
+    '-',
   );
 
   const foldingProvider = vscode.languages.registerFoldingRangeProvider(
@@ -64,15 +64,49 @@ export function activate(context: vscode.ExtensionContext): void {
     DraMarkSemanticTokensProvider.legend,
   );
 
-  registerYamlSchema(context);
-
   const showPreview = vscode.commands.registerCommand('dramark.showPreview', () => {
     const editor = vscode.window.activeTextEditor;
     if (editor && editor.document.languageId === 'dramark') {
       const viewModel = controller.getViewModel(editor.document.uri.toString());
       if (viewModel) {
-        preview.show(viewModel);
+        preview.show(editor.document.uri, viewModel);
       }
+    }
+  });
+
+  const exportMenu = vscode.commands.registerCommand('dramark.export', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document.languageId !== 'dramark') {
+      vscode.window.showInformationMessage('Open a DraMark document first.');
+      return;
+    }
+
+    const documentUri = editor.document.uri;
+    let viewModel = controller.getViewModel(documentUri.toString());
+    if (!viewModel) {
+      controller.openDocument(documentUri.toString(), editor.document.getText());
+      viewModel = controller.getViewModel(documentUri.toString());
+    }
+    if (!viewModel) {
+      vscode.window.showErrorMessage('Failed to parse current DraMark document for export.');
+      return;
+    }
+
+    const items: vscode.QuickPickItem[] = [
+      { label: '$(file-pdf) Export to PDF', description: 'Generate PDF file via Chrome/Chromium' },
+      { label: '$(file-code) Export to HTML', description: 'Save as standalone HTML file' },
+    ];
+    
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Select export format',
+    });
+    
+    if (!selected) return;
+    
+    if (selected.label.includes('PDF')) {
+      await preview.exportPdf(documentUri, viewModel);
+    } else if (selected.label.includes('HTML')) {
+      await preview.exportHtml(documentUri, viewModel);
     }
   });
 
@@ -101,7 +135,7 @@ export function activate(context: vscode.ExtensionContext): void {
       controller.updateDocument(event.document.uri.toString(), event.document.getText());
       const viewModel = controller.getViewModel(event.document.uri.toString());
       if (viewModel) {
-        preview.update(viewModel);
+        preview.update(event.document.uri, viewModel);
       }
     }
   });
@@ -127,6 +161,7 @@ export function activate(context: vscode.ExtensionContext): void {
     codelensProvider,
     semanticTokensProvider,
     showPreview,
+    exportMenu,
     copyDiagnostics,
     noOpCodeLens,
     openSub,

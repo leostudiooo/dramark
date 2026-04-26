@@ -16,9 +16,6 @@
     "Programming Languages"
   ],
   "main": "./dist/extension.js",
-  "extensionPack": [
-    "redhat.vscode-yaml"
-  ],
   "contributes": {
     "languages": [
       {
@@ -43,6 +40,11 @@
         "icon": "$(preview)"
       },
       {
+        "command": "dramark.export",
+        "title": "DraMark: Export...",
+        "icon": "$(export)"
+      },
+      {
         "command": "dramark.copyDiagnostics",
         "title": "DraMark: Copy Diagnostics"
       }
@@ -53,6 +55,30 @@
           "command": "dramark.showPreview",
           "when": "resourceLangId == dramark",
           "group": "navigation@10"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "dramark.showPreview",
+          "when": "resourceLangId == dramark",
+          "group": "dramark@1"
+        },
+        {
+          "command": "dramark.export",
+          "when": "resourceLangId == dramark",
+          "group": "dramark@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dramark.showPreview",
+          "when": "resourceLangId == dramark",
+          "group": "dramark@1"
+        },
+        {
+          "command": "dramark.export",
+          "when": "resourceLangId == dramark || resourceExtname == .dra.md || resourceExtname == .dramark || resourceExtname == .drm",
+          "group": "dramark@2"
         }
       ]
     },
@@ -65,17 +91,46 @@
           "meta.embedded.block.frontmatter.dramark": "yaml"
         }
       }
-    ]
+    ],
+    "snippets": [
+      {
+        "language": "dramark",
+        "path": "./snippets.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[dramark]": {
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": true
+        },
+        "editor.wordBasedSuggestions": "off"
+      }
+    },
+    "configuration": {
+      "title": "DraMark",
+      "properties": {
+        "dramark.pdf.chromePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Chrome/Chromium executable. Leave empty for auto-detection."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node build.mjs",
-    "watch": "node build.mjs --watch"
+    "watch": "node build.mjs --watch",
+    "package:vsix": "npm run build && vsce package",
+    "package:vsix:out": "npm run build && vsce package -o dist/dramark.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.24.0"
   },
   "dependencies": {
-    "@vscode/vsce": "^3.7.1"
+    "puppeteer-core": "^23.11.1"
   }
 }

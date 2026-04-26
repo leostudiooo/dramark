@@ -3,7 +3,7 @@ import type { TechConfig, TechEntry } from '../../../src/core/types.js';
 export type PerformanceMode = 'spoken' | 'sung';
 export type TranslationDisplayMode = 'source-only' | 'target-only' | 'bilingual';
 export type TranslationLayoutMode = 'stack' | 'side-by-side';
-export type ThemeMode = 'auto' | 'light' | 'dark';
+export type ThemeMode = 'auto' | 'light' | 'dark' | 'print';
 
 export interface PreviewConfig {
   showTechCues: boolean;
@@ -63,14 +63,16 @@ export interface CharacterRenderBlock extends BaseRenderBlock {
   context?: string;
   content: DialogueContent[];
   techCues: Array<{ payload: string; color?: string }>;
+  comments: CommentRenderBlock[];
   performanceMode: PerformanceMode;
 }
 
 export interface DialogueContent {
-  type: 'paragraph' | 'list' | 'blockquote' | 'translation';
+  type: 'paragraph' | 'list' | 'blockquote' | 'translation' | 'comment';
   children: Array<DialogueChild>;
   sourceText?: string;
   targetText?: string;
+  commentVariant?: 'line' | 'block';
 }
 
 export type DialogueChild =
@@ -78,6 +80,7 @@ export type DialogueChild =
   | { type: 'break' }
   | { type: 'emphasis'; children: Array<{ type: 'text'; value: string }> }
   | { type: 'strong'; children: Array<{ type: 'text'; value: string }> }
+  | { type: 'image'; url: string; alt?: string; title?: string }
   | { type: 'inline-action'; value: string }
   | { type: 'inline-song'; value: string }
   | { type: 'inline-spoken'; value: string }

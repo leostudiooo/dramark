@@ -27,6 +27,7 @@
     "build": "tsc",
     "build:web": "pnpm --dir apps/web build",
     "build:vscode": "pnpm --dir apps/vscode-extension build",
+    "build:vscode:vsix": "pnpm --dir apps/vscode-extension package:vsix",
     "build:docs": "pnpm --dir docs build",
     "dev:web": "pnpm --dir apps/web dev",
     "dev:docs": "pnpm --dir docs dev",
@@ -46,12 +47,14 @@
     "mdast": "^3.0.0",
     "mdast-util-from-markdown": "^2.0.0",
     "micromark-util-types": "^2.0.0",
+    "serialize-javascript": "^7.0.0",
     "unified": "^11.0.0",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",
     "@types/node": "^20.0.0",
+    "@types/serialize-javascript": "^5.0.4",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",
     "typescript": "^5.3.0",

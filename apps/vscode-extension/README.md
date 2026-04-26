@@ -48,6 +48,21 @@
 code --install-extension dramark-0.1.0.vsix
 ```
 
+### 本地打包 VSIX
+
+推荐（pnpm）：
+
+```bash
+pnpm --dir apps/vscode-extension package:vsix
+```
+
+npm 兜底：
+
+```bash
+cd apps/vscode-extension
+npm run package:vsix
+```
+
 ## 快速开始
 
 1. 创建或打开 `.dramark` 或 `.md` 文件
@@ -188,7 +203,5 @@ ${2:译文}
 ## 许可证
 
 MIT © DraMark Contributors
-
-注：本扩展依赖仓库中的核心引擎模块（Apache-2.0），具体分层见仓库根目录 README。
 
 注：本扩展依赖仓库中的核心引擎模块（Apache-2.0），具体分层见仓库根目录 README。

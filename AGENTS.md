@@ -2,6 +2,10 @@
 
 Instructions for agentic coding agents working in the DraMark repository.
 
+**Generated:** 2026-04-24
+**Commit:** 70db26b
+**Branch:** vscode-plugin-enhc
+
 ## Project Overview
 
 DraMark (Drama Markdown) is a Remark plugin implementing a Markdown dialect for theater, film, and musical scriptwriting. It extends CommonMark with constructs for character dialogue (`@角色`), song containers (`$$`), translation pairs (`= 原文`), technical cues (`<<cue>>` / `<<<cue>>>`), inline actions (`{动作}`), and comments (`%`).
@@ -24,29 +28,24 @@ There is no linter or formatter configured. Rely on `pnpm build` (strict TS with
 
 ## Architecture
 
-Two parser modes controlled by `parserMode` option:
+**Current mainline**: micromark-only + DraMark multipass. The `legacy` parser mode still exists in `src/parser.ts` but the plugin entry (`src/index.ts`) no longer exposes a mode switch — it always registers micromark extensions and uses the multipass pipeline.
 
-- **`legacy` (default)**: Custom `parseDraMark()` in `src/parser.ts` — a line-by-line state machine that produces the full AST (character blocks, song containers, translation pairs).
-- **`micromark`**: Micromark tokenizer extensions in `src/m2-extensions.ts` for inline markers only; block-level parsing handled by standard remark-parse.
+### Multipass Pipeline (3–4 passes)
 
-### Core State Machine (legacy mode)
+The parser intentionally splits work across passes to avoid conflicts between CommonMark and DraMark token boundaries:
 
-The legacy parser maintains a 2D state at `src/parser.ts:44`:
-- **Performance Context**: `global` (stage directions) vs `character` (dialogue)
-- **Musical Context**: `spoken` vs `sung` (within `$$` containers)
+| Pass | Input | Output | Responsibility |
+|------|-------|--------|----------------|
+| Pass 0 | Raw text | frontmatter metadata + body slice | Extract YAML frontmatter; preserve raw YAML in `metadata.frontmatterRaw` |
+| Pass 1 | Body text | Inline lexical boundaries | Lock `<<...>>`, `$...$`, `{...}` boundaries so CommonMark does not consume them |
+| Pass 2 | Line stream + boundaries | Block Stack segments | Root-level triggers (`@`, `$$`, `!!`, `=`, `%`, `<<<`) and deterministic close order |
+| Pass 3 | Segment markdown | CommonMark mdast blocks | Materialize paragraphs, lists, blockquotes, code blocks, etc. |
+| Pass 4 (optional) | Intermediate tree with placeholders | Final AST | Restore protected blocks so code-sanctuary literals are not lost |
 
-Key state transitions:
-- `@角色名` → enters character context
-- `---` or `***` → resets to global context
-- `$$` → toggles song container context
-
-### Multipass Architecture
-
-The plugin uses an intentional 3-4 pass pipeline:
-1. Micromark marking pass (inline lexical precedence, e.g. `<<...>>`)
-2. DraMark marking/protection/structure parse
-3. Micromark parse pass (CommonMark/mdast materialization)
-4. DraMark restore/de-protect pass (when placeholders are used)
+Key invariants:
+- Code sanctuary (fenced code / inline code) takes priority — DraMark markers inside code are literal.
+- Block Stack close order: Translation → Character → Song.
+- Root-level directives require no leading whitespace (indented lines are never DraMark triggers).
 
 ### AST Node Types
 
@@ -54,7 +53,7 @@ Custom MDAST node types defined in `src/types.ts`:
 
 **Block-level**: `character-block`, `song-container`, `translation-pair`, `block-tech-cue`, `comment-line`, `comment-block`, `frontmatter`
 
-**Inline-level**: `inline-action` (`{动作}`), `inline-song` (`$唱词$`), `inline-tech-cue` (`<<cue>>`)
+**Inline-level**: `inline-action` (`{动作}`), `inline-song` (`$唱词$`), `inline-tech-cue` (`<<cue>>`), `inline-spoken`
 
 Both inline markers support Unicode brackets: `｛｝` as alternative to `{}`.
 
@@ -63,19 +62,19 @@ Both inline markers support Unicode brackets: `｛｝` as alternative to `{}`.
 | File | Purpose |
 |------|---------|
 | `src/index.ts` | Main plugin export, unified/remark integration |
-| `src/parser.ts` | Legacy parser with Phase 1 (lex scan) + Phase 3 (assembly) |
+| `src/parser.ts` | Multipass parser: Pass 0 (frontmatter) + Pass 2 (block-stack assembly) |
 | `src/types.ts` | TS interfaces + mdast module augmentation |
-| `src/inline-markers.ts` | Inline marker parsing (`{}`, `$...$`, `<<>>`) for legacy mode |
-| `src/m2-extensions.ts` | Micromark tokenizer extensions |
-| `src/errors.ts` | `DraMarkParseError` class, `defaultOptions()`, `warningToError()` |
+| `src/inline-markers.ts` | Legacy inline marker helpers (historical compat, not the main path) |
+| `src/m2-extensions.ts` | Micromark tokenizer extensions + from-markdown bridge (Pass 1 & 3) |
+| `src/errors.ts` | `DraMarkParseError`, `defaultOptions()`, `warningToError()` |
 | `src/core/` | Higher-level utilities: config normalizer, diagnostics, view-model, outline |
 
 Tests live in `src/tests/`:
 
 | File | Covers |
 |------|--------|
-| `parser.test.ts` | Legacy parser unit tests |
-| `plugin.test.ts` | Unified plugin integration (legacy + micromark modes) |
+| `parser.test.ts` | Parser unit tests (multipass + legacy) |
+| `plugin.test.ts` | Unified plugin integration tests |
 | `ham.test.ts` | Full document parsing (`example/ham.md`) |
 | `edge-cases.test.ts` | Edge case coverage |
 | `scan-segments.test.ts` | Phase 1 lexical scan unit tests |
@@ -83,9 +82,10 @@ Tests live in `src/tests/`:
 
 ### Frontmatter & Translation
 
-- Frontmatter is extracted before parsing (`src/parser.ts:194-208`); raw YAML is preserved in `metadata.frontmatterRaw`
+- Frontmatter is extracted before parsing (`src/parser.ts` frontmatter slice logic); raw YAML is preserved in `metadata.frontmatterRaw`
 - Translation mode is auto-enabled via frontmatter (`translation.enabled: true`) or via `translationEnabled` option
 - Translation pairs use `=` prefix for source text followed by target text lines; orphan `=` lines outside character context generate `TRANSLATION_OUTSIDE_CHARACTER` warnings
+- `translation.render_mode` is an optional hint (e.g. `bilingual`); interactive consumers may override it at runtime
 
 ## Code Style
 
@@ -143,3 +143,14 @@ Tests live in `src/tests/`:
 - Escaping: backslash escapes `\@`, `\$`, `\%`, `\{`, `\}`, `\<`, `\>`, `\=`
 - Module resolution: `NodeNext` for ESM output; package is ESM-only (`"type": "module"`)
 - No Cursor rules or Copilot instructions are configured in this repo
+
+## Anti-Patterns (Explicitly Forbidden)
+
+- **No legacy mode in plugin**: `src/index.ts` always uses micromark-only multipass; do not reintroduce a `parserMode` switch
+- **No manual `??` chains for options**: Always use `defaultOptions()` helper from `src/errors.ts`
+- **No inline character declarations**: `DEPRECATED_INLINE_CHARACTER_DECLARATION` — character declarations must be standalone lines
+- **No comments in code**: Do NOT add comments unless explicitly asked
+- **No `Co-author: Claude` in commits**: Explicitly forbidden per `CLAUDE.md`
+- **No CJS / `.cjs` imports**: ESM-only; all imports must use `.js` extensions
+- **No type suppression**: Never use `as any`, `@ts-ignore`, `@ts-expect-error`
+- **No empty catch blocks**: All errors must be handled explicitly

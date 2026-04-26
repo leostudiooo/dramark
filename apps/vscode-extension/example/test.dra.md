@@ -65,9 +65,11 @@ It always happens in the midnight -- the hunger strikes
 The stores are closed, I tried the door
 = 公园里也没有人
 The park is empty, searched the floor
+!!
+@小帕
 = 我该去哪里找好吃的夜宵呢
 How can I find my late night bite that I long for?
-
+!!
 ---
 小帕发现了躺着的小塔。
 
@@ -122,6 +124,11 @@ $$
 @小塔
 哈？
 
+%%
+这是一个块注释测试
+在多行上
+%%
+
 @小帕
 嗯？
 
@@ -151,7 +158,7 @@ $$
 甚至不是人
 好想立刻醒来
 但是现在
-
+% test comment 1
 
 @@
 <<<
@@ -194,7 +201,7 @@ $$
 做不到噢。<<BGM_PARK_NIGHT GO>>
 
 @小塔
-那，长生不老！
+那，长生不老！ % comment
 
 @小帕
 做不到噢。

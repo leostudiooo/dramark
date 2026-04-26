@@ -1,3 +1,6 @@
+import {
+  applyAlpha,
+} from '../render/tech-cue-colors.js';
 import type {
   RenderBlock,
   CharacterRenderBlock,
@@ -17,19 +20,17 @@ export interface PreviewProps {
 
 export function createPreviewHTML(props: PreviewProps): string {
   const { layout, config } = props;
+  const hasLeft = config.showTechCues && layout.left.length > 0;
+  const hasRight = config.showComments && layout.right.length > 0;
+  const columnCount = hasLeft && hasRight ? 3 : hasLeft || hasRight ? 2 : 1;
 
   return `
-    <div class="dramark-preview" data-theme="${config.theme}">
+    <div class="dramark-preview" data-theme="${config.theme}" data-columns="${columnCount}" data-has-left="${hasLeft}" data-has-right="${hasRight}">
       <div class="dramark-layout dm-layout-desktop">
-        <div class="dramark-left">
-          ${layout.rows.map((row) => renderRowLeft(row.left)).join('')}
-        </div>
-        <div class="dramark-center">
-          ${layout.rows.map((row) => renderRowCenter(row.center, config)).join('')}
-        </div>
-        <div class="dramark-right">
-          ${layout.rows.map((row) => renderRowRight(row.right)).join('')}
-        </div>
+        ${layout.rows.map((row) => renderDesktopRow(row, config, hasLeft, hasRight)).join('')}
+      </div>
+      <div class="dramark-layout dm-layout-tablet">
+        ${renderTabletLayout(layout, config)}
       </div>
       <div class="dramark-layout dm-layout-mobile">
         <div class="dramark-center">
@@ -40,41 +41,107 @@ export function createPreviewHTML(props: PreviewProps): string {
   `;
 }
 
-function renderRowLeft(block: TechCueBlock | null): string {
-  if (block === null) {
-    return '<div class="dm-row-placeholder" aria-hidden="true"></div>';
-  }
-  return `<div class="dm-row-slot">${renderTechCueBlock(block)}</div>`;
+function renderTabletLayout(layout: ColumnarLayout, config: PreviewConfig): string {
+  const hasRight = config.showComments && layout.right.length > 0;
+  const hasLeft = config.showTechCues && layout.left.length > 0;
+  
+  const rowsHtml = layout.rows.map((row) => {
+    if (!hasRight && hasLeft) {
+      const leftHtml = row.left
+        ? `<div class="dm-row-left">${renderTechCueBlock(row.left)}</div>`
+        : '<div class="dm-row-left dm-row-empty" aria-hidden="true"></div>';
+      
+      const centerHtml = row.center
+        ? `<div class="dm-row-center">${renderBlock(row.center, config)}</div>`
+        : '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
+      
+      return `
+        <div class="dm-row" data-has-left="${!!row.left}" data-has-center="${!!row.center}" data-has-right="false">
+          ${leftHtml}
+          ${centerHtml}
+        </div>
+      `;
+    }
+    
+    const centerParts: string[] = [];
+    if (row.left !== null) {
+      centerParts.push(renderTechCueBlock(row.left));
+    }
+    if (row.center !== null) {
+      centerParts.push(renderBlock(row.center, config));
+    }
+    
+    const centerHtml = centerParts.length > 0
+      ? `<div class="dm-row-center">${centerParts.join('')}</div>`
+      : '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
+    
+    const rightHtml = row.right !== null
+      ? `<div class="dm-row-right">${renderCommentBlock(row.right)}</div>`
+      : '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>';
+    
+    return `
+      <div class="dm-row" data-has-left="${!!row.left}" data-has-center="${!!row.center}" data-has-right="${!!row.right}">
+        ${centerHtml}
+        ${rightHtml}
+      </div>
+    `;
+  }).join('');
+  
+  return `
+    <div class="dm-layout-tablet-inner">
+      ${rowsHtml}
+    </div>
+  `;
 }
 
-function renderRowCenter(block: RenderBlock | null, config: PreviewConfig): string {
-  if (block === null) {
-    return '<div class="dm-row-placeholder" aria-hidden="true"></div>';
+function renderDesktopRow(
+  row: { left: TechCueBlock | null; center: RenderBlock | null; right: CommentRenderBlock | null },
+  config: PreviewConfig,
+  hasLeft: boolean,
+  hasRight: boolean
+): string {
+  // 如果整行都是空的，跳过
+  if (!row.left && !row.center && !row.right) {
+    return '';
   }
-  return `<div class="dm-row-slot">${renderBlock(block, config)}</div>`;
-}
-
-function renderRowRight(block: CommentRenderBlock | null): string {
-  if (block === null) {
-    return '<div class="dm-row-placeholder" aria-hidden="true"></div>';
-  }
-  return `<div class="dm-row-slot">${renderCommentBlock(block)}</div>`;
+  
+  // 始终生成三个单元格（即使内容为空，也生成空占位符），确保中间栏位置固定
+  const leftHtml = hasLeft
+    ? (row.left ? `<div class="dm-row-left">${renderTechCueBlock(row.left)}</div>` : '<div class="dm-row-left dm-row-empty" aria-hidden="true"></div>')
+    : '<div class="dm-row-left dm-row-empty" aria-hidden="true"></div>';
+  
+  const centerHtml = row.center
+    ? `<div class="dm-row-center">${renderBlock(row.center, config)}</div>`
+    : '<div class="dm-row-center dm-row-empty" aria-hidden="true"></div>';
+  
+  const rightHtml = hasRight
+    ? (row.right ? `<div class="dm-row-right">${renderCommentBlock(row.right)}</div>` : '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>')
+    : '<div class="dm-row-right dm-row-empty" aria-hidden="true"></div>';
+  
+  return `
+    <div class="dm-row" data-has-left="${!!row.left}" data-has-center="${!!row.center}" data-has-right="${!!row.right}">
+      ${leftHtml}
+      ${centerHtml}
+      ${rightHtml}
+    </div>
+  `;
 }
 
 function renderRowForMobile(
   row: { left: TechCueBlock | null; center: RenderBlock | null; right: CommentRenderBlock | null },
   config: PreviewConfig,
 ): string {
+  const htmlParts: string[] = [];
   if (row.center !== null) {
-    return renderBlock(row.center, config);
+    htmlParts.push(renderBlock(row.center, config));
   }
   if (row.left !== null) {
-    return renderTechCueBlock(row.left);
+    htmlParts.push(renderTechCueBlock(row.left));
   }
   if (row.right !== null) {
-    return renderCommentBlock(row.right);
+    htmlParts.push(renderCommentBlock(row.right));
   }
-  return '';
+  return htmlParts.join('');
 }
 
 function renderBlock(block: RenderBlock, config: PreviewConfig): string {
@@ -102,7 +169,7 @@ function renderCharacterBlock(block: CharacterRenderBlock, config: PreviewConfig
   const namesHtml = block.names.map(name => `<span class="dm-character-name">${escapeHtml(name)}</span>`).join('<span class="dm-character-sep"> </span>');
   const contextHtml = block.context ? `<div class="dm-character-context">[${escapeHtml(block.context)}]</div>` : '';
   
-  const contentHtml = block.content.map((content) => renderDialogueContent(content, config)).join('');
+  const contentHtml = block.content.map((content) => renderDialogueContent(content, config, block.performanceMode)).join('');
 
   const techCuesHtml = block.techCues.length > 0
     ? `<div class="dm-character-tech-cues">${block.techCues.map(tc => renderInlineTechCue(tc)).join('')}</div>`
@@ -123,7 +190,7 @@ function renderCharacterBlock(block: CharacterRenderBlock, config: PreviewConfig
 }
 
 function renderGlobalActionBlock(block: GlobalActionBlock, config: PreviewConfig): string {
-  const contentHtml = block.content.map((content) => renderDialogueContent(content, config)).join('');
+  const contentHtml = block.content.map((content) => renderDialogueContent(content, config, block.performanceMode)).join('');
 
   return `<div class="dm-global-action" data-mode="${block.performanceMode}">${contentHtml}</div>`;
 }
@@ -145,7 +212,7 @@ function renderTechCueBlock(block: TechCueBlock): string {
     ? `<div class="dm-tech-cue-header">${escapeHtml(block.header)}</div>` 
     : '';
   
-  const style = block.color ? `style="border-color: ${block.color}; background: ${block.color}15;"` : '';
+  const style = block.color ? `style="border-color: ${block.color}; background: ${applyAlpha(block.color, 0.08)};"` : '';
 
   return `
     <div class="dm-tech-cue-block" ${style} data-mode="${block.performanceMode}">
@@ -160,7 +227,11 @@ function renderCommentBlock(block: CommentRenderBlock): string {
   return `<div class="dm-comment ${variantClass}" data-mode="${block.performanceMode}">${escapeHtml(block.content)}</div>`;
 }
 
-function renderDialogueContent(content: { type: string; children: DialogueChild[]; sourceText?: string; targetText?: string }, config: PreviewConfig): string {
+function renderDialogueContent(
+  content: { type: string; children: DialogueChild[]; sourceText?: string; targetText?: string; commentVariant?: 'line' | 'block' },
+  config: PreviewConfig,
+  performanceMode: 'spoken' | 'sung',
+): string {
   if (content.type === 'paragraph') {
     return `<p class="dm-paragraph">${renderInlineChildren(content.children)}</p>`;
   }
@@ -180,12 +251,19 @@ function renderDialogueContent(content: { type: string; children: DialogueChild[
     }
     return `<div class="dm-translation" data-layout="${config.translationLayout}">${sourceHtml}${targetHtml}</div>`;
   }
+  if (content.type === 'comment') {
+    const variant = content.commentVariant === 'block' ? 'block' : 'line';
+    return renderCommentBlock({
+      type: 'comment',
+      variant,
+      content: content.targetText || '',
+      performanceMode,
+    });
+  }
   return '';
 }
 
-function renderInlineChildren(children: DialogueChild[] | unknown): string {
-  if (!Array.isArray(children)) return '';
-  
+function renderInlineChildren(children: DialogueChild[]): string {
   return children.map(child => {
     switch (child.type) {
       case 'text':
@@ -193,13 +271,19 @@ function renderInlineChildren(children: DialogueChild[] | unknown): string {
       case 'break':
         return '<br />';
       case 'emphasis':
-        return `<em>${child.children?.map(c => escapeHtml(c.value)).join('') || ''}</em>`;
+        return `<em>${child.children.map(c => escapeHtml(c.value)).join('')}</em>`;
       case 'strong':
-        return `<strong>${child.children?.map(c => escapeHtml(c.value)).join('') || ''}</strong>`;
+        return `<strong>${child.children.map(c => escapeHtml(c.value)).join('')}</strong>`;
       case 'inline-action':
         return `<span class="dm-inline-action">{${escapeHtml(child.value || '')}}</span>`;
       case 'inline-song':
         return `<span class="dm-inline-song">${escapeHtml(child.value || '')}</span>`;
+      case 'image': {
+        const url = escapeHtml(child.url || '');
+        const alt = escapeHtml(child.alt || '');
+        const titleAttr = child.title ? ` title="${escapeHtml(child.title)}"` : '';
+        return `<img class="dm-inline-image" src="${url}" alt="${alt}"${titleAttr} loading="lazy" />`;
+      }
       case 'inline-spoken':
         return `<span class="dm-inline-spoken">${escapeHtml(child.value || '')}</span>`;
       case 'inline-tech-cue':
@@ -211,7 +295,7 @@ function renderInlineChildren(children: DialogueChild[] | unknown): string {
 }
 
 function renderInlineTechCue(tc: { payload: string; color?: string }): string {
-  const style = tc.color ? `style="border-color: ${tc.color}; color: ${tc.color}; background: ${tc.color}15;"` : '';
+  const style = tc.color ? `style="border-color: ${tc.color}; color: ${tc.color}; background: ${applyAlpha(tc.color, 0.08)};"` : '';
   return `<span class="dm-inline-tech-cue" ${style}>${escapeHtml(tc.payload)}</span>`;
 }
 

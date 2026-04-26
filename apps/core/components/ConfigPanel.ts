@@ -7,23 +7,70 @@ export interface ConfigPanelProps {
   onToggle: () => void;
 }
 
-export function createConfigPanelHTML(props: ConfigPanelProps): string {
+export interface ConfigPanelRenderOptions {
+  triggerAriaLabel?: string;
+  triggerId?: string;
+  contentId?: string;
+  triggerIconHtml?: string;
+  includePrintThemeOption?: boolean;
+  themeValue?: ThemeMode;
+  keepContentMounted?: boolean;
+  contentStyle?: string;
+  extraItemsHtml?: string;
+}
+
+const defaultSettingsIcon = '<span class="codicon codicon-settings-gear" aria-hidden="true"></span>';
+
+export const settingsGearSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>';
+
+export function createConfigPanelHTML(props: ConfigPanelProps, options: ConfigPanelRenderOptions = {}): string {
   const { config, isOpen } = props;
+  const {
+    triggerAriaLabel = 'Settings',
+    triggerId,
+    contentId,
+    triggerIconHtml = defaultSettingsIcon,
+    keepContentMounted = false,
+  } = options;
+
+  const renderContent = isOpen || keepContentMounted;
+  const contentStyle = keepContentMounted
+    ? ` style="display: ${isOpen ? 'block' : 'none'};${options.contentStyle ? ` ${options.contentStyle}` : ''}"`
+    : (options.contentStyle ? ` style="${options.contentStyle}"` : '');
+  const contentHtml = renderContent
+    ? createConfigContentHTML(config, options, contentId, contentStyle)
+    : '';
+  const triggerIdAttr = triggerId ? ` id="${triggerId}"` : '';
 
   return `
     <div class="dm-config-panel">
-      <button class="dm-config-trigger" aria-label="配置" aria-expanded="${isOpen}">
-        <span class="codicon codicon-settings-gear" aria-hidden="true"></span>
+      <button class="dm-config-trigger"${triggerIdAttr} aria-label="${triggerAriaLabel}" aria-expanded="${isOpen}">
+        ${triggerIconHtml}
       </button>
-      
-      ${isOpen ? createConfigContentHTML(config) : ''}
+      ${contentHtml}
     </div>
   `;
 }
 
-function createConfigContentHTML(config: PreviewConfig): string {
+export function createConfigContentHTML(
+  config: PreviewConfig,
+  options: ConfigPanelRenderOptions = {},
+  contentId?: string,
+  contentStyleAttr = '',
+): string {
+  const themeValue = options.themeValue ?? config.theme;
+  const themeOptions = [
+    `<option value="auto" ${themeValue === 'auto' ? 'selected' : ''}>Auto</option>`,
+    `<option value="light" ${themeValue === 'light' ? 'selected' : ''}>Light</option>`,
+    `<option value="dark" ${themeValue === 'dark' ? 'selected' : ''}>Dark</option>`,
+    options.includePrintThemeOption
+      ? `<option value="print" ${themeValue === 'print' ? 'selected' : ''}>Print</option>`
+      : '',
+  ].join('');
+  const contentIdAttr = contentId ? ` id="${contentId}"` : '';
+
   return `
-    <div class="dm-config-content">
+    <div class="dm-config-content"${contentIdAttr}${contentStyleAttr}>
       <div class="dm-config-item">
         <span class="dm-config-label">Tech Cues</span>
         <label class="dm-switch">
@@ -60,11 +107,11 @@ function createConfigContentHTML(config: PreviewConfig): string {
       <div class="dm-config-item">
         <span class="dm-config-label">Theme</span>
         <select data-config="theme">
-          <option value="auto" ${config.theme === 'auto' ? 'selected' : ''}>Auto</option>
-          <option value="light" ${config.theme === 'light' ? 'selected' : ''}>Light</option>
-          <option value="dark" ${config.theme === 'dark' ? 'selected' : ''}>Dark</option>
+          ${themeOptions}
         </select>
       </div>
+
+      ${options.extraItemsHtml ?? ''}
     </div>
   `;
 }
